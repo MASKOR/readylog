@@ -57,6 +57,9 @@ int p_create_digraph()
 
       // cout << "Created graph " << graph_name << endl;
 
+      agedgeattr(G, "label", "");
+      agnodeattr(G, "label", "");
+
       return EC_succeed;
     }
 
