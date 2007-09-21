@@ -1,14 +1,12 @@
 
 BASEDIR = ../..
 
-include $(BASEDIR)/etc/buildsys/config.mk
-
 TARGETS = keyboard
 
 OBJS_keyboard = getkey.o \
 		 keyboard.o
 
-LIBS_keyboard = eclipse
+LIBS_keyboard = stdc++ eclipse
 
 INSTALL_keyboard = keyboard.pl
 
