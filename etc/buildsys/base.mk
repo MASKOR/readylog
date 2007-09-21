@@ -21,7 +21,7 @@
 #*****************************************************************************
 
 .DEFAULT:
-.DEFAULT: all
+#.DEFAULT: all
 
 include $(BASEDIR)/etc/buildsys/config.mk
 ifneq (.objs,$(notdir $(CURDIR)))

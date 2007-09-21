@@ -38,11 +38,12 @@ endif
 # Dependencies
 -include $(DEPDIR)/*.d
 
+OBJS_all = $(foreach target,$(TARGETS),$(OBJS_$(target)))
 ifneq ($(TARGETS),)
 # Do not delete .o files to allow for incremental builds
-.SECONDARY: $(foreach target,$(TARGETS),$(OBJS_$(target)))
+.SECONDARY: $(OBJS_all)
 # Whenever the Makefile is modified rebuild everything
-$(TARGETS): $(SRCDIR)/Makefile
+$(OBJS_all): $(SRCDIR)/Makefile
 else
   ifneq ($(LIBS_all)$(PLUGINS_all)$(BINS_all),)
     ifneq ($(DISABLE_OBJS_all_WARNING),1)
@@ -52,17 +53,17 @@ else
 endif
 
 # One to build 'em all
+TARGETS_all = $(foreach target,$(TARGETS),$(INSTALLDIR)/$(target)/$(target).so)
+INSTALL_all = $(foreach target,$(TARGETS),$(addprefix $(INSTALLDIR)/$(target)/,$(INSTALL_$(target))))
 .PHONY: all
-all: $(foreach target,$(TARGETS),$(INSTALLDIR)/$(target)/$(target)) subdirs
+all: presubdirs $(TARGETS_all) $(INSTALL_all) subdirs
 
 .PHONY: clean
-clean: subdirs
+clean: subdirs	
 	$(SILENT) echo -e "$(INDENT_PRINT)--> Cleaning up directory $(TBOLDGRAY)$(CURDIR)$(TNORMAL)"
 	$(SILENT) if [ "$(SRCDIR)/$(OBJDIR)" != "/" ]; then rm -rf $(SRCDIR)/$(OBJDIR) ; fi
 	$(SILENT) if [ "$(DEPDIR)" != "" ]; then rm -rf $(DEPDIR) ; fi
-	$(SILENT) if [ "$(BINS_all)" != "" ]; then rm -rf $(BINS_all) ; fi
-	$(SILENT) if [ "$(LIBS_all)" != "" ]; then rm -rf $(LIBS_all) ; fi
-	$(SILENT) if [ "$(PLUGINS_all)" != "" ]; then rm -rf $(PLUGINS_all) ; fi
+	$(SILENT) if [ "$(TARGETS_all)" != "" ]; then rm -rf $(TARGETS_all) ; fi
 
 ifeq (,$(findstring qa,$(SUBDIRS)))
 .PHONY: qa
@@ -73,17 +74,19 @@ qa: subdirs
 	fi
 endif
 
-.PHONY: subdirs $(SUBDIRS)
+.PHONY: presubdirs $(PRESUBDIRS) subdirs $(SUBDIRS)
+presubdirs: $(PRESUBDIRS)
 subdirs: $(SUBDIRS)
 
-ifneq ($(SUBDIRS),)
-$(SUBDIRS):
-	$(SILENT) if [ ! -d $(@) ]; then \
-		echo -e "\n$(INDENT_PRINT)---$(TRED)Directory $(TNORMAL)$(TBOLDRED)$@$(TNORMAL)$(TRED) does not exist, check SUBDIRS variable$(TNORMAL) ---"; \
+ifneq ($(PRESUBDIRS)$(SUBDIRS),)
+$(PRESUBDIRS) $(SUBDIRS):
+	$(SILENT) if [ ! -d "$(realpath $(SRCDIR)/$(@))" ]; then \
+		echo -e "$(INDENT_PRINT)---$(TRED)Directory $(TNORMAL)$(TBOLDRED)$@$(TNORMAL)$(TRED) does not exist, check [PRE]SUBDIRS variable$(TNORMAL) ---"; \
 		exit 1; \
 	else \
-		echo -e "\n$(INDENT_PRINT)--- Entering sub-directory $(TBOLDBLUE)$@$(TNORMAL) ---"; \
-		$(MAKE) --no-print-directory -C $(realpath $(SRCDIR)/$@) $(MAKECMDGOALS) INDENT="$(INDENT)$(INDENT_STRING)"; \
+		echo -e "$(INDENT_PRINT)--> Entering sub-directory $(TBOLDBLUE)$@$(TNORMAL) ---"; \
+		$(MAKE) --no-print-directory --no-keep-going -C "$(realpath $(SRCDIR)/$@)" \
+		$(MFLAGS) $(MAKECMDGOALS) INDENT="$(INDENT)$(INDENT_STRING)"; \
 		if [ "$(MAKECMDGOALS)" != "clean" ]; then \
 			echo -e "$(INDENT_PRINT)$(subst -, ,$(INDENT_STRING))<-- Leaving $@"; \
 		fi \
@@ -102,22 +105,37 @@ endif
 	$(SILENT) mkdir -p $(@D)
 	$(SILENT) echo "$(INDENT_PRINT)--> Compiling $(subst $(SRCDIR)/,,$<) (C++)"
 	$(SILENT) mkdir -p $(dir $(subst ..,__,$@))
-	$(SILENT) $(CC) -Wp,-M,-MF,$(df).d $(CFLAGS_BASE) $(CFLAGS) $(CFLAGS_$*) \
+	$(SILENT) $(CC) -MD -MF $(df).td $(CFLAGS_BASE) $(CFLAGS) $(CFLAGS_$*) \
 	$(addprefix -I,$(INCS_$*)) $(addprefix -I,$(INCDIRS)) -c -o $(subst ..,__,$@) $<
-	$(SILENT) cp -f $(df).d $(df).td; \
-	sed -e 's/^\([^:]\+\): \(.*\)$$/$(subst /,\/,$(@D))\/\1: \2/' < $(df).td > $(df).d; \
+	$(SILENT)sed -e 's/^\([^:]\+\): \(.*\)$$/$(subst /,\/,$(@D))\/\1: \2/' < $(df).td > $(df).d; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' -e 's/^ *//' \
+	    -e '/^$$/ d' -e 's/$$/ :/' < $(df).td >> $(df).d; \
+	rm -f $(df).td
+
+%.o: %.c
+	$(SILENT) mkdir -p $(DEPDIR)
+	$(SILENT) mkdir -p $(@D)
+	$(SILENT) echo "$(INDENT_PRINT)--- Compiling $(subst $(SRCDIR)/,,$<) (C)"
+	$(SILENT) mkdir -p $(dir $(subst ..,__,$@))
+	$(SILENT) $(CC) -MD -MF $(df).td $(CFLAGS_BASE) $(CFLAGS) $(CFLAGS_$*) \
+	$(addprefix -I,$(INCS_$*)) $(addprefix -I,$(INCDIRS)) -c -o $(subst ..,__,$@) $<
+	$(SILENT)sed -e 's/^\([^:]\+\): \(.*\)$$/$(subst /,\/,$(@D))\/\1: \2/' < $(df).td > $(df).d; \
 	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' -e 's/^ *//' \
 	    -e '/^$$/ d' -e 's/$$/ :/' < $(df).td >> $(df).d; \
 	rm -f $(df).td
 
 .SECONDEXPANSION:
-$(INSTALLDIR)/%: $$(OBJS_$$(notdir $$*)) $$(INSTALL_$$(notdir $$*))
-	$(SILENT) mkdir -p $(BASEDIR)/utils/$(TARGET_$*)
+$(INSTALLDIR)/%.so: $$(OBJS_$$(notdir $$*))
+	$(SILENT) mkdir -p $(INSTALLDIR)/$(notdir $*)
 	$(SILENT) echo -e " --- Linking $*"
 	$(SILENT) mkdir -p $(@D)
 	$(SILENT) $(CC) $(LDFLAGS_SHARED) $(LDFLAGS) $(LDFLAGS_$(notdir $*)) \
 	$(addprefix -l,$(LIBS_$(notdir $*))) $(addprefix -l,$(LIBS)) \
 	$(addprefix -L,$(LIBDIRS_$(notdir $*))) $(addprefix -L,$(LIBDIRS)) \
-	-o $@ $(subst ..,__,$(filter %.o,$^))
-	$(SILENT) cp $(filter %.pl %.ecl,$^) $(dir $@)
+	-o $@ $(subst ..,__,$^)
+
+$(INSTALLDIR)/%.pl $(INSTALLDIR)/%.ecl: $$(INSTALL_$$(notdir $$@))
+	$(SILENT) mkdir -p $(dir $@)
+	$(SILENT) echo -e " --- Copying additional file $(notdir $@)"
+	$(SILENT) cp $(SRCDIR)/$(notdir $@) $@
 
