@@ -1,35 +1,39 @@
-/* **********************************************************
-                      TRANS and FINAL 
-********************************************************** */ 
+/* ***************************************************************************
+ *                                            ####   ####           .-""-.    
+ *       # #                             #   #    # #    #         /[] _ _\   
+ *       # #                                 #    # #             _|_o_LII|_  
+ * ,###, # #  ### ## ## ##   ###  ## ##  #   #    # #       ###  / | ==== | \ 
+ * #   # # # #   # ## ## #  #   #  ## #  #   ###### #      #     |_| ==== |_| 
+ * #   # # # ####  #  #  #  #   #  #  #  #   #    # #      ####   ||" ||  ||  
+ * #   # # # #     #  #  #  #   #  #  #  #   #    # #    #    #   ||'----'||  
+ * '###'# # # #### #  #  ##  ### # #  ## ## #      # ####  ###   /__|    |__\ 
+ * ***************************************************************************
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; only version 2 of the License!
+ * ***************************************************************************
+ *
+ *           $Id: readylog.pl,v 1.1 2006/04/13 15:50:24 stf Exp $
+ *       @author: Christian Fritz <Christian.Fritz@rwth-aachen.de>
+ *   description: TRANS and FINAL of Readylog Interpreter 
+ * last modified: $Date: 2006/04/13 15:50:24 $
+ *            by: $Author: stf $
+ *
+ * **************************************************************************/
 
-/*.................................................................
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
-* (at your option) any later version.
-* 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-* 
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-.................................................................*/
+/* ================================================================== */
+/*                        TRANS and FINAL                             */
+/* ================================================================== */
 
-
-/* ----------------------------------------------------------
-   Final
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  Final                                                    */
+/* --------------------------------------------------------- */
 % {{{ Final
-% >>>>
-
 
 /** axioms for final configuration. 
-* final(P, S) states that program P is finished in situation S
-(nothing left to do) */
-
+ * final(P, S) states that program P is finished in situation S.
+ * (nothing left to do) 
+ */
 final([],_). 
 final(pconc(E1,E2),S) :-   final(E1,S), !; final(E2,S).  
 final([E|L],S) :- 	   final(E,S), final(L,S). 
@@ -54,22 +58,18 @@ final(E,S) :- proc(E,E1), final(E1,S).
 
 % }}}
 
-
-
-/* ----------------------------------------------------------
-   transPr
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  transPr                                                  */
+/* --------------------------------------------------------- */
 % {{{ transPr
-% >>>>
 
 /** the old ConGolog trans/4 is a transPr with probability 1 */
 trans(E,S,E1,S1) :- transPr(E,S,E1,S1,1).
 
-/**
-* Sequence.
-* in a final configuration a transition with the tail of the program
-* is executed, otherwhise a transition with the head is executed
-*/
+/** Sequence.
+ * in a final configuration a transition with the tail of the program
+ * is executed, otherwhise a transition with the head is executed
+ */
 transPr([E|L],S,R,S1,P) :- 
 	(
 	  final(E,S) -> 
@@ -85,25 +85,23 @@ transPr([E|L],S,R,S1,P) :-
 	  R=[R1|L]
 	).
 
-/**
-* prob; probabilistic execution of program e1 with prob p
-* note: to distinguish both branches of the program the
-* dummy action tossHead, tossTail is introduced. 
-*/
+/** prob; probabilistic execution of program e1 with prob p.
+ * note: to distinguish both branches of the program the
+ * dummy action tossHead, tossTail is introduced. 
+ */
 transPr(prob(P,E1,_E2),S1,E1,[tossHead|S1],Q) :-
 	Q is P.
 transPr(prob(P,_E1,E2),S1,E2,[tossTail|S1],Q) :- 
 	Pnum is P,
 	Q is 1-Pnum.
 
-/**
-* event-based execution;
-* online case: the time fluent start is evaluated and
-*   the tform cond is tested (holdsTForm defined in readylog.pl)
-* offline case: the least time point ltp is calculated.
-*   (ltp is defined in readylog.pl) and time is advanced to
-*   the least time point where Cond holds (setTime action)
-*/
+/** event-based execution.
+ * online case: the time fluent start is evaluated and
+ *   the tform cond is tested (holdsTForm defined in readylog.pl)
+ * offline case: the least time point ltp is calculated.
+ *   (ltp is defined in readylog.pl) and time is advanced to
+ *   the least time point where Cond holds (setTime action)
+ */
 transPr(waitFor(Cond),S,[],SS,1) :- !,
 	(
 	  holds(online=true,S) ->
@@ -112,16 +110,15 @@ transPr(waitFor(Cond),S,[],SS,1) :- !,
 	  ltp(Cond,T,S), SS=[setTime(T)|S]
 	).
 
-/**
-* concurrency;
-* the action which can be performed first ist executed.
-* if E1 can perform a transition which does not consume
-* time (simulataneous) we perform this ation.
-* Otherwise we look for a legal successor transition for
-* E2 and check which of both has an earlier time
-* (simultaneous defined in final_trans.pl)
-* (earliereq defined in final_trans.pl)
-*/
+/** concurrency.
+ * the action which can be performed first ist executed.
+ * if E1 can perform a transition which does not consume
+ * time (simulataneous) we perform this ation.
+ * Otherwise we look for a legal successor transition for
+ * E2 and check which of both has an earlier time
+ * (simultaneous defined in final_trans.pl)
+ * (earliereq defined in final_trans.pl)
+ */
 transPr(pconc(E1,E2),S,pconc(EE1,EE2),SS,P) :- 
 	not final(E1,S), not final(E2,S), !,
 	(
@@ -149,18 +146,16 @@ transPr(pconc(E1,E2),S,pconc(EE1,EE2),SS,P) :-
 	  transPr(E2,S,EE2,SS,P), EE1=E1
 	).
 
-/**
-* test
-* if cond holds, we transition towards a final configuration (trans([]...)
-* (holds defined in readylog.pl)
-*/
+/** test.
+ * if cond holds, we transition towards a final configuration (trans([]...)
+ * (holds defined in readylog.pl)
+ */
 transPr(?(Cond),S,[],S,1) :- holds(Cond,S), !. 
 
-/**
-* conditional
-* if the condition holds in S we transition towards E1
-* otherwise to E2.
-*/
+/** conditional.
+ * if the condition holds in S we transition towards E1
+ * otherwise to E2.
+ */
 transPr(if(Cond,E1,E2),S,E,S1,P) :- !,
 	(
 	  holds(Cond,S) ->
@@ -169,34 +164,30 @@ transPr(if(Cond,E1,E2),S,E,S1,P) :- !,
 	  transPr(E2,S,E,S1,P)
 	).
 
-/**
-* loop
-* as long as the condition holds, we perform program E1.
-* the successor configuration is the program after executing
-* the first action in E with the loop appended
-*/
+/** loop.
+ * as long as the condition holds, we perform program E1.
+ * the successor configuration is the program after executing
+ * the first action in E with the loop appended
+ */
 transPr(while(Cond,E),S,[E1,while(Cond,E)],S1,P) :- !,
 	( holds(Cond,S) -> transPr(E,S,E1,S1,P) ).
 
-/**
-* guarded execution
-* as long as the condition F holds, we perform steps
-* in program E. The difference to while is, that
-* the body is performed only once.
-*/
+/** guarded execution.
+ * as long as the condition F holds, we perform steps
+ * in program E. The difference to while is, that
+ * the body is performed only once.
+ */
 transPr(withCtrl(F,E),S,EE,SS,P) :- !,
 	holds(F,S), transPr(E,S,E1,SS,P), EE = withCtrl(F,E1). 
 
 
-/* ----------------------------------------------------------
-   Interrupts
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  Interrupts                                               */
+/* --------------------------------------------------------- */
 
-/**
-* interrupts;
-* parallel condition-bounded execution
-*
-*/
+/** interrupts.
+ * parallel condition-bounded execution
+ */
 transPr( interrupt([], ENorm), S, EE, SS, P) :-
 	transPr( ENorm, S, EE, SS, P).
 transPr( interrupt([[Phi,EInt]|Rest], ENorm), S, EE, SS, P) :-
@@ -213,12 +204,13 @@ transPr( interrupt(Phi, EInt, ENorm), S, EE, SS, P) :-
 
 
 
-/* ----------------------------------------------------------
-   decision-theoretic planning
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  decision-theoretic planning                              */
+/* --------------------------------------------------------- */
 
-/*<deprecated> has to be tested
-				% 	printf(" --------\t solve \t-------------
+/*
+<deprecated> has to be tested
+% 	printf(" --------\t solve \t-------------
 % 	      \nHorizon: %w\nProg: %w\nS: %w", [Horizon, Prog, S]),
 % 	flush(output),
 % 	% STF was here:
@@ -250,18 +242,19 @@ transPr( interrupt(Phi, EInt, ENorm), S, EE, SS, P) :-
 % 	),
 % 	Policy_r = applyPolicy(Policy),
 % 	S_r = S.
-</deprecated> */
-
-/** solve; decision theoretic optimizing
-* start optimization of a program.
-* the program is handed to bestDoM
-* if the program Prog is optimized the calculated policy
-* Policy is executed using the the special transition
-* applyPolicy
-* the first predicate is a shortcut for using the standard
-* function reward as reward function
-* (bestDoM defined in decisionTheoretic.pl)
+</deprecated> 
 */
+
+/** solve; decision theoretic optimizing.
+ * start optimization of a program.
+ * the program is handed to bestDoM
+ * if the program Prog is optimized the calculated policy
+ * Policy is executed using the the special transition
+ * applyPolicy
+ * the first predicate is a shortcut for using the standard
+ * function reward as reward function
+ * (bestDoM defined in decisionTheoretic.pl)
+ */
 transPr( solve(Prog, Horizon), S, Policy_r, S_r, 1) :- !,
 	transPr( solve( Prog, Horizon, reward), S, Policy_r, S_r, 1).
 
@@ -299,23 +292,23 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	Policy_r = applyPolicy(Policy),
 	S_r = S.
 
-/* ------------------------------------------------------- */
 
-	
-/* ----------------------------------------------------------
-   nondeterminism
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  nondeterminism                                           */
+/* --------------------------------------------------------- */
 
-/** non-deterministic choice: online simply choose randomly
-(always the first). Usually this construct should never be hit
-online. */
+/** non-deterministic choice.
+ * online simply choose randomly (always the first). 
+ * Usually this construct should never be hit online. 
+ */
 transPr( nondet(L), S, EE, SS, 1) :- !,
 	L = [_E|_LR], /* L is a list */
 	member_index( EE, I_choice, L),
 	SS = [toss(I_choice)|S].
 
 /** pickBest: online simply choose randomly (always the first).
-This construct should never be hit online. */
+ * This construct should never be hit online. 
+ */
 transPr( pickBest(F, R, E), S, E_choice, S_choice, 1) :- !,
 	flatten(E,E_flat),
 	(
@@ -326,8 +319,7 @@ transPr( pickBest(F, R, E), S, E_choice, S_choice, 1) :- !,
  	  E_choice = E,
 	  BestValue = F
 	;
-	  /* substitute all occurences of F by a still
-	  free variable X */
+	  /* substitute all occurences of F by a still free variable X */
 	  subvl( F, X, E_flat, E_sub), !,  
   	  X::R,
 	  indomain(X), /* bind variable X to a value in the domain */
@@ -335,24 +327,21 @@ transPr( pickBest(F, R, E), S, E_choice, S_choice, 1) :- !,
 	  BestValue = X
 	),
 	S_choice = [toss(BestValue)|S].
-/* ------------------------------------------------------- */
 
 
+/* --------------------------------------------------------- */
+/*  applyPolicy                                              */
+/* --------------------------------------------------------- */
 
-/* ----------------------------------------------------------
-   applyPolicy
----------------------------------------------------------- */
-/**
-* applyPolicy
-* case: marker
-* if a marker was found as next statement in the policy
-* it's thruth value is evaluated again. If the truth
-* values at planning time are the same as at execution
-* time, we pop the marker from the policy and proceed with the
-* rest of the policy (done by applyPolicy(PolR) in the clause head)
-* otherwise PolR is set to the empty program which terminated the
-* execution of the policy
-*/
+/** applyPolicy; case: marker.
+ * if a marker was found as next statement in the policy
+ * it's thruth value is evaluated again. If the truth
+ * values at planning time are the same as at execution
+ * time, we pop the marker from the policy and proceed with the
+ * rest of the policy (done by applyPolicy(PolR) in the clause head)
+ * otherwise PolR is set to the empty program which terminated the
+ * execution of the policy
+ */
 transPr( applyPolicy([marker(Cond, TruthValue)|PolTail]), S, applyPolicy(PolR), S, 1) :- !,
 	printColor(yellow, "applyPolicy: \tPolHead = %w\n", [marker(Cond, TruthValue)]),
 	flush(output),
@@ -379,13 +368,11 @@ transPr( applyPolicy([marker(Cond, TruthValue)|PolTail]), S, applyPolicy(PolR), 
 	  )
 	).	
 
-/**
-* applyPolicy
-* case: conditional
-* if the condition Cond holds, we proceed with executing the policy
-* [Pol1, PolTail], otherwise we proceed with [Pol2, PolTail]. We need
-* this kind of combination not to leave applyPol transitions
-*/
+/** applyPolicy; case: conditional.
+ * if the condition Cond holds, we proceed with executing the policy
+ * [Pol1, PolTail], otherwise we proceed with [Pol2, PolTail]. We need
+ * this kind of combination not to leave applyPol transitions
+ */
 transPr( applyPolicy([if(Cond, Pol1, Pol2) | PolTail]), S, ProgR, SNew, 1) :- !,
 	printColor(yellow, "applyPolicy: \tPolHead = %w\n", [if(Cond, Pol1, Pol2)]),
 	flush(output),
@@ -396,12 +383,10 @@ transPr( applyPolicy([if(Cond, Pol1, Pol2) | PolTail]), S, ProgR, SNew, 1) :- !,
 	),
 	transPr( applyPolicy(PolNew), S, ProgR, SNew, 1).
 
-/**
-* applyPolicy
-* case: normal program step
-* we check for final of next action and perform transition to the rest of
-* the program, otherwise we simply make a transtion with PolHead.
-*/
+/** applyPolicy; case: normal program step.
+ * we check for final of next action and perform transition to the rest of
+ * the program, otherwise we simply make a transtion with PolHead.
+ */
 transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 	printColor(yellow, "applyPolicy: general case \tPolHead = %w\n", [PolHead]),
 	printf("PolTail = %w\n", [PolTail]),
@@ -415,19 +400,17 @@ transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 	  ProgR = applyPolicy(PolR)
 	).
 
-/** comment in only for debugging purposes
-*/
+/** comment in only for debugging purposes.
+ */
 % transPr( applyPolicy(E), S, E, S, 1) :-
 % 	printf("applyPolicy: DEBUG: no case/trans for \t %w\n", [E]),
 % 	flush(output), !, fail.
 	
 
-/* ------------------------------------------------------- */
 
-
-/* ----------------------------------------------------------
-   Macros/Abbreviations
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  Macros/Abbreviations                                     */
+/* --------------------------------------------------------- */
 
 transPr(tryAll(E1,E2),S,EE,SS,P) :- 
 	transPr(pconc(E1,E2),S,EE,SS,P).
@@ -446,24 +429,23 @@ transPr(whenever(Phi,E),S,EE,SS,P) :-
 
 
 
-/** primitive action
-* if E is a primitive action we look up if it is possible
-* either from preprocessed axioms or standard poss axioms.
-* case 1: If the current action E is a send action (to communicate
-*    with registers), the register is evaluated, as well
-*    as the value of this register (B).
-*    There exists 2 flags: eval_register and eval_exog_functions
-*    set to false, the values are not substituted by a call to subf
-*    (cf subf clause in readylog.pl)
-* case 2: reply actions. here, the register fluent is not
-*    substituted, but the reply-value
-* case 3: ordinary actions; substitute fluents by its values
-*
-* (prolog_poss defined in preprocessed file/preprocessor.pl)
-* (fluent eval_registers in defined in readylog.pl)
-* (fluent eval_exog_functions defined in readylog.pl)
-*/
-
+/** primitive action.
+ * if E is a primitive action we look up if it is possible
+ * either from preprocessed axioms or standard poss axioms.
+ * case 1: If the current action E is a send action (to communicate
+ *    with registers), the register is evaluated, as well
+ *    as the value of this register (B).
+ *    There exists 2 flags: eval_register and eval_exog_functions
+ *    set to false, the values are not substituted by a call to subf
+ *    (cf subf clause in readylog.pl)
+ * case 2: reply actions. here, the register fluent is not
+ *    substituted, but the reply-value
+ * case 3: ordinary actions; substitute fluents by its values
+ *
+ * (prolog_poss defined in preprocessed file/preprocessor.pl)
+ * (fluent eval_registers in defined in readylog.pl)
+ * (fluent eval_exog_functions defined in readylog.pl)
+ */
 transPr( E, S, [], [E_sub|S], 1) :- 
 	prim_action(E), !,
 	(
@@ -487,9 +469,10 @@ transPr( E, S, [], [E_sub|S], 1) :-
 	  )
 	).
 
-/** procedure calls: these include stochastic procedures. Recall
-that stochastic procedures are defined as usual procs, but have
-only additionally a model defined */
+/** procedure calls: these include stochastic procedures. 
+ * Recall that stochastic procedures are defined as usual procs, 
+ * but have only additionally a model defined 
+ */
 transPr( E, S, EE, SS, P) :- 
 % 	/* - evaluate parameters: call-by-value - */
 % 	E =.. [ProcName|Args_s],
@@ -504,12 +487,10 @@ transPr( E, S, EE, SS, P) :-
 % }}}
 
 
-
-/* ----------------------------------------------------------
-   auxiliary
----------------------------------------------------------- */
-% {{{ auxiliary
-% >>>>
+/* --------------------------------------------------------- */
+/*  AUXILIARY                                                */
+/* --------------------------------------------------------- */
+% {{{ AUXILIARY
 
 /** used for X in toss(X) */
 member_index( X, 0, [X|_L]).

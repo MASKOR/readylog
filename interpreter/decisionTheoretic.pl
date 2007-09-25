@@ -1,23 +1,29 @@
-/************************************************************
-    bestDoM
-************************************************************/
+/* ***************************************************************************
+ *                                            ####   ####           .-""-.    
+ *       # #                             #   #    # #    #         /[] _ _\   
+ *       # #                                 #    # #             _|_o_LII|_  
+ * ,###, # #  ### ## ## ##   ###  ## ##  #   #    # #       ###  / | ==== | \ 
+ * #   # # # #   # ## ## #  #   #  ## #  #   ###### #      #     |_| ==== |_| 
+ * #   # # # ####  #  #  #  #   #  #  #  #   #    # #      ####   ||" ||  ||  
+ * #   # # # #     #  #  #  #   #  #  #  #   #    # #    #    #   ||'----'||  
+ * '###'# # # #### #  #  ##  ### # #  ## ## #      # ####  ###   /__|    |__\ 
+ * ***************************************************************************
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; only version 2 of the License!
+ * ***************************************************************************
+ *
+ *           $Id: readylog.pl,v 1.1 2006/04/13 15:50:24 stf Exp $
+ *       @author: Christian Fritz <Christian.Fritz@rwth-aachen.de>
+ *   description: decision theoretic planning (almost)
+ * last modified: $Date: 2006/04/13 15:50:24 $
+ *            by: $Author: stf $
+ *
+ * **************************************************************************/
 
-/*.................................................................
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
-* (at your option) any later version.
-* 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-* 
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-.................................................................*/
-
+/* ================================================================== */
+/*   bestDoM                                                          */
+/* ================================================================== */
 
 /* ----------------------------------------------------------
    NOTES
@@ -36,23 +42,20 @@
 
    ---------------------------------------------------------- */
 
-
 :- write("********** Loading decisionTheoretic.pl ...\n"). 
 
-/* ----------------------------------------------------------
-   Header + Flags
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  Header + Flags                                           */
+/* --------------------------------------------------------- */
 % {{{ header + flags
-% >>>>
 
 :- lib(scattered).       /* to avoid error: non consecutive */
 :- set_flag(print_depth,500).
 
 
-/* ------------------------------------------------------ */
-/* DTDebug: turn on for debug output while decision
-   theoretic planning is in progress
-*/
+/** DTDebug: debugging in DT-planning.
+ * turn on for debug output while decision theoretic planning is in progress
+ */
 :- setval(dtdebug, false).
 dtdebug :- getval(dtdebug, X), !, X=true.
 toggle_dtdebug :- getval(dtdebug, X),
@@ -65,14 +68,14 @@ toggle_dtdebug :- getval(dtdebug, X),
 	  printf("DTDebug turned ON\n", [])
 	).
 
-/* ------------------------------------------------------ */
-/* DTRewards: if turned on, real decision theroetic planning
-   is done, that is, a reward is given in each visited state.
-   If turned off, it works more like a search with cut-off:
-   a reward is only assigned in leaf-nodes: this seems much
-   more reasonable for RoboCup where you usually cannot
-   plan until reaching a goal-situation.
-*/
+/** DTRewards: activate original dt-planning (reward in each state.
+ * if turned on, real decision theroetic planning
+ * is done, that is, a reward is given in each visited state.
+ * If turned off, it works more like a search with cut-off:
+ * a reward is only assigned in leaf-nodes: this seems much
+ * more reasonable for RoboCup where you usually cannot
+ * plan until reaching a goal-situation.
+ */
 :- setval(dtrewards, true).
 dtrewards :- getval(dtrewards, X), !, X=true.
 toggle_dtrewards :- getval(dtrewards, X),
@@ -85,18 +88,15 @@ toggle_dtrewards :- getval(dtrewards, X),
 	  printf("DTRewards turned ON\n(now giving rewards in each state)", [])
 	).
 
-
 % }}}
 
 
-/* ----------------------------------------------------------
-   bestDoM
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  bestDoM                                                  */
+/* --------------------------------------------------------- */
 % {{{ bestDoM
-% >>>>
 
-/** former bestDoM/6 is a bestDoM where events are still
-to be checked */
+/** former bestDoM/6 is a bestDoM where events are still to be checked */
 bestDoM(Program, S, H, Pol, V, Prob) :-
 	bestDoM(Program, S, H, Pol, V, Prob, checkEvents).
 
@@ -260,6 +260,9 @@ bestDoM([nondet([E1 | E2]) | E],S,H,Pol,V,Prob, ignoreEvents, Tree, RewardFuncti
 	  Tree = [nondet( [info(V1, Prob1)|Tree_rest], policy([info(V2, Prob2)| Tree_tree]) )]
 	).
 
+/* ------------------------------------ */
+/*  pickBest                            */
+/* ------------------------------------ */
 % {{{ >>>>>>>> bestDoM pickBest <<<<<<<<
 
 % >>>>
@@ -325,6 +328,9 @@ bestDoM_pickBest_getBest([(Pol_local, V_local, Prob_local, Tree_local)|Rest],
 
 % }}}
 	
+/* ------------------------------------ */
+/*  if/while                            */
+/* ------------------------------------ */
 bestDoM([if(C,E1,E2) | E],S,H,Pol,V,Prob, ignoreEvents, Tree, RewardFunction) :-
 	H >= 0, 
 	(
@@ -355,6 +361,9 @@ bestDoM([while(C,E1) | E],S,H,Pol,V,Prob, ignoreEvents, Tree, RewardFunction) :-
 bestDoM([loop(E1) | E],S,H,Pol,V,Prob,Events,Tree, RewardFunction) :-
 	bestDoM([while(true,E1)|E],S,H,Pol,V,Prob,Events,Tree, RewardFunction).
 
+/* ------------------------------------ */
+/*  waitFor                             */
+/* ------------------------------------ */
 /** waitfor(Cond) has to be possible (there is a least time point)
 and has to be executed online (or course) */
 bestDoM([waitFor(Cond) | E],S,H,Pol,V,Prob,ignoreEvents,Tree, RewardFunction) :-
@@ -382,6 +391,9 @@ bestDoM([pi(X,E1) | E],S,H,Pol,V,Prob,ignoreEvents,Tree,RewardFunction) :-
 	bestDoM([E1_X | E],S,H,Pol,V,Prob,ignoreEvents,Tree,RewardFunction).
 
 
+/* ------------------------------------ */
+/*  stochProcs                          */
+/* ------------------------------------ */
 % {{{ >>>>>>>> bestDoM stoch_procs <<<<<<<<
 % >>>>
 
@@ -580,9 +592,10 @@ bestDoM(_E,S,H,[],V,1.0,_Events, Tree, RewardFunction) :-
 % }}}
 
 
-/* ----------------------------------------------------------
-   Auxiliary
----------------------------------------------------------- */
+/* --------------------------------------------------------- */
+/*  AUXILIARY                                                */
+/* --------------------------------------------------------- */
+% {{{ DTGolog Auxiliary
 
 leaf_debug( V, S) :-
 	(
@@ -595,9 +608,6 @@ leaf_debug( V, S) :-
 	  true
 	).
 
-
-% {{{ DTGolog Auxiliary
-% >>>>
 
 /** predicates taken over from DTGolog */
 

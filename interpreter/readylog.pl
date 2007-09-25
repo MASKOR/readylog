@@ -1,145 +1,108 @@
-/*
- ©º°¨¨°º©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©º°¨¨°º©
- ©                                                                            ©
- ©                                            ####   ####           .-""-.    ©
- ©       # #                             #   #    # #    #         /[] _ _\   ©
- ©       # #                                 #    # #             _|_o_LII|_  ©
- © ,###, # #  ### ## ## ##   ###  ## ##  #   #    # #       ###  / | ==== | \ ©
- © #   # # # #   # ## ## #  #   #  ## #  #   ###### #      #     |_| ==== |_| ©
- © #   # # # ####  #  #  #  #   #  #  #  #   #    # #      ####   ||" ||  ||  ©
- © #   # # # #     #  #  #  #   #  #  #  #   #    # #    #    #   ||LI  o ||  ©
- © '###'# # # #### #  #  ##  ### # #  ## ## #      # ####  ###    ||'----'||  ©
- ©                                                               /__|    |__\ ©
- ©                                                                            ©
- ©º°¨¨°º©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©©º°¨¨°º©º°¨¨°º©
-*/
-
-/* 
- * 
- *  
+/* ***************************************************************************
+ *                                            ####   ####           .-""-.    
+ *       # #                             #   #    # #    #         /[] _ _\   
+ *       # #                                 #    # #             _|_o_LII|_  
+ * ,###, # #  ### ## ## ##   ###  ## ##  #   #    # #       ###  / | ==== | \ 
+ * #   # # # #   # ## ## #  #   #  ## #  #   ###### #      #     |_| ==== |_| 
+ * #   # # # ####  #  #  #  #   #  #  #  #   #    # #      ####   ||" ||  ||  
+ * #   # # # #     #  #  #  #   #  #  #  #   #    # #    #    #   ||'----'||  
+ * '###'# # # #### #  #  ##  ### # #  ## ## #      # ####  ###   /__|    |__\ 
+ * ***************************************************************************
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; only version 2 of the License!
+ * ***************************************************************************
  *
- */
-
-/***********************************************************************
- *
- * $Id: readylog.pl,v 1.1 2006/04/13 15:50:24 stf Exp $
- *
- * Description: Readylog Interpreter; 
- *
- *
+ *           $Id: readylog.pl,v 1.1 2006/04/13 15:50:24 stf Exp $
+ *         @date: 06.03.03
+ *       @author: Christian Fritz <Christian.Fritz@rwth-aachen.de>
+ *         @date: 05/11/29 new revision
+ *       @author: Alexander Ferrein <ferrein@cs.rwth-aachen.de>
+ *   description: Readylog Interpreter 
+ *                extension of ipcGolog (by Norman Jansen)
  * last modified: $Date: 2006/04/13 15:50:24 $
  *            by: $Author: stf $
  *
- **********************************************************************/
-/*! \file readylog.pl
-  \brief the readylog interpreter
-*/
-/*==================================================================
- *
- * ReadyLog Interpreter
- *
- * extension of ipcGolog (by Norman Jansen)
- *
- * @date 6.3.03
- * @author Christian Fritz <Christian.Fritz@rwth-aachen.de>
- *
- * new revision @date 05/11/29
- * @author Alexander Ferrein <ferrein@cs.rwth-aachen.de>
- *
-*/
-
-/*.................................................................
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
-* (at your option) any later version.
-* 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-* 
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-.................................................................*/
-
+ * **************************************************************************/
 
 :- write("\r********** Loading readylog.pl ... ").
 
 
-/* ------------------------------------------------------- */
+/* ================================================================== */
+/*  INCLUDES                                                          */
+/* ================================================================== */
 
-/**
-* load definition file.
-* it loads the required libs and defines numerous dynamic predicates
-* needed for readylog
-*/
-:- ensure_loaded('../definitions.pl').
+/** load debugging utils.
+ *
+ */
+:- ensure_loaded('debug.pl').
 
-/**
-* load the configuration file.
-* several flags and predicates are defined, eg. for debugging purposes
-*/
-:- ensure_loaded('../config.pl').
+/** load definition file.
+ * it loads the required libs and defines numerous dynamic predicates
+ * needed for readylog
+ */
+:- ensure_loaded('definitions.pl').
 
-/**
-* load the language interpreter.
-* thesemantics definitions for Readylog by final and trans.
-*/
+/** load the configuration file.
+ * several flags and predicates are defined,
+ * features can be switched on/off (t)here.
+ */
+:- ensure_loaded('config.pl').
+
+/** load the language interpreter.
+ * the semantics definitions for Readylog by final and trans.
+ */
 :- ensure_loaded('final_trans.pl').
 
-/**
-* load state abstraction methods
-*/
-
+/** load state abstraction methods.
+ * not used right now.
+ */
 %:- ensure_loaded('stateabstraction.pl').
 
-/**
-* load decision-theoretic extension.
-* the semantics definitions for dt-programs by bestDoM
-*/
+/** load decision-theoretic extension.
+ * the semantics definitions for dt-programs by bestDoM
+ */
 :- ensure_loaded('decisionTheoretic').
 
-/**
-* load options extension
-* this is currently not in use because it needs full enumeration
-* of the state space
-*/
+/** load options extension.
+ *  this is currently not in use 
+ *  because it needs full enumeration of the state space
+ */
 :- ensure_loaded('options').
 
-/**
-* load utilities
-* utils.pl offers readylog shell functionality with auto completion
-* and history
-*/
-:- ensure_loaded("../utils/utils.pl").
+/** load utilities.
+ *  utils.pl offers readylog shell functionality 
+ *  with auto completion and history
+ */
+:- ensure_loaded('../../utils/utils.pl').
 
+/** load icp_shell.
+ *  icp_shell offers shell functionality 
+ *  with auto completion and history
+ */
+%:- ensure_loaded("../../utils/icp_shell/icp_shell.pl").
 
-/**
-* some local variables.
-* min is needed to calculate the least time point of continuous fluents
-* zaehler is needed for caching probabilistic traces
-* fd_var is an integer number needed for progressing the database
-*/
+/** some local variables.
+ * min is needed to calculate the least time point of continuous fluents
+ * zaehler is needed for caching probabilistic traces
+ * fd_var is an integer number needed for progressing the database
+ */
 :- local variable(min).
 :- local variable(zaehler).
 :- local variable(fd_var).
 
 
-% 
-
-/* ==========================================================
-   PROGRAM EXECUTION
-========================================================== */
-%  PROGRAM EXECUTION
-/* ----------------------------------------------------------
-   CALLING OF PROGRAMS: icp(E)
----------------------------------------------------------- */
+/* ================================================================== */
+/*  PROGRAM EXECUTION                                                 */
+/* ================================================================== */
+/** calling of programs.
+ *   calling of programs is done with icp(E).
+ */
 icp(E) :- icpgolog(E), !.
 
-/** initializing knowledge base and starting program
-execution by icpgo(E) */
+/** initializing knowledge base
+ *  and starting program execution by icpgo(E) 
+ */
 icpgolog(E) :- 
 	initialize,
 	(simple_projection -> Text="PROJECTION WITHOUT PROGRESSION."
@@ -244,17 +207,15 @@ icpxeq(H,[Act|H],H1) :-
 incZaehler(H) :- length(H,L), L1 is L-1, getval(zaehler,Zaehler), 
 	         Zaehler1 is Zaehler+L1, setval(zaehler,Zaehler1).
 
-% 
 
-/* ==========================================================
-   INIT
-========================================================== */
-%  INIT
-% >>>>
 
-/* ----------------------------------------------------------
-   initialize: Initialisierung der Praedikate
----------------------------------------------------------- */
+/* ================================================================== */
+/*   INIT                                                             */
+/* ================================================================== */
+
+/** initialize.
+ * Initialisierung der Praedikate
+ */
 
 % Initialisiere die Praedikate, indem fehlende Definitionen 
 % durch Standardimplementierungen ersetzt werden
@@ -300,13 +261,11 @@ initialize :-
   % if user provided an own init predicate, call it:
   (user_init ; true).
 
-% 
 
-/* ==========================================================
-   Progression of Knowledge Base
-========================================================== */
-%  Progression of Knowledge Base
-% >>>>
+
+/* ================================================================== */
+/*   PROGRESSION OF KNOWLEDGE BASE                                    */
+/* ================================================================== */
 
 % Die Wissensbasis wird gemaess der Aktionen in H1 aktualisiert, 
 % HH ist die verkuerzte History mit Laenge 1
