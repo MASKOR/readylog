@@ -25,7 +25,7 @@
  *
  * **************************************************************************/
 
-:- write("\r********** Loading readylog.pl ... ").
+:- write("********** Loading readylog.pl ... \n").
 
 
 /* ================================================================== */
@@ -157,7 +157,7 @@ icpgo(E,H) :-
 
 /* (4) - waiting for an exogenous action to happen */
 icpgo(E,H) :-
-	printf("icpgo(4): WAITING FOR EXOGENOUS ACTIONS...\r", []),
+	printf("icpgo(4): WAITING FOR EXOGENOUS ACTIONS...\n", []),
 	flush(output),
 	wait_for_exog_occurs, !,
 	/* now that we there is an exo action,
@@ -1225,9 +1225,9 @@ subf(P,P2,H)  :-
 	function(P,_,_),!,	
  	/**<state_abstraction> */
  	(
- 	  printColor(green, "Before QQ\n\n", []),
+ 	  %printColor(green, "Before QQ \n", []),
  	  use_state_abstraction, holds(not(online), H) ->
- 	  bb_dbg(5, green, "Using QQ\n\n", []),
+ 	  bb_dbg(5, green, "Using QQ \n", []),
  	  P =.. [Function|Args],
  	  term_string(Function, FunctionString),
  	  append_strings("qq_", FunctionString, FunctionStringNew),
@@ -1433,4 +1433,4 @@ sets_val(Act,F,V,H) :-
 	holds(P,H), subf(V1,V,H).  
 
 
-:- writeln("\r********** Loading readylog.pl ... done").
+:- writeln(" ********** Loading readylog.pl ... \t [DONE] \n").

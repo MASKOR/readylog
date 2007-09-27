@@ -70,6 +70,7 @@
 	opt_state/3, opt_costs/3,
 	opt_probability_list/3,
 	/* ---------------------------------     */
+        param_cycletime/1,
 	/* --  events                            */
 	events_list/1, 
 	event_model/2, 

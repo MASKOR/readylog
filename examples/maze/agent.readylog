@@ -1,0 +1,59 @@
+/* ***************************************************************************
+ *
+ *           $Id:$
+ *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
+ *   description: application of ReadyLog in the Maze domain.
+ *
+ * ************************************************************************ */
+
+:- ensure_loaded("../../interpreter/readylog/readylog.pl").
+:- ensure_loaded("maze.readylog").
+
+go :- icp( solve( goto(5,5), 9, reward ) ).
+gop :- icp( solve( gotop(5,5), 9, reward ) ).
+
+      
+%% ================================================================== %%
+%%  PROCEDURES                                                        %%
+%% ================================================================== %%
+
+       
+proc(goto(X,Y),
+     [
+        %cout( blue, " ***** proc goto(%w,%w) ***** \n", [X,Y]),
+        %?( pos = [Xp,Yp] ),
+        ?( Target = [X,Y] ),
+        %cout(" pos is %w , %w \n", [Xp,Yp]),
+        while( neg( pos = Target ), %[X,Y] ),
+                    nondet( [ go_up, 
+                              go_right,
+                              go_down,
+                              go_left ] )
+                  )
+     ]
+    ).
+
+proc(gotop(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        while( neg( pos = Target ),
+               nondet( [ up, 
+                         right,
+                         down,
+                         left ] )
+             )
+     ]
+    ).
+
+%% ================================================================== %%
+%%  FUNCTIONS                                                         %%
+%% ================================================================== %%
+
+/** (Standard) reward function.
+ * This is really VERY VERY important for DT-planning!
+ */
+function( reward, V, 
+          lif( pos = [5,5], 
+               V=100, 
+               V=(-1) ) 
+        ).

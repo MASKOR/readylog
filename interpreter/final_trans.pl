@@ -259,8 +259,8 @@ transPr( solve(Prog, Horizon), S, Policy_r, S_r, 1) :- !,
 	transPr( solve( Prog, Horizon, reward), S, Policy_r, S_r, 1).
 
 transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
-	printf(" --------\t solve \t-------------
-	      \nHorizon: %w\nProg: %w\nS: %w", [Horizon, Prog, S]),
+	printf(" --------\t solve \t-------------\
+              \n Horizon: %w\n    Prog: %w\n       S: %w\n", [Horizon, Prog, S]),
 	flush(output),
 	% STF was here:
 	cancel_after_event(event_exogUpdate),
