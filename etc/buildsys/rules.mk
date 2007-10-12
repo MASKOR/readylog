@@ -64,6 +64,7 @@ clean: subdirs
 	$(SILENT) if [ "$(SRCDIR)/$(OBJDIR)" != "/" ]; then rm -rf $(SRCDIR)/$(OBJDIR) ; fi
 	$(SILENT) if [ "$(DEPDIR)" != "" ]; then rm -rf $(DEPDIR) ; fi
 	$(SILENT) if [ "$(TARGETS_all)" != "" ]; then rm -rf $(TARGETS_all) ; fi
+	$(SILENT) if [ "$(INSTALL_all)" != "" ]; then rm -rf $(INSTALL_all) ; fi
 
 ifeq (,$(findstring qa,$(SUBDIRS)))
 .PHONY: qa
@@ -134,7 +135,7 @@ $(INSTALLDIR)/%.so: $$(OBJS_$$(notdir $$*))
 	$(addprefix -L,$(LIBDIRS_$(notdir $*))) $(addprefix -L,$(LIBDIRS)) \
 	-o $@ $(subst ..,__,$^)
 
-$(INSTALLDIR)/%.pl $(INSTALLDIR)/%.ecl: $$(INSTALL_$$(notdir $$@))
+$(INSTALLDIR)/%.pl $(INSTALLDIR)/%.ecl: $$(SRCDIR)/$$(notdir $$@)
 	$(SILENT) mkdir -p $(dir $@)
 	$(SILENT) echo -e " --- Copying additional file $(notdir $@)"
 	$(SILENT) cp $(SRCDIR)/$(notdir $@) $@
