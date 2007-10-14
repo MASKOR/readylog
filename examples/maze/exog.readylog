@@ -1,0 +1,134 @@
+/* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
+ *
+ *           $Id:$
+ *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
+ *   description: EXOGenous  ReadyLog stuff () 
+ *
+ * ************************************************************************ */
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  EXECUTION SYSTEM                    %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+/** We use a register to send actions.
+ */
+register(action).
+
+/** Specify how to execute an action.
+ * If the online fact holds, execute the action,
+ * Else just return an 'executed' message ...
+ */
+execute( Action, _Sense_val, S) :- !,
+      (
+         holds(online=true, S) ->
+            (
+               printColor( red, " ==> executing: %w (ONLINE)! <== \n", [Action]),
+               flush(output),
+               xTra(Action, S) % we execute actions by passing them to xTra!
+               % sleep(0.2),
+               % exoEnQueue(reply(action,nil)).
+            ;
+               printColor( red, " ==> executing: %w (OFFLINE)! <== \n", [Action]),
+               flush(output),
+               true
+            ),
+            printColor( green, " <== DONE executing %w \n", [Action])
+      ).	
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  EXOGENOUS STUFF                     %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+:- dynamic exoQueue/1.
+
+/** check whether an exogenous action occured.
+ * we do this only if we are online,
+ * by checking if we can dequeue it from the exoQueue.
+ */
+exog_occurs(Action,S) :- 
+      printColor( cyan, " *** testing whether exog occured \n", []),
+      holds(online=true, S),
+      printColor( cyan, " *** exog_occurs: we're online \n", []),
+      exoDeQueue(Action),
+      printColor( cyan, " *** exog_occurs(%w,%w) \n", [Action,S]).
+
+/** exogenous action occured.
+ * if an exogenous action occured we put it in the exoQueue.
+ */
+exoEnQueue(A) :-
+      printColor( cyan, " -+- exoEnQueue( %w )\n", [A]),
+      assert(exoQueue(A)),
+      printColor( cyan, " --> enqueued '%w' \n", [A]).
+
+/** test/handle exogenous action.
+ * if an exogenous action has occured
+ * we can dequeue it from the exoQueue,
+ * this predicate fails otherwise.
+ */
+exoDeQueue(A) :- 
+      exoQueue(A),
+      printColor( cyan, " -+- exoDeQueue( %w )\n", [A]),
+      retract(exoQueue(A)).
+
+
+/** wait for an exogenous action to occur.
+ * since there is no real execution system yet 
+ * we would wait forever: this shouldn't happen
+ */
+wait_for_exog_occurs( _Act, _H) :- 
+      printColor( red, " +++ wait for exog occurs +++ \n", []),
+      repeat,
+      printf("\nThis shouldn't happen !!\n\n", []),
+      flush(output),
+      sleep(1), fail.
+wait_for_exog_occurs :- true, !.
+
+exogenous_update :- !,
+      printColor( cyan, " *** exogenous_update ... \n",[]),
+      % call (worldmodel) update (defined in xTra)
+      update, 
+%      !, 
+%      (
+%         % test whether exogf_Update is already enqueued
+%         exoQueue(exogf_Update)%,
+%         %printColor( cyan, " +++ exogfUpdate already queued +++ \n", [])
+%      ;
+%         % enqueue exogf_Update since is hasn't been yet
+%         %printColor( cyan, " +++ exoEnQueue(exogf_Update) +++ \n", []),
+%         exoEnQueue(exogf_Update)
+%      ), !,
+%      printColor( cyan, " *** exoQueue(reply(action,nil)) +++ \n", []),
+%      %exoQueue(reply(action,nil)),
+%      !,
+      printColor( cyan, " *** exogenous_update ... done. \n", []).
+
+/** how often should exog_update be called.
+ */
+param_cycletime(0.2).
+
+/** set up alarm timer and corresponding interrupt handler.
+ *  used for frequent worldmodel updates even if not used!
+ */
+:- param_cycletime(CycleTime),
+   set_event_handler(event_exogUpdate, exogenous_update/0),
+   event_after_every(event_exogUpdate, CycleTime).
+
+evtm_on :-
+      printColor( pink, " ### starting event-timer for exogupdate \n",[]),
+      param_cycletime(CycleTime),
+      event_after_every(event_exogUpdate, CycleTime).
+   
+evtm_off :-
+      printColor( pink, " ### stopping event-timer for exogupdate \n",[]),
+      cancel_after_event(event_exogUpdate).
+

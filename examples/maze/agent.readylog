@@ -1,4 +1,12 @@
 /* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
  *
  *           $Id:$
  *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
@@ -6,24 +14,34 @@
  *
  * ************************************************************************ */
 
+%:- lib(toplevel).
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  INCLUDES                            %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% ReadyLog interpreter
 :- ensure_loaded("../../interpreter/readylog/readylog.pl").
+%% eXogenous stuff
+:- ensure_loaded("exog.readylog").
+%% MazeDomain definition
 :- ensure_loaded("maze.readylog").
 
-go :- icp( solve( goto(5,5), 9, reward ) ).
-gop :- icp( solve( gotop(5,5), 9, reward ) ).
+%% GridVisualization
+:- load("../../include/gridvis/gridvis.so").
+:- ["../../include/gridvis/gridvis.pl"].
 
       
 %% ================================================================== %%
 %%  PROCEDURES                                                        %%
 %% ================================================================== %%
 
-       
+
+/** goto(x,y) using prim_actions */
 proc(goto(X,Y),
      [
         %cout( blue, " ***** proc goto(%w,%w) ***** \n", [X,Y]),
-        %?( pos = [Xp,Yp] ),
         ?( Target = [X,Y] ),
-        %cout(" pos is %w , %w \n", [Xp,Yp]),
+        %
         while( neg( pos = Target ), %[X,Y] ),
                     nondet( [ go_up, 
                               go_right,
@@ -33,20 +51,174 @@ proc(goto(X,Y),
      ]
     ).
 
-proc(gotop(X,Y),
+/** goto(x,y) using deterministic procedures */
+proc(goto_det(X,Y),
      [
         ?( Target = [X,Y] ),
+        %
         while( neg( pos = Target ),
-               nondet( [ up, 
-                         right,
-                         down,
-                         left ] )
+               nondet( [ up_det, 
+                         right_det,
+                         down_det,
+                         left_det ] )
              )
      ]
     ).
 
+/** goto(x,y) using stochastic procedures */
+proc(goto_stoch(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        %exogf_Update,
+        while( neg( pos = Target ),
+               nondet( [ up_st, 
+                         right_st,
+                         down_st,
+                         left_st ] )
+             )
+     ]
+    ).
+
+/** goto(x,y) using procedures that check for visited poses */
+proc(goto_memo(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        %exogf_Update,
+        while( neg( pos = Target ),
+               nondet( [ up_mem, 
+                         right_st,
+                         down_st,
+                         left_st%,
+                         %rest
+                         ] )
+%                          right_mem,
+%                          down_mem,
+%                          left_mem ] )
+             )
+     ]
+    ).
+
+
+/** goto(x,y) using an elobarated sub-procedure.
+ * needed to make sure fluent are 'new' in every iteration 
+ */
+proc(goto_vis(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        %exogf_Update,
+        while( neg( pos = Target ),
+               visit_nondet
+             )
+     ]
+    ).
+
+/** procedure that selectively builds a list of procedures to consider in nondet.
+ * we only consider actions that not lead to poses we already visited 
+ */
+proc(visit_nondet,
+     [
+        ?( pos = [X,Y] ),
+        ?( UpY = Y + 1 ),
+        ?( DownY = Y - 1 ),
+        ?( LeftX = X - 1 ),
+        ?( RightX = X + 1 ),
+        ?( NDA_list_init = [rest] ),
+        %cout( NDA_list_init ),
+        if( neg( visited( X,UpY ) ),
+            ?(NDA_list_up = adl( [up_st], NDA_list_init )),
+            ?(NDA_list_up = NDA_list_init )),
+        %cout( NDA_list_up ),
+        if( neg( visited( X,DownY ) ),
+            ?(NDA_list_down = adl( [down_st], NDA_list_up )),
+            ?(NDA_list_down = NDA_list_up )),
+        %cout( NDA_list_down ),
+        if( neg( visited( LeftX,Y ) ),
+            ?(NDA_list_left = adl( [left_st], NDA_list_down )),
+            ?(NDA_list_left = NDA_list_down )),
+        %cout( NDA_list_left ),
+        if( neg( visited( RightX,Y ) ),
+            ?(NDA_list = adl( [right_st], NDA_list_left)),
+            ?(NDA_list = NDA_list_left )),
+        %cout( NDA_list )%,
+        nondet( NDA_list )
+     ]
+    ).
+
+/** helper function to add an element to a list */
+function( adl(E,L), V,
+          append( E, L, V ) ).
+
 %% ================================================================== %%
-%%  FUNCTIONS                                                         %%
+%%  ACTION PROCEDURES                                                 %%
+%% ================================================================== %%
+
+proc( up_mem,
+      [
+         ?( pos = [PosX,PosY] ),
+         ?( NewX = PosX + 1 ),
+         ?( NewY = PosY ),
+         if( and( [ is_pos(NewX,NewY) , 
+                    f_is_wall(PosX,PosY,NewX,NewY)=false,
+                    neg(visited(NewX,NewY))
+                  ]),
+             % then:
+             go_up,
+             % else: % must not be empty!!
+             cout("nogo_up")
+           )
+      ]
+    ).
+
+proc( down_mem,
+      [
+         ?( pos = [PosX,PosY] ),
+         ?( NewX = PosX - 1 ),
+         ?( NewY = PosY ),
+         if( and([ is_pos(NewX,NewY),
+                   neg( is_wall(PosX,PosY,NewX,NewY ))%,
+                   %neg(visited(NewX,NewY))
+                 ]),
+             go_down,
+             % else: % must not be empty!!
+             cout("nogo_down")
+           )
+      ]
+    ).
+
+proc( left_mem,
+      [
+         ?( pos = [PosX,PosY] ),
+         ?( NewX = PosX ),
+         ?( NewY = PosY - 1 ),
+         if( and([ is_pos(NewX,NewY),
+                   neg(is_wall(PosX,PosY,NewX,NewY))%,
+                   %neg(visited(NewX,NewY))
+                 ]),
+             go_left,
+             % else: % must not be empty!!
+             cout("nogo_left")
+           )
+      ]
+    ).
+
+proc( right_mem,
+      [
+         ?( pos = [PosX,PosY] ),
+         ?( NewX = PosX ),
+         ?( NewY = PosY + 1 ),
+         if( and([ is_pos(NewX,NewY),
+                   neg(is_wall(PosX,PosY,NewX,NewY))%,
+                   %neg(visited(NewX,NewY))
+                 ]),
+             go_right,
+             % else: % must not be empty!!
+             cout("nogo_right")
+           )
+      ]
+    ).
+
+%% ================================================================== %%
+%%  REWARD FUNCTIONS                                                  %%
 %% ================================================================== %%
 
 /** (Standard) reward function.
@@ -56,4 +228,34 @@ function( reward, V,
           lif( pos = [5,5], 
                V=100, 
                V=(-1) ) 
+        ).
+
+/** parameterized reward function.
+ */
+function( reward(X,Y), V, 
+          lif( pos = [X,Y], 
+               V=100, 
+               V=(-1) ) 
+        ).
+
+/** parameterized reward function.
+ * this reward function already gives hints on where to go
+ * by giving the negative manhattan dist to goal as the reward
+ */
+function( reward_heuristic(X,Y), V, 
+          and([ lif( pos = [X,Y], 
+                     V=100,
+                     and([ pos = [PosX,PosY],
+                           PreDiffX = X - PosX,
+                           lif( PreDiffX > 0,
+                                DiffX = -PreDiffX,
+                                DiffX =  PreDiffX ),
+                           PreDiffY = Y - PosY,
+                           lif( PreDiffY > 0,
+                                DiffY = -PreDiffY,
+                                DiffY =  PreDiffY ),
+                           V = DiffX+DiffY
+                         ]) 
+                   )
+              ])
         ).
