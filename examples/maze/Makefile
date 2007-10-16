@@ -8,10 +8,10 @@
 #  o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
 # ############################################################################
 #
-#            $Id: Makefile 1 2007-03-01 23:58:15Z tim $
+#            $Id$
 #    description: Makefile for ReadyLog programs
-#  last modified: $Date: 2007-03-02 00:58:15 +0100 (Fri, 02 Mar 2007) $
-#             by: $Author: tim $
+#  last modified: $Date$
+#             by: $Author$
 #
 # ############################################################################
 

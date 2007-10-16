@@ -13,11 +13,11 @@
  *  the Free Software Foundation; only version 2 of the License!
  * ***************************************************************************
  *
- *           $Id: readylog.pl,v 1.1 2006/04/13 15:50:24 stf Exp $
+ *           $Id$
  *       @author: Christian Fritz <Christian.Fritz@rwth-aachen.de>
  *   description: TRANS and FINAL of Readylog Interpreter 
- * last modified: $Date: 2006/04/13 15:50:24 $
- *            by: $Author: stf $
+ * last modified: $Date$
+ *            by: $Author$
  *
  * **************************************************************************/
 

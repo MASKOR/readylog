@@ -34,14 +34,14 @@
 
 /***********************************************************************
  *
- * $Id: golog_utils_hli.pl,v 2.0 2006/04/11 13:59:18 tim Exp $
+ * $Id$
  *
  * Description:
  *
  *  Contains c - golog interface for c-extensions of utils.
  *
- * last modified: $Date: 2006/04/11 13:59:18 $
- *            by: $Author: tim $
+ * last modified: $Date$
+ *            by: $Author$
  *
  **********************************************************************/
 

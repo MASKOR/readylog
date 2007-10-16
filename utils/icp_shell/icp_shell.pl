@@ -2,10 +2,10 @@
 /***********************************************************************
  * Description: Contains programs for a convenient golog shell.
  *
- * last modified: $Date: 2006/04/11 13:59:17 $
- *            by: $Author: tim $
+ * last modified: $Date$
+ *            by: $Author$
  *
- * $Id: icp_shell_2.pl,v 2.0 2006/04/11 13:59:17 tim Exp $
+ * $Id$
  **********************************************************************/
 
 /*

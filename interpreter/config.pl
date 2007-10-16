@@ -13,11 +13,11 @@
  *  the Free Software Foundation; version 2 of the License
  * ***************************************************************************
  *
- *           $Id: config.pl,v 1.1 2006/04/13 15:50:19 stf Exp $
+ *           $Id$
  *        author: alexander ferrein
  *   description: Global config values and definitions
- * last modified: $Date: 2006/04/13 15:50:19 $
- *            by: $Author: stf $
+ * last modified: $Date$
+ *            by: $Author$
  *
  * **************************************************************************/
 

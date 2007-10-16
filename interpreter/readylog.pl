@@ -13,15 +13,15 @@
  *  the Free Software Foundation; only version 2 of the License!
  * ***************************************************************************
  *
- *           $Id: readylog.pl,v 1.1 2006/04/13 15:50:24 stf Exp $
+ *           $Id$
  *         @date: 06.03.03
  *       @author: Christian Fritz <Christian.Fritz@rwth-aachen.de>
  *         @date: 05/11/29 new revision
  *       @author: Alexander Ferrein <ferrein@cs.rwth-aachen.de>
  *   description: Readylog Interpreter 
  *                extension of ipcGolog (by Norman Jansen)
- * last modified: $Date: 2006/04/13 15:50:24 $
- *            by: $Author: stf $
+ * last modified: $Date$
+ *            by: $Author$
  *
  * **************************************************************************/
 

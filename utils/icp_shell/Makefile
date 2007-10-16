@@ -9,8 +9,8 @@ OBJS_icp_shell = getkey.o \
 
 LIBS_icp_shell = stdc++ eclipse
 
-INSTALL_icp_shell = icp_shell_interface.pl \
-		    icp_shell.pl
+ECL_icp_shell = icp_shell_interface.pl \
+	        icp_shell.pl
 
 include $(BASEDIR)/etc/buildsys/base.mk
 

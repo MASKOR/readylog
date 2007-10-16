@@ -34,15 +34,15 @@
 
  ********************************************************************************
  *
- *  $Id: param.pl,v 1.1 2006/04/13 15:50:34 stf Exp $
+ *  $Id$
  *
  *  Description: this loads all needed files for running the golog agent for MSL
  *
  *  Author:   Alexander Ferrein
  *  Contact:  <ferrein@cs.rwth-aachen.de>
  *
- *  last modified: $Date: 2006/04/13 15:50:34 $
- *             by: $Author: stf $
+ *  last modified: $Date$
+ *             by: $Author$
  *
  ********************************************************************************
 */

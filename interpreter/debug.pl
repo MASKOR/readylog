@@ -9,11 +9,11 @@
  * '###'# # # #### #  #  ##  ### # #  ## ## #      # ####  ###   /__|    |__\
  * ***************************************************************************
  *
- *           $Id: config.pl,v 1.1 2006/04/13 15:50:19 stf Exp $
+ *           $Id$
  *        author: KBSG
  *   description: Debugging mechanism (mostly specific to readylog)
- * last modified: $Date: 2006/04/13 15:50:19 $
- *            by: $Author: stf $
+ * last modified: $Date$
+ *            by: $Author$
  *
  * ***************************************************************************
  *

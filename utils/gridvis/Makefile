@@ -14,38 +14,50 @@
 #
 # ############################################################################
 #
-#            $Id: Makefile 1 2007-03-01 23:58:15Z tim $
+#            $Id$
 #    description: Makefile for High-Level-Interface
-#  last modified: $Date: 2007-03-02 00:58:15 +0100 (Fri, 02 Mar 2007) $
-#             by: $Author: stf $
+#  last modified: $Date$
+#             by: $Author$
 #
 # ############################################################################
 
 BASEDIR = ../..
 
-TARGETS = gridvis
+ifneq ($(realpath /usr/bin/motif-config),)
+  HAVE_MOTIF    = 1
+endif
+
+ifneq ($(HAVE_MOTIF),1)
+  WARN_TARGETS += warning_motif
+else
+  TARGETS = gridvis
+  LDFLAGS_gridvis = $(shell motif-config --libs)
+endif
+
+ifneq ($(SRCDIR),)
+all: $(WARN_TARGETS)
+
+.PHONY: warning_motif
+warning_motif:
+	$(SILENT)echo -e "$(INDENT_PRINT)--- $(TRED)Omitting gridvis util$(TNORMAL) (no motif, lesstif-devel not installed)"
+endif
+
 
 OBJS_gridvis =  gridvis.o \
 		grid-world.o \
 		graphics.o \
-		display.o \
+		display.o
 
 #		qlearner.o \
 #		krandom.o \
 
 
-LIBS_gridvis = stdc++ Xm Xt X11 m nsl eclipse
-
-INSTALL_gridvis = gridvis.pl
-
-CFLAGS_gridvis = 
-
-#$(shell $(PKGCONFIG) libgvc --cflags)
-
-#LDFLAGS_gridvis = -Wl, --rpath -Wl,$(shell $(PKGCONFIG) libgvc --variable=libdir) \
-#		   $(shell $(PKGCONFIG) libgvc --libs)
-#
+LIBS_gridvis = stdc++ m nsl eclipse
+ECL_gridvis = gridvis.pl
 
 include $(BASEDIR)/etc/buildsys/base.mk
 
-CFLAGS_BASE = -Wall $(DEFAULT_INCLUDES) -fPIC
+# Since we have buggy third-party code we do not want -Werror, yes the TMP thing *is* needed!
+CFLAGS_TMP := $(CFLAGS_BASE)
+CFLAGS_BASE = $(subst -Werror,,$(CFLAGS_TMP))
+

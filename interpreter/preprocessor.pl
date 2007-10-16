@@ -13,12 +13,12 @@
  *  the Free Software Foundation; only version 2 of the License!
  * ***************************************************************************
  *
- *           $Id: readylog.pl,v 1.1 2006/04/13 15:50:24 stf Exp $
+ *           $Id$
  *         @date: 12.5.03
  *       @author: Christian Fritz <Christian.Fritz@rwth-aachen.de>
  *   description: preprocessor
- * last modified: $Date: 2006/04/13 15:50:24 $
- *            by: $Author: stf $
+ * last modified: $Date$
+ *            by: $Author$
  *
  * **************************************************************************/
 

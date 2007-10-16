@@ -8,7 +8,7 @@ OBJS_keyboard = getkey.o \
 
 LIBS_keyboard = stdc++ eclipse
 
-INSTALL_keyboard = keyboard.pl
+ECL_keyboard = keyboard.pl
 
 include $(BASEDIR)/etc/buildsys/base.mk
 

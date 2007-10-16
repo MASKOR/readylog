@@ -13,11 +13,11 @@
  *  the Free Software Foundation; only version 2 of the License.
  * ***************************************************************************
  *
- *            $Id: definitions.pl,v 1.1 2006/04/13 15:50:19 stf Exp $
+ *            $Id$
  *         author: alexander ferrein
  *    description: readylog definitions
- *  last modified: $Date: 2006/04/13 15:50:19 $
- *             by: $Author: stf $
+ *  last modified: $Date$
+ *             by: $Author$
  *
  * **************************************************************************/
 

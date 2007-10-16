@@ -2,7 +2,7 @@
  ******* 
  ******* Lab: Robotersteuerung mit Golog WS 04/05
  ******* 
- ******* $Id: hli.pl,v 1.1 2004/10/26 09:53:09 ferrein Exp $
+ ******* $Id$
  ******* 
  ******* Description: external interface to read keyboard input
  ******* 
@@ -10,8 +10,8 @@
  ******* 
  ******* Contact: <ferrein@cs.rwth-aachen.de>
  *******
- ******* last modfied: $Date: 2004/10/26 09:53:09 $
- *******           by: $Author: ferrein $
+ ******* last modfied: $Date$
+ *******           by: $Author$
  ***********************************************************************/
 
 :- external(start_display/3, "p_StartDisplay").

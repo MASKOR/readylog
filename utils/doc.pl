@@ -29,15 +29,15 @@
  *
  * *****************************************************************************
  *
- *            $Id: doc.pl,v 1.1 2006/04/13 15:50:19 stf Exp $
+ *            $Id$
  *
  *    description: make pretty printed source documentation
  *
  *         author: Stefan Jacobs     contact: <Stefan_J@gmx.de>
  *         author: Stefan Schiffer   contact: <dr.stf[at]web.de>
  *
- *  last modified: $Date: 2006/04/13 15:50:19 $
- *             by: $Author: stf $
+ *  last modified: $Date$
+ *             by: $Author$
  *
  *******************************************************************************/
 
