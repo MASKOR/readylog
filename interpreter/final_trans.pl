@@ -263,7 +263,9 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
               \n Horizon: %w\n    Prog: %w\n       S: %w\n", [Horizon, Prog, S]),
 	flush(output),
 	% STF was here:
-	cancel_after_event(event_exogUpdate),
+	%cancel_after_event(event_exogUpdate), % this predicate is deprecated!
+	cancel_after_event(event_exogUpdate, CancelledEvent),
+	printf(" CnclEvt: %w\n", [CancelledEvent]),
 	% till here!
 	statistics(times, [CPUT, SYST, RealT]), !,
 	bestDoM(Prog, [clipOnline|S], Horizon, Policy,
