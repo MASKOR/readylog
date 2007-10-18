@@ -8,7 +8,7 @@
  * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
  * ***************************************************************************
  *
- *           $Id:$
+ *           $Id$
  *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
  *   description: application of ReadyLog in the Maze domain.
  *
@@ -27,8 +27,8 @@
 :- ensure_loaded("maze.readylog").
 
 %% GridVisualization
-:- load("../../include/gridvis/gridvis.so").
-:- ["../../include/gridvis/gridvis.pl"].
+:- load("../../ecl/gridvis.so").
+:- ["../../include/gridvis.pl"].
 
       
 %% ================================================================== %%
