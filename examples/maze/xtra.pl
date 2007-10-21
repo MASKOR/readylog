@@ -14,7 +14,7 @@
  *
  * ***************************************************************************
  *
- *           $Id:$
+ *           $Id$
  *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
  *   description: eXecution TRAnsformation which maps primitive actions 
  *                to something meaningful in the real world ...
@@ -73,7 +73,8 @@ xTra(go_down,H)  :-
 
 update :- 
 	printf(" --- UPDATE ...\n", []), 
-	refresh_window,
+	%refresh_window,
+	redraw,
 	printf(" --- UPDATE ... done.\n", []).
 
 

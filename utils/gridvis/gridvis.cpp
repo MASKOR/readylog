@@ -14,7 +14,7 @@
  *
  * ***************************************************************************
  *
- *           $Id:$
+ *           $Id$
  *        author: Alexander Ferrein <ferrein@cs.rwth-aachen.de>
  *        mod by: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
  *   description: external interface to draw gridworlds (maze etc)
@@ -28,12 +28,16 @@
 #include "display.h"
 
 void CalculateOptPolicy();
-std::vector<wall_t> Walls;
+
+// init external memory elements
+
+std::vector<wall_t>   Walls;
 wall_t WallPiece;
 
-std::vector<value_t> Values;
+std::vector<value_t>  Values;
+std::vector<value_t>  OptPolicy;
+std::vector<action_t> Actions;
 
-std::vector<value_t> OptPolicy;
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -127,19 +131,33 @@ int p_DrawAction()
     return EC_fail;
   };
 
+  // to save action
+  action_t a;
 
   switch(strAction[0]) {
   case 'R' :
     draw_dir(EAST, X, Y);
+    // save action for redraw:
+    a.X = X; a.Y = Y; a.action = EAST;
+    Actions.push_back( a );
     break;
   case 'L' :
     draw_dir(WEST, X, Y);
+    // save action for redraw:
+    a.X = X; a.Y = Y; a.action = WEST;
+    Actions.push_back( a );
     break;
   case 'U' :
     draw_dir(NORTH, X, Y);
+    // save action for redraw:
+    a.X = X; a.Y = Y; a.action = NORTH;
+    Actions.push_back( a );
     break;
   case 'D' :
     draw_dir(SOUTH, X, Y);
+    // save action for redraw:
+    a.X = X; a.Y = Y; a.action = SOUTH;
+    Actions.push_back( a );
     break;
   };
   return EC_succeed;
@@ -400,6 +418,43 @@ int p_Refresh()
   }    
 
   j_refresh_window(WINDOW);
+  return EC_succeed;
+}
+
+
+extern "C"
+int p_Redraw()
+{
+  if( !winited ) {
+    //cerr << " ***** ERROR ***** window not initialized yet, can't draw" << endl;
+    return EC_succeed;
+  }    
+
+  redraw();
+  draw_actions();
+//   for ( unsigned int i = 0; i < Actions.size(); ++i ) {
+//     //cout << " GridVis: redrawing action #" << i << " ("
+//     //	 << Actions[i].action << "," << Actions[i].X 
+//     //	 << "," << Actions[i].Y << ")." << endl;
+//     draw_dir( Actions[i].action, Actions[i].X, Actions[i].Y );
+//   }
+
+  j_refresh_window(WINDOW);
+
+  return EC_succeed;
+}
+
+
+extern "C"
+int p_Clear()
+{
+  if( !winited ) {
+    //cerr << " ***** ERROR ***** window not initialized yet, can't draw" << endl;
+    return EC_succeed;
+  }    
+
+  clear();
+
   return EC_succeed;
 }
 

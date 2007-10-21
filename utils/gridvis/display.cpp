@@ -8,7 +8,7 @@
  * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
  * ***************************************************************************
  *
- *           $Id:$
+ *           $Id$
  *        author: Alexander Ferrein <ferrein@cs.rwth-aachen.de>
  *   description: external interface to draw gridworlds (maze etc)
  *
@@ -22,11 +22,16 @@
 
 jwin *WINDOW = NULL;
 int GX, GY;
+
+static int COLORS[MAX_COLORS];/* define an array for storing colors */
+
+//COLORS = 0;
+
 //extern "C" {
 
 void init_win (int wd, int ht) /* Make window and allocate colors.     */
 {
-  jwin *w;
+  //jwin *w;
   char name[10];
   int i;
 
@@ -149,6 +154,28 @@ void draw_world() /* draw grid world */
   draw_columns();
   draw_rows();
   draw_walls();
+}
+
+void draw_actions() /* draw history of actions */
+{
+  for ( unsigned int i = 0; i < Actions.size(); ++i ) {
+    //cout << " GridVis: redrawing action #" << i << " ("
+    //	 << Actions[i].action << "," << Actions[i].X 
+    //	 << "," << Actions[i].Y << ")." << endl;
+    draw_dir( Actions[i].action, Actions[i].X, Actions[i].Y );
+  }
+}
+
+void redraw()
+{
+  draw_world();
+  draw_actions();
+}
+
+void clear()
+{
+  Actions.clear();
+  j_clear_window(WINDOW);
 }
 
 int state_x_location(STATE s)

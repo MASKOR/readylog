@@ -37,8 +37,9 @@ STATE next_state(STATE olds, ACTION action)
 	   news.row = olds.row+1;
 	   return(news);}
     break;
-  };
-};
+  }
+  return news;
+}
 
 /* at goal? */
 

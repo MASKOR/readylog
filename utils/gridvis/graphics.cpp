@@ -541,7 +541,7 @@ int mouse_coords (int *x, int *y, int *button, jwin *w)
       break;
     }
   if (valid && (*x >= 0) && (*y >= 0)
-            && (*x < ww) && (*y < wh))
+      && ((unsigned int)*x < ww) && ((unsigned int)*y < wh))
     return(1);
   else
     return(0);
