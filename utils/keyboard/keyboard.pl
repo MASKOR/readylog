@@ -16,3 +16,4 @@
 
 :- external( chkkey/0, "p_chkkey" ).
 :- external( getkey/1, "p_getkey" ).
+:- external( getkey_blocking/1, "p_getkey_blocking" ).
