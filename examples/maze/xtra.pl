@@ -49,6 +49,7 @@ xTra(go_right,H) :-
 	has_val( pos, V, H ), 
 	V = [X,Y], 
 	printf(" at %w \n", [V]), 
+        realSleep(5),
 	draw_action("R", X, Y).
 xTra(go_left,H)  :- 
 	printf(" EXEC: go_left", []), 
@@ -69,14 +70,73 @@ xTra(go_down,H)  :-
 	printf(" at %w \n", [V]), 
 	draw_action("D", X, Y).
 
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Show Fluents Key (s)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 115, !,
+        printf( "Got Key 's'!\n", [] ), flush( output ),
+        Action = show_fluents.
+
+% Teleport Button (t)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 116, !,
+        printf( "Got Key 't'!\n", [] ), flush( output ),
+        printf( "** please insert position to teleport to (NO ENTER REQUIRED!):\n", [] ), flush( output ),
+        printf( "*** X:", [] ), flush( output ),
+	getkey_blocking(Xkey), X is Xkey - 48,
+        printf( "*** Y:", [] ), flush( output ),
+	getkey_blocking(Ykey), Y is Ykey - 48,
+        printf( "** you want to teleport to (%w,%w)\n", [X,Y] ), flush( output ),
+        Action = teleport(X,Y).
+
+% Unknown Case
+%
+translateActionToKey( Key, Action ) :- !,
+        printf( "Got Key '%w'!\n", [Key] ), flush( output ),
+        Action = wait.
+
+
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 update :- 
 	printf(" --- UPDATE ...\n", []), 
 	%refresh_window,
+	(
+	    getkey( Key ) ->
+	    translateActionToKey( Key, Action ),
+	    (
+		exog_action( Action )->
+		exoEnQueue( Action ) ;
+		printf("\n%w is not a defined action\n", [Action]),
+                flush( output )
+             )
+             ;
+	     true
+	),
 	redraw,
 	printf(" --- UPDATE ... done.\n", []).
 
+% Return the current Eclipse Time. Kind'o'a timestamp.
+%   Parameter 1: Returns current time.
+% 
+currentTime( Time ) :-
+        statistics( times, [_CPU1, _SYS1, Time] ), !.
+
+% Real Sleep method. Uninterruptable sleep method.
+%
+realSleep( Time ) :-
+        currentTime( Start ),
+        repeat,
+        sleep( 0.01 ),
+        currentTime( Current ),
+        Current - Start >= Time, !.
 
 
 %% ABSORBER ENTRY %%%%%%%%%%%%%%%%%%%%%%%%

@@ -8,7 +8,7 @@
  * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
  * ***************************************************************************
  *
- *           $Id:$
+ *           $Id$
  *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
  *   description: run-time file.
  *
@@ -38,7 +38,7 @@
 %:- trace.
 %:- printf("Here!\n", []), gos.
 
-t:- icp([if(f_is_pos(0,0), cout("1"), cout("2"))]).
+%t:- icp([if(f_is_pos(0,0), cout("1"), cout("2"))]).
 
 t0 :- icp([exogf_Update, g, cout(pos)]).
 
@@ -77,3 +77,4 @@ go_memo  :- icp( solve( goto_memo(3,3), 7, reward(3,3) ) ).
 go_vis   :- icp( solve( goto_vis(3,3), 7, reward(3,3) ) ).
 go_visit :- icp( solve( goto_vis(3,3), 7, reward_heuristic(3,3) ) ).
 
+go_st :- icp( solve( goto_stoch(2,2), 4, reward_heuristic(2,2) ) ).

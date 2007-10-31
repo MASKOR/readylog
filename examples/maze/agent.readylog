@@ -27,6 +27,9 @@
 :- ensure_loaded("maze.readylog").
 
 %% GridVisualization
+:- load("../../ecl/keyboard.so").
+:- ["../../include/keyboard.pl"].
+%% GridVisualization
 :- load("../../ecl/gridvis.so").
 :- ["../../include/gridvis.pl"].
 
