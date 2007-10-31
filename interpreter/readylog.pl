@@ -126,7 +126,7 @@ icpgolog(E) :-
 
 /* (1)- exogenous action occured */ 
 icpgo(E,H) :-
-				% 	printf("(1) icpgo( .., %w)\n", [H]), flush(output),
+	printf("(1) icpgo( .., %w)\n", [H]), flush(output),
 	exog_occurs(Act,H), exog_action(Act),
 	(
 				%	  progression_enabled -> update_current_val([Act|H],H1)
@@ -134,7 +134,8 @@ icpgo(E,H) :-
 	  incZaehler([Act|H]),
 	  update_current_val([Act|H],H1)
 	;
-	  H1=[Act|H]
+	  H1=[Act|H],
+	  printf("(1) H1 %w)\n", [H1]), flush(output)
 	), !, icpgo(E,H1). 
 
 /* (2) - performing a step in program execution */ 

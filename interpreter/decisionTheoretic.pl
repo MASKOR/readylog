@@ -454,6 +454,7 @@ bestDoM([A | E],S,H,Pol,V,Prob,ignoreEvents,Tree,RewardFunction) :-
 /** shouldn't usually occur, but for nonterminating options */
 bestDoM_stoch_Aux([],E,S,H,Pol,V,Prob, Tree,RewardFunction) :-
 	H >= 0, bestDoM(E,S,H,Pol,V,Prob,checkEvents, Tree,RewardFunction).
+%	H >= 0, read(X), Pol = [marker(true, false), Pol1], bestDoM(E,S,H,Pol1,V,Prob,checkEvents, Tree,RewardFunction).
 
 bestDoM_stoch_Aux([(Prog,Pr,SenseCond)],E,S,H,Pol,V,Prob, Tree,RewardFunction) :-
 	H >= 0, 
@@ -469,7 +470,7 @@ bestDoM_stoch_Aux([(Prog,Pr,SenseCond)],E,S,H,Pol,V,Prob, Tree,RewardFunction) :
 	  ;
 	    true
 	  ),
-	  Pol = [ if(SenseCond, Pol1, []) ],
+	  Pol = [ if(SenseCond, Pol1, [marker(true,false)]) ],
 	  V is Pr*V1, 
 	  Prob is Pr*Prob1,
 	  Tree = [info(V1, Prob1), stoch_proc_outcome((Prog), Pr, (SenseCond))|Tree_rest]
