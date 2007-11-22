@@ -26,6 +26,9 @@
 :- ensure_loaded("processed_agent.pl").
 
 
+
+:- initial_val( pos, V ), setval(real_pos, V).
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% wanna autorun?
 %:- go.

@@ -48,27 +48,90 @@ xTra(go_right,H) :-
 	printf(" EXEC: go_right", []), 
 	has_val( pos, V, H ), 
 	V = [X,Y], 
-	printf(" at %w \n", [V]), 
-        realSleep(5),
-	draw_action("R", X, Y).
+	printf(" at %w \n", [V]),
+        printf("\nChoose outcome:\n  (1) right\n  (2) noop\n", []), flush(output),
+        getkey_blocking(Key), Outcome is Key - 48,
+        printf("Chosen outcome: %w\n", [Outcome]), flush(output),!,
+        (
+            (
+                Outcome = 1 -> X1 is X + 1, 
+                               setval(real_pos, [X1,Y]),
+                               printf("Going right\n", []),
+                               draw_action("R", X, Y),
+                               realSleep(2)
+            )
+        ;
+            (
+                Outcome = 2 -> setval(real_pos, [X,Y]),
+                               printf("Not going anywhere\n", [])
+            )
+        ).
 xTra(go_left,H)  :- 
 	printf(" EXEC: go_left", []), 
 	has_val( pos, V, H ), 
 	V = [X,Y], 
 	printf(" at %w \n", [V]), 
-	draw_action("L", X, Y).
+        printf("\nChoose outcome:\n  (1) left\n  (2) noop\n", []), flush(output),
+        getkey_blocking(Key), Outcome is Key - 48,
+        printf("Chosen outcome: %w\n", [Outcome]), flush(output),!,
+        (
+            (
+                Outcome = 1 -> X1 is X - 1, 
+                               setval(real_pos, [X1,Y]),
+                               printf("Going left\n", []),
+                               draw_action("L", X, Y),
+                               realSleep(2)
+            )
+        ;
+            (
+                Outcome = 2 -> setval(real_pos, [X,Y]),
+                               printf("Not going anywhere\n", [])
+            )
+        ).
 xTra(go_up,H)    :- 
 	printf(" EXEC: go_up", []), 
 	has_val( pos, V, H ), 
 	V = [X,Y], 
 	printf(" at %w \n", [V]), 
-	draw_action("U", X, Y).
+        printf("\nChoose outcome:\n  (1) up\n  (2) noop\n", []), flush(output),
+        getkey_blocking(Key), Outcome is Key - 48,
+        printf("Chosen outcome: %w\n", [Outcome]), flush(output),!,
+        (
+            (
+                Outcome = 1 -> Y1 is X + 1, 
+                               setval(real_pos, [X,Y1]),
+                               printf("Going up\n", []),
+                               draw_action("U", X, Y),
+                               realSleep(2)
+            )
+        ;
+            (
+                Outcome = 2 -> setval(real_pos, [X,Y]),
+                               printf("Not going anywhere\n", [])
+            )
+        ).
 xTra(go_down,H)  :- 
 	printf(" EXEC: go_down", []), 
 	has_val( pos, V, H ), 
 	V = [X,Y], 
 	printf(" at %w \n", [V]), 
-	draw_action("D", X, Y).
+        printf("\nChoose outcome:\n  (1) down\n  (2) noop\n", []), flush(output),
+        getkey_blocking(Key), Outcome is Key - 48,
+        printf("Chosen outcome: %w\n", [Outcome]), flush(output),!,
+        (
+            (
+                Outcome = 1 -> Y1 is Y - 1, 
+                               setval(real_pos, [X,Y1]),
+                               printf("Going down\n", []),
+                               draw_action("D", X, Y),
+                               realSleep(2)
+            )
+        ;
+            (
+                Outcome = 2 -> setval(real_pos, [X,Y]),
+                               printf("Not going anywhere\n", [])
+            )
+        ).
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -94,6 +94,9 @@ initial_val( visited( X, Y) ) :- has_val(pos, V, [s0]), V = [X,Y].
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  OTHER FLUENTS                       %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+exog_prim_fluent( pos ).
+exog_fluent_getValue( pos, V, _S ) :-
+	getval(real_pos, V).
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
