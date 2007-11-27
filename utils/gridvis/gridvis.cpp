@@ -159,6 +159,12 @@ int p_DrawAction()
     a.X = X; a.Y = Y; a.action = SOUTH;
     Actions.push_back( a );
     break;
+  case '0' :
+    draw_dir(REST, X, Y);
+    // save action for redraw:
+    a.X = X; a.Y = Y; a.action = REST;
+    Actions.push_back( a );
+    break;
   };
   return EC_succeed;
 }

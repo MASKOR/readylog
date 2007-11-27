@@ -37,6 +37,13 @@ STATE next_state(STATE olds, ACTION action)
 	   news.row = olds.row+1;
 	   return(news);}
     break;
+  case REST:
+    if (olds.row == 0)
+      return (olds);
+    else { news.col = olds.col;
+	   news.row = olds.row;
+	   return(news);}
+    break;
   }
   return news;
 }

@@ -17,11 +17,11 @@
 #define RAND_MAX 2147483000
 #endif
 
-#define NUM_ACTIONS 4
+#define NUM_ACTIONS 5
 
 typedef struct {int row; int col;} STATE;
 
-typedef enum  {NORTH=0,EAST,SOUTH,WEST} ACTION;
+typedef enum  {NORTH=0, EAST, SOUTH, WEST, REST} ACTION;
 
 STATE next_state(STATE olds, ACTION action);
 

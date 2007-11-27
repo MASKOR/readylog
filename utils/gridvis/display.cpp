@@ -222,7 +222,11 @@ void draw_dir(ACTION a, int X, int Y) {
     break;
   case SOUTH: 
     j_draw_line(start_x+5,start_y+35,start_x+15,start_y+55,COLORS[81],3,0,0,WINDOW);
-    j_draw_line(start_x+25,start_y+55,start_x+15,start_y+55,COLORS[81],3,0,0,WINDOW);
+    j_draw_line(start_x+25,start_y+35,start_x+15,start_y+55,COLORS[81],3,0,0,WINDOW);
+    break;
+  case REST: 
+    j_draw_line(start_x+25,start_y+35,start_x+5,start_y+55,COLORS[81],3,0,0,WINDOW);
+    j_draw_line(start_x+25,start_y+55,start_x+5,start_y+35,COLORS[81],3,0,0,WINDOW);
     break;
   }
 
@@ -254,6 +258,10 @@ void draw_opt_vals() {
     case SOUTH: 
       j_draw_line(start_x+5,start_y+5,start_x+15,start_y+25,COLORS[60],3,0,0,WINDOW);
       j_draw_line(start_x+25,start_y+5,start_x+15,start_y+25,COLORS[60],3,0,0,WINDOW);
+      break;
+    case REST: 
+      j_draw_line(start_x+25,start_y+35,start_x+5,start_y+55,COLORS[60],3,0,0,WINDOW);
+      j_draw_line(start_x+25,start_y+55,start_x+5,start_y+35,COLORS[60],3,0,0,WINDOW);
       break;
     }
     
@@ -289,6 +297,10 @@ void draw_pol(ACTION a, int X, int Y) {
     j_draw_line(start_x+5,start_y+5,start_x+15,start_y+25,COLORS[83],3,0,0,WINDOW);
     j_draw_line(start_x+25,start_y+5,start_x+15,start_y+25,COLORS[83],3,0,0,WINDOW);
     break;
+  case REST: 
+    j_draw_line(start_x+25,start_y+35,start_x+5,start_y+55,COLORS[83],3,0,0,WINDOW);
+    j_draw_line(start_x+25,start_y+55,start_x+5,start_y+35,COLORS[83],3,0,0,WINDOW);
+    break;
   }
 
   j_refresh_window(WINDOW);
@@ -319,6 +331,10 @@ void draw_direction(ACTION a, STATE s)
   case SOUTH: 
     j_draw_line(start_x+5,start_y+5,start_x+15,start_y+25,COLORS[60],3,0,0,WINDOW);
     j_draw_line(start_x+25,start_y+5,start_x+15,start_y+25,COLORS[60],3,0,0,WINDOW);
+    break;
+  case REST: 
+    j_draw_line(start_x+25,start_y+35,start_x+5,start_y+55,COLORS[60],3,0,0,WINDOW);
+    j_draw_line(start_x+25,start_y+55,start_x+5,start_y+35,COLORS[60],3,0,0,WINDOW);
     break;
   }
 }
