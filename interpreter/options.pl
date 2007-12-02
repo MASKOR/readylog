@@ -22,8 +22,7 @@
 /** This file contains all predicates relevant for automatic
 option creation via local MDPs. */
 
-:- write("********** Loading options.pl ...\n"). 
-
+:- write("  ----> Loading options.pl \t ...\n"). 
 
 /* ==========================================================
    Automatic Option Creation
@@ -586,5 +585,6 @@ opt_PL_to_Outcomes( Option, [(D,P)|PL], S, [Out|Outcomes] ) :-
 
 
 
-:- write("**********   ... options.pl done.\n"). 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- write("  <---- Loading options.pl \t[DONE]\n"). 
 

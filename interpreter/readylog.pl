@@ -25,8 +25,7 @@
  *
  * **************************************************************************/
 
-:- write("********** Loading readylog.pl ... \n").
-
+:- write(" -----> Loading readylog.pl \t ... \n").
 
 /* ================================================================== */
 /*  INCLUDES                                                          */
@@ -127,6 +126,7 @@ icpgolog(E) :-
 /* (1)- exogenous action occured */ 
 icpgo(E,H) :-
 	printf("(1) icpgo( .., %w)\n", [H]), flush(output),
+	%printf("(1) icpgo( %w, %w)\n", [E,H]), flush(output),
 	exog_occurs(Act,H), exog_action(Act),
 	(
 				%	  progression_enabled -> update_current_val([Act|H],H1)
@@ -1434,4 +1434,5 @@ sets_val(Act,F,V,H) :-
 	holds(P,H), subf(V1,V,H).  
 
 
-:- writeln(" ********** Loading readylog.pl ... \t [DONE] \n").
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- writeln(" <----- Loading readylog.pl \t[DONE]\n").
