@@ -49,6 +49,10 @@ void init_win (int wd, int ht) /* Make window and allocate colors.     */
   COLORS[81] = (int) find_color_val("red", WINDOW);
   COLORS[82] = (int) find_color_val("navy", WINDOW);
   COLORS[83] = (int) find_color_val("yellow", WINDOW);
+  COLORS[84] = (int) find_color_val("cyan", WINDOW);
+  COLORS[85] = (int) find_color_val("green", WINDOW);
+  COLORS[86] = (int) find_color_val("brown", WINDOW);
+  COLORS[87] = (int) find_color_val("magenta", WINDOW);
   printf("\n");
 
 }
@@ -90,10 +94,43 @@ void draw_walls() {
 
 }
 
+void 
+draw_agent( int X, int Y)
+{
+  int start_x, start_y; //, end_x, end_y;
+  //std::cout << X << " " <<Y <<std::endl;
+  
+  start_x = X * ROW_SIZE + 25;
+  start_y = GY - ((Y+1)*ROW_SIZE);
+
+  j_draw_line(start_x+5,start_y+55,start_x+15,start_y+35,COLORS[86],3,0,0,WINDOW);
+  j_draw_line(start_x+15,start_y+35,start_x+25,start_y+55,COLORS[86],3,0,0,WINDOW);
+  j_draw_line(start_x+5,start_y+55,start_x+25,start_y+55,COLORS[86],3,0,0,WINDOW);
+
+
+  j_refresh_window(WINDOW);
+}
+
+void draw_item( int X, int Y) {
+  int start_x, end_x, start_y, end_y;
+
+  //std::cout << X << " " <<Y <<std::endl;
+
+  start_x = X * ROW_SIZE + 5;
+  end_x = ROW_SIZE - 35 ;
+  start_y = GY - (Y+1) * ROW_SIZE + 5;
+  end_y = ROW_SIZE - 35;
+
+  //  std::cout << start_x << " " << start_y << " " << end_x << " " << end_y << std::endl;
+
+  j_draw_rectangle(start_x, start_y, end_x, end_y, COLORS[84] ,7,0,WINDOW);
+  j_refresh_window(WINDOW);
+}
+
 void draw_goal( int X, int Y) {
   int start_x, end_x, start_y, end_y;
 
-  std::cout << X << " " <<Y <<std::endl;
+  //std::cout << X << " " <<Y <<std::endl;
 
   start_x = X * ROW_SIZE;
   end_x = ROW_SIZE;
@@ -168,8 +205,14 @@ void draw_actions() /* draw history of actions */
 
 void redraw()
 {
+  j_clear_window(WINDOW);
   draw_world();
   draw_actions();
+}
+
+void clear_history()
+{
+  Actions.clear();
 }
 
 void clear()

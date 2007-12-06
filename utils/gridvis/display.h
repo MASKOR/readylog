@@ -128,11 +128,15 @@ void draw_dir(ACTION a, int X, int y);
 void draw_pol(ACTION a, int X, int Y);
 void draw_start( int X, int Y) ;
 void draw_goal( int X, int Y);
+void draw_item( int X, int Y);
+void draw_agent( int X, int Y);
 void draw_opt_vals();
 
 void redraw();
 
 void clear();
+
+void clear_history();
 
 #endif
  

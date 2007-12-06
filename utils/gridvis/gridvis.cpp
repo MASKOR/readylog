@@ -220,6 +220,59 @@ int p_DrawPolicy()
 
 
 extern "C"
+int p_DrawAgent()
+{
+  if( !winited ) {
+    //cerr << " ***** ERROR ***** window not initialized yet, can't draw" << endl;
+    return EC_succeed;
+  }    
+
+  EC_word ec_X = EC_word( EC_arg( 1 ) );
+  EC_word ec_Y = EC_word( EC_arg( 2 ) );
+
+  long X,Y;
+  if( ec_X.is_long( &X ) != EC_succeed ) {
+    cerr << "failed to unify arg 1 in p_DrawAgent " << endl;
+    return EC_fail;
+  }
+  if( ec_Y.is_long( &Y ) != EC_succeed ) {
+    cerr << "failed to unify arg 2 in p_DrawAgent " << endl;
+    return EC_fail;
+  }
+
+  draw_agent(X, Y);
+
+  return EC_succeed;
+}
+
+extern "C"
+int p_DrawItem()
+{
+  if( !winited ) {
+    //cerr << " ***** ERROR ***** window not initialized yet, can't draw" << endl;
+    return EC_succeed;
+  }    
+
+  EC_word ec_X = EC_word( EC_arg( 1 ) );
+  EC_word ec_Y = EC_word( EC_arg( 2 ) );
+
+  long X,Y;
+  if( ec_X.is_long( &X ) != EC_succeed ) {
+    cerr << "failed to unify arg 1 in p_DrawItem " << endl;
+    return EC_fail;
+  }
+  if( ec_Y.is_long( &Y ) != EC_succeed ) {
+    cerr << "failed to unify arg 2 in p_DrawItem " << endl;
+    return EC_fail;
+  }
+
+  draw_item(X, Y);
+
+  return EC_succeed;
+  
+}
+
+extern "C"
 int p_DrawGoal()
 {
   if( !winited ) {
@@ -435,17 +488,28 @@ int p_Redraw()
     //cerr << " ***** ERROR ***** window not initialized yet, can't draw" << endl;
     return EC_succeed;
   }    
-
+  
+  //std::cout << " ***** ReDraw ***** redraw " << std::endl;
   redraw();
+  //std::cout << " ***** ReDraw ***** draw_actions " << std::endl;
   draw_actions();
-//   for ( unsigned int i = 0; i < Actions.size(); ++i ) {
-//     //cout << " GridVis: redrawing action #" << i << " ("
-//     //	 << Actions[i].action << "," << Actions[i].X 
-//     //	 << "," << Actions[i].Y << ")." << endl;
-//     draw_dir( Actions[i].action, Actions[i].X, Actions[i].Y );
-//   }
 
+  //std::cout << " ***** ReDraw ***** refresh " << std::endl;
   j_refresh_window(WINDOW);
+
+  return EC_succeed;
+}
+
+
+extern "C"
+int p_ClearHistory()
+{
+  if( !winited ) {
+    //cerr << " ***** ERROR ***** window not initialized yet, can't draw" << endl;
+    return EC_succeed;
+  }    
+
+  clear_history();
 
   return EC_succeed;
 }

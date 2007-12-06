@@ -32,6 +32,10 @@
 
 :- external(draw_policy/3, "p_DrawPolicy").
 
+:- external(draw_agent/2, "p_DrawAgent").
+
+:- external(draw_item/2, "p_DrawItem").
+
 :- external(draw_goal/2, "p_DrawGoal").
 
 :- external(draw_start/2, "p_DrawStart").
@@ -41,6 +45,8 @@
 :- external(refresh_window/0, "p_Refresh").
 
 :- external(redraw/0, "p_Redraw").
+
+:- external(clear_history/0, "p_ClearHistory").
 
 :- external(clear_window/0, "p_Clear").
 
