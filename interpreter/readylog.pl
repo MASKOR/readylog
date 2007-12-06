@@ -125,11 +125,11 @@ icpgolog(E) :-
 
 /* (1)- exogenous action occured */ 
 icpgo(E,H) :-
-	printf("(1) icpgo( .., %w)\n", [H]), flush(output),
-	%printf("(1) icpgo( %w, %w)\n", [E,H]), flush(output),
+	%printf("(1) icpgo( .., %w)\n", [H]), flush(output),
 	exog_occurs(Act,H), exog_action(Act),
+	printf("(1) icpgo( %w, %w) w/ exog_action %w \n", [E,H,Act]), flush(output),
 	(
-				%	  progression_enabled -> update_current_val([Act|H],H1)
+	  % progression_enabled -> update_current_val([Act|H],H1)
 	  pe, length(H, HL), getval(prgrat, PL), HL >= PL ->
 	  incZaehler([Act|H]),
 	  update_current_val([Act|H],H1)
@@ -140,11 +140,11 @@ icpgo(E,H) :-
 
 /* (2) - performing a step in program execution */ 
 icpgo(E,H) :-
-				%	printf("(2) icpgo( .., %w)\n", [H]), flush(output),
+	% printf("(2) icpgo( .., %w)\n", [H]), flush(output),
 	doTrace(E,H), /* print debug info if gologtrace is on */
 	trans(E,H,E1,H1),
 	icpxeq(H,H1,H2),
-	!, icpgo(E1,H2). 
+        !, icpgo(E1,H2). 
 
 /* (3) - program is final -> execution finished */ 
 icpgo(E,H) :-
@@ -158,7 +158,7 @@ icpgo(E,H) :-
 
 /* (4) - waiting for an exogenous action to happen */
 icpgo(E,H) :-
-	printf("icpgo(4): WAITING FOR EXOGENOUS ACTIONS...\n", []),
+	printf("icpgo(4): WAITING FOR EXOGENOUS ACTIONS... \n E: %w \n H: %w \n%b", [E,H]),
 	flush(output),
 	wait_for_exog_occurs, !,
 	/* now that we there is an exo action,
@@ -185,12 +185,29 @@ its sensing */
 number of actions */
 icpxeq(H,[Act|H],H1) :- not senses(Act,_),
 	execute(Act,_,H),
-	length(H, HL), getval(prgrat, PL),
-	(pe, HL >= PL ->
-	    incZaehler([Act|H]),
-	    update_current_val([Act|H],H1)
+	%printColor( red, " ***** (2) icpxeq(%w,%w \n%b", [H,Act] ),
+	%% STF: fix exogf_Update-value-gehassel
+	( Act = exogf_Update -> %, HRest \= [s0]
+	    %% we want to save epf-values to be able to regress
+	    %% prim_fluents that depend on epfs ...
+	    process_epf( [Act|H], Hneu )
 	    ;
-	    H1=[Act|H]).	
+	    Hneu = [Act|H]
+	),
+	length(Hneu, HL), getval(prgrat, PL),
+	(pe, HL >= PL ->
+	    incZaehler(Hneu),
+	    update_current_val(Hneu,H1)
+	    ;
+	    H1=Hneu
+	). %, printColor( red, " ***** icpxeq(2) done! \n%b", [] ).	
+%% STF: Old version 
+%	length(H, HL), getval(prgrat, PL),
+%	(pe, HL >= PL ->
+%	    incZaehler([Act|H]),
+%	    update_current_val([Act|H],H1)
+%	    ;
+%	    H1=[Act|H]).	
 
 /* (3) - The action is a sensing one for fluent F:
 execute sensing action*/ 
@@ -208,6 +225,34 @@ icpxeq(H,[Act|H],H1) :-
 incZaehler(H) :- length(H,L), L1 is L-1, getval(zaehler,Zaehler), 
 	         Zaehler1 is Zaehler+L1, setval(zaehler,Zaehler1).
 
+
+
+/* ================================================================== */
+/** (0)- exogf_Update is last (executed) action.
+ * if we want to have a fluent's value from before an exogf_Update
+ * we gotta save it's value ... 
+ */ 
+process_epf( H_alt, H_neu ) :-
+	%printColor( red, " ***** starting process_epf \n%b", [] ),
+	findall(ExogPrimF, exog_prim_fluent(ExogPrimF), ExogPrimFList),
+	%printColor( pink, " ***** process_epf( %w, %w, ? ) \n%b", [ExogPrimFList, H_alt] ),
+	process_epf_aux( ExogPrimFList, H_alt, H2 ),
+	flatten(H2,H_neu).%,
+	%printColor( pink, " ***** DONE process_epf( %w, %w, %w ) \n%b", [ExogPrimFList, H_alt, H_neu] ).
+
+process_epf_aux( ExogPrimFList, H, H3 ) :-
+	%printColor( pink, " ***** process_epf_aux( %w, %w, ? ) \n%b", [ExogPrimFList, H] ),
+	( ExogPrimFList = [] -> 
+	    H3 = H 
+	;
+	  (
+	    ExogPrimFList = [EPF|Rest],
+	    exog_fluent_getValue( EPF, Val, H ),
+	    H4 = [set(EPF,Val),H],
+	    process_epf_aux( Rest, H4, H3 )
+	  )
+        ).%,
+	%printColor( pink, " ***** DONE process_epf_aux( %w, %w, %w ) \n%b", [ExogPrimFList, H, H3] ).
 
 
 /* ================================================================== */
@@ -273,13 +318,22 @@ initialize :-
 
 % CF&AF: the worlds worst ever hack: ignore exogf_update progression
 update_current_val(H1,HH) :-
+	%% since we insert set(epf) into the history (in process epf)
+	%% we should ensure that exogf_Update has been executed ...
+	execute(exogf_Update,_,H1),
 	update_current_val1(H1, H2, 0, NEFU),
 	(
 	  NEFU > 0 ->
 	  Act = exogf_Update, 
-	  HH = [Act|H2]
+	  %HH = [Act|H2]
+	  HG = [Act|H2],
+	  %% we want to save epf-values to be able to regress
+	  %% prim_fluent that depend on epfs ...
+	  process_epf(HG,HH)
+          %,printColor( pink, " *** PROGRESSION FALL EINS \n H_alt: %w \n HG: %w \n H_neu: %w \n%b", [H1,HG,HH] )
 	;
 	  HH = H2
+	  %,printColor( pink, " *** PROGRESSION FALL ZWEI \n H_alt: %w \n H_neu: %w \n%b", [H1,HH] )
 	).
 
 
@@ -1372,9 +1426,12 @@ isNumber(pi).
 /** fluent is a so-called exogenous fluent and an 'update
 exogenous fluents action' had happened: look up the value in the
 database for (direct access) exogenous fluent */
-has_val(F,V,[exogf_Update]) :-
-	exog_fluent(F), !,
-	exog_fluent_getValue(F, V, []).
+%% STF: commented the following, since the preprocessor already generates
+%%      SSAs for exog_fluents hence this predicate has never been called
+%has_val(F,V,[exogf_Update|_Srest]) :-
+%	exog_fluent(F), !,
+%	exog_fluent_getValue(F, V, []).%,
+%	%printColor( cyan, " has_val [ exogf_Update ] for %w with val %w \n%b", [F, V]).
 
 /** situation term of length one: look up the fluent value in the
 knowledge base created by progression or if the situation is [s0]

@@ -132,12 +132,13 @@ bestDoM_event( Program, [], S, H, Pol, V, Prob, Tree, RewardFunction) :-
 
 bestDoM_event( Program, [Event| Rest], S, H, Pol, V, Prob, Tree, RewardFunction) :-
 	/** <state_abstraction> */
-	(
-	  use_caching ->
-	  sit2state(S, State)
-	;
-	  State = S
-	),
+%	(
+%	  use_caching ->
+%	  sit2state(S, State)
+%	  State = S
+%	;
+%	  State = S
+%	),
 	/** </state_abstraction> */
 	
 	(

@@ -39,6 +39,7 @@ progression_enabled :- false. %true
  *  it turnes out that for the soccer specification a number of 10 is
  *  a good threshold 
  */
+%pe :- false.
 pe :- true.
 :- setval(prgrat, 10).
 
