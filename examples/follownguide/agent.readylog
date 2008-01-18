@@ -1,0 +1,51 @@
+/* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
+ *
+ *           $Id: agent.readylog 68 2007-12-06 18:30:15Z stf $
+ *        author: Daniel Beck <beck@kbsg.rwth-aachen.de>
+ *   description: application of ReadyLog in the Maze domain.
+ *
+ * ************************************************************************ */
+
+:- write(" --> loading agent.readylog ...\n").
+
+%:- lib(toplevel).
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  INCLUDES                            %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% ReadyLog interpreter
+:- ensure_loaded("../../interpreter/readylog/readylog.pl").
+%% eXogenous stuff
+:- ensure_loaded("exog.readylog").
+
+%% MazeDomain definition
+:- ensure_loaded("fng.readylog").
+%% Functions
+%:- ensure_loaded("functions.readylog").
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  LIBRARIES                           %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% GridVisualization
+:- load("../../ecl/keyboard.so").
+:- ["../../include/keyboard.pl"].
+%% GridVisualization
+:- load("../../ecl/gridvis.so").
+:- ["../../include/gridvis.pl"].
+
+      
+%% ================================================================== %%
+%%  PROCEDURES                                                        %%
+%% ================================================================== %%
+
+proc( step_right, [goto_prim(1, 0)] ).

@@ -1,0 +1,262 @@
+/* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
+ *
+ *           $Id: maze.readylog 68 2007-12-06 18:30:15Z stf $
+ *        author: Daniel Beck <beck@kbsg.rwth-aachen.de>
+ *   description: Definition of the Follow & Guide domain in ReadyLog
+ *
+ * ************************************************************************ */
+
+:- write(" --> loading fng.readylog ... \n").
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  DOMAIN DEFINITION                                                 %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%
+%%  WORLD
+world(1,1,5,5).
+
+is_pos(X, Y) :-
+      world( XMin, YMin, XMax, YMax ),
+      X >= XMin, X =< XMax, Y >= YMin, Y =< YMax.
+
+function(f_is_pos(X, Y), V, 
+         lif(and([ world(XMin,YMin,XMax,YMax),
+                   X >= XMin, X =< XMax, Y >= YMin, Y =< YMax ]),
+             V=true, V=false)).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%
+%%  OCCUPIED
+occupied(3, 3).
+
+function(is_occupied(X,Y), V,
+         lif(occupied(X,Y),V=true, V=false)).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%
+%%  ACCESS FUNCTIONS
+
+/** get domain info for visualization.
+ * compile a list of information on the domain we act in
+ */
+/*
+get_fng_domain(X, Y, M) :-
+	world(_, _, X, Y),
+	findall([A, B], occupied(A, B), W).
+*/
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  FLUENTS                                                           %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  PRIMITIVE FLUENTS                   %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  each prim_fluent is followed 
+%%  by its intial value
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  EXOGENOUS PRIMITIVE FLUENTS         %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% %%%%%%%%%%%%%%%%%%%%% %%
+%%  real position        %%
+%% %%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_agent_pos ).
+exog_fluent_getValue( epf_agent_pos, V, _S ) :- !,
+        getval( wm_agent_pos, V).
+
+exog_prim_fluent( epf_human_pos ).
+exog_fluent_getValue( epf_human_pos, V, _S ) :- !,
+        getval( wm_human_pos, V).
+
+
+exog_prim_fluent( epf_sense_human ).
+exog_fluent_getValue( epf_sense_human, V, _S ) :- !,
+        getval( real_agent_pos, [Xa, Ya] ),
+        getval( real_human_pos, [Xh, Yh] ),
+        Xtmp is Xh - Xa,
+        Ytmp is Yh - Ya,
+        abs(Xtmp, Xdiff),
+        abs(Ytmp, Ydiff),
+        R is Xdiff + Ydiff, 
+        (
+            ( R < 5 ) -> 
+            V = [Xdiff, Ydiff]
+        ;
+            V = 0
+        ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  ACTIONS                                                           %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  PRIMITIVE ACTIONS                   %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  each prim_action is followed 
+%%  by its precondition axiom
+%%  and by its causes_val statement
+
+%% %%%%%%%%%%%%%%%%%%%%% %%
+%%  MOVEMENT             %%
+%% %%%%%%%%%%%%%%%%%%%%% %%
+
+prim_action(noop).
+poss(noop, true).
+
+prim_action(goto_prim(_X,_Y)).
+poss(goto_prim(Xrelto,Yrelto),
+     and([ epf_agent_pos = [X,Y],
+           Xglobto is X + Xrelto,
+           Yglobto is Y + Yrelto,
+           f_is_reachable(X, Y, Xglobto, Yglobto)
+         ])
+    ).
+causes_val(goto_prim(Xrelto, Yrelto), epf_agent_pos, V,
+           and([ epf_agent_pos = [X, Y],
+                 Xglobto is X + Xrelto,
+                 Yglobto is Y + Yrelto,
+                 V = [Xglobto, Yglobto]
+               ])
+          ).
+
+function(f_is_reachable(Xfrom, Yfrom, Xto, Yto), V,
+         lif( reachable_init(Xfrom, Yfrom, Xto, Yto),
+              V = true, V = false )).
+
+:- dynamic nav_val/3.
+reachable_init(Xfrom, Yfrom, Xto, Yto) :- 
+        retract_all(nav_val(_,_,_)),
+        reachable(Xfrom, Yfrom, Xto, Yto, 4).
+        
+reachable(X, Y, X, Y, _N) :- !.
+reachable(Xfrom,Yfrom, Xto, Yto, N) :-
+        manhattan_dist(Xfrom, Yfrom, Xto, Yto, Dist),
+        Dist < N,
+        ( nav_val(Xfrom, Yfrom, _) -> retract(nav_val(Xfrom, Yfrom,_)) ; true ),
+        assert(nav_val(Xfrom, Yfrom, N)),
+        Xleft is Xfrom - 1,
+        Xright is Xfrom + 1,
+        Yup is Yfrom + 1,
+        Ydown is Yfrom - 1,
+        NN is N - 1,
+        (
+            (
+                % up
+                not(occupied(Xfrom, Yup)),
+                ( nav_val(Xfrom, Yup, V) -> N > V ; true ),
+                reachable(Xfrom, Yup, Xto, Yto, NN)
+            )
+        ;
+            (
+                % down
+                not(occupied(Xfrom, Ydown)),
+                ( nav_val(Xfrom, Ydown, V) -> N > V ; true ),
+                reachable(Xfrom, Ydown, Xto, Yto, NN)
+            )
+        ;
+            (
+                % right
+                not(occupied(Xright, Yfrom)),
+                ( nav_val(Xright, Yfrom, V) -> N > V ; true ),
+                reachable(Xright, Yfrom, Xto, Yto, NN)
+            )
+        ;
+            (
+                % left
+                not(occupied(Xleft, Yfrom)),
+                ( nav_val(Xleft, Yfrom, V) -> N > V ; true ),
+                reachable(Xleft,Yfrom, Xto, Yto, NN)
+            )
+        ).
+
+exog_action(human_up).
+poss(human_up, true).
+causes_val(human_up, epf_human_pos, V,
+           and([ epf_human_pos=[Xh,Yh], Y is Yh + 1, V = [Xh, Y] ])
+          ).
+        
+exog_action(human_down).
+poss(human_down, true).
+causes_val(human_down, epf_human_pos, V,
+           and([ epf_human_pos=[Xh,Yh], Y is Yh - 1, V = [Xh, Y] ])
+          ).
+exog_action(human_right).
+poss(human_right, true).
+causes_val(human_right, epf_human_pos, V,
+           and([ epf_human_pos=[Xh,Yh], X is Xh + 1, V = [X, Yh] ])
+          ).
+exog_action(human_left).
+poss(human_left, true).
+causes_val(human_left, epf_human_pos, V,
+           and([ epf_human_pos=[Xh,Yh], X is Xh - 1, V = [X, Yh] ])
+          ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  READYLOG ACTIONS                    %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%
+%%  STOCHASTIC
+%% %%%%%%%%%%%%%%%%%%%%%%%%
+
+proc( goto(X,Y),
+	goto_prim(X,Y)
+    ).
+
+proc_poss( goto(Xrelto,Yrelto),
+	and([ epf_agent_pos = [X,Y],
+              Xglobto is X + Xrelto,
+              Yglobto is Y + Yrelto,
+              f_is_reachable(X, Y, Xglobto, Yglobto)
+            ])
+         ).
+
+proc_costs( goto(Xrelto,Yrelto), V, 
+	and([ epf_agent_pos = [X,Y],
+              Xglobto is X + Xrelto,
+              Yglobto is Y + Yrelto,
+              manhattan_dist(X, Y, Xglobto, Yglobto, V)
+            ])
+          ).
+
+proc_model( goto(Xrelto, Yrelto),
+	[
+            ?( epf_agent_pos = [Xf,Yf] ),
+            ?( Xs is Xf + Xrelto ),
+            ?( Ys is Yf + Yrelto ),
+            sprob([ (noop, 0.1, epf_agent_pos = [Xf, Yf]),
+                    (goto_prim(Xs, Ys), 0.9, epf_agent_pos = [Xs, Ys])
+                  ], exogf_Update )
+        ]).
+          
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% prim_actions for debug output.
+
+prim_action( cout( _Text ) ).
+poss( cout( _Text ), true ).
+
+prim_action( cout( _Text, _Params ) ).
+poss( cout( _Text, _Params ), true ).
+
+prim_action( cout( _Color, _Text, _Params ) ).
+poss( cout( _Color, _Text, _Params ), true ).
+
+prim_action( printf( _String, _Params ) ).
+poss( printf( _String, _Params ), true ).
+
+prim_action( printf(_Stream, _String, _Params ) ).
+poss( printf(_Stream, _String, _Params ), true ).
+
+
+:- write(" <-- loading maze.readylog done.\n").
