@@ -28,15 +28,19 @@
 
 :- external(start_display/3, "p_StartDisplay").
 
+:- external(start_display_ng/4, "p_StartDisplayNG").
+
 :- external(draw_action/3, "p_DrawAction").
 
 :- external(draw_policy/3, "p_DrawPolicy").
 
 :- external(draw_agent/2, "p_DrawAgent").
 
-:- external(draw_item/2, "p_DrawItem").
+:- external(draw_human/2, "p_DrawHuman").
 
 :- external(draw_goal/2, "p_DrawGoal").
+
+:- external(draw_item/2, "p_DrawItem").
 
 :- external(draw_start/2, "p_DrawStart").
 
@@ -58,5 +62,9 @@ sd1 :- start_display(10,10, []).
 
 sd2 :- start_display(5,5, []).
 
+sd3 :- start_display_ng(20,20, [], [[1,2],[2,3],[3,4],[4,5]]).
+
 display :- get_domain(X, Y, W), start_display(X, Y, W).
+
+display_ng :- get_domain_ng(X, Y, W, O), start_display_ng(X, Y, W, O).
 

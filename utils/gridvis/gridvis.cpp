@@ -34,6 +34,9 @@ void CalculateOptPolicy();
 std::vector<wall_t>   Walls;
 wall_t WallPiece;
 
+std::vector<cell_t>   Cells;
+cell_t CellPiece;
+
 std::vector<value_t>  Values;
 std::vector<value_t>  OptPolicy;
 std::vector<action_t> Actions;
@@ -65,8 +68,9 @@ int p_StartDisplay()
   };
 
 
+  // Walls
+  Walls.clear();
   std::vector<int> list_elements;
-
   EC_word list = Arg3;
   EC_word sub_list, element;
   while(EC_succeed == list.arg(1, sub_list)) {
@@ -91,6 +95,93 @@ int p_StartDisplay()
     list_elements.clear();
     Walls.push_back(WallPiece);
     list.arg(2,list);
+  }
+
+  start_display(GridX, GridY);
+
+  winited = true;
+
+  return EC_succeed;
+}
+
+extern "C"
+int p_StartDisplayNG()
+{
+  
+  EC_word Arg1 = EC_word( EC_arg( 1 ) );
+  EC_word Arg2 = EC_word( EC_arg( 2 ) );
+  EC_word Arg3 = EC_word( EC_arg( 3 ) );
+  EC_word Arg4 = EC_word( EC_arg( 4 ) );
+
+  long GridX, GridY;
+
+  if ( Arg1.is_long( &GridX ) != EC_succeed) {
+    cerr << "In p_StartDisplayNG(): Failed to get Arg 1 " << endl;
+    return EC_fail;
+  };
+  
+  if ( Arg2.is_long( &GridY ) != EC_succeed) {
+    cerr << "In p_StartDisplayNG(): Failed to get Arg 2 " << endl;
+    return EC_fail;
+  };
+
+
+  std::cout << "gridvis(p_StartDisplayNG): drawing walls" << std::endl;
+  // Walls
+  Walls.clear();
+  std::vector<int> list_elements;
+  EC_word list = Arg3;
+  EC_word sub_list, element;
+  while(EC_succeed == list.arg(1, sub_list)) {
+
+    while (EC_succeed == sub_list.arg(1, element)) {
+      long elem = 0;
+      //if (element.is_nil()) {
+      //	cerr << " element is NIL!" << endl;
+      //}	
+      if (element.is_long(&elem) != EC_succeed) {
+	cerr << "error in type in elem: '" << elem << "'" << endl;
+	return EC_fail;
+      }
+      //cout << "got elem: '" << elem << "'" << endl;
+      list_elements.push_back(elem);
+      sub_list.arg(2,sub_list);
+    }
+    WallPiece.x1=list_elements[0];
+    WallPiece.y1=list_elements[1];
+    WallPiece.x2=list_elements[2];
+    WallPiece.y2=list_elements[3];
+    list_elements.clear();
+    Walls.push_back(WallPiece);
+    list.arg(2,list);
+  }
+
+  std::cout << "gridvis(p_StartDisplayNG): drawing cells" << std::endl;
+  // Occupied Cells
+  Cells.clear();
+  std::vector<int> oc_list_elements;
+  EC_word oc_list = Arg4;
+  EC_word oc_sub_list, oc_element;
+  while(EC_succeed == oc_list.arg(1, oc_sub_list)) {
+
+    while (EC_succeed == oc_sub_list.arg(1, oc_element)) {
+      long oc_elem = 0;
+      //if (element.is_nil()) {
+      //	cerr << " element is NIL!" << endl;
+      //}	
+      if (oc_element.is_long(&oc_elem) != EC_succeed) {
+	cerr << "error in type in oc_elem: '" << oc_elem << "'" << endl;
+	return EC_fail;
+      }
+      //cout << "got elem: '" << oc_elem << "'" << endl;
+      oc_list_elements.push_back(oc_elem);
+      oc_sub_list.arg(2,oc_sub_list);
+    }
+    CellPiece.x=oc_list_elements[0];
+    CellPiece.y=oc_list_elements[1];
+    oc_list_elements.clear();
+    Cells.push_back(CellPiece);
+    oc_list.arg(2,oc_list);
   }
 
   start_display(GridX, GridY);
@@ -241,6 +332,32 @@ int p_DrawAgent()
   }
 
   draw_agent(X, Y);
+
+  return EC_succeed;
+}
+
+extern "C"
+int p_DrawHuman()
+{
+  if( !winited ) {
+    //cerr << " ***** ERROR ***** window not initialized yet, can't draw" << endl;
+    return EC_succeed;
+  }    
+
+  EC_word ec_X = EC_word( EC_arg( 1 ) );
+  EC_word ec_Y = EC_word( EC_arg( 2 ) );
+
+  long X,Y;
+  if( ec_X.is_long( &X ) != EC_succeed ) {
+    cerr << "failed to unify arg 1 in p_DrawHuman " << endl;
+    return EC_fail;
+  }
+  if( ec_Y.is_long( &Y ) != EC_succeed ) {
+    cerr << "failed to unify arg 2 in p_DrawHuman " << endl;
+    return EC_fail;
+  }
+
+  draw_human(X, Y);
 
   return EC_succeed;
 }

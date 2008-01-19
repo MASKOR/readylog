@@ -60,6 +60,8 @@ void init_win (int wd, int ht) /* Make window and allocate colors.     */
 void draw_walls() {
   int start_x, start_y, end_x, end_y;
 
+  std::cout << "display(draw_walls): drawing " <<   Walls.size() << " walls." <<std::endl;
+
   for (unsigned int i = 0; i < Walls.size(); i++) {
     // is the wall horizontal or vertical?
     int delta_x = abs(Walls[i].x1-Walls[i].x2);
@@ -94,6 +96,27 @@ void draw_walls() {
 
 }
 
+void
+draw_cells() {
+  int start_x, start_y, end_x, end_y;
+  
+  std::cout << "display(draw_cells): drawing " <<   Cells.size() << " cells." <<std::endl;
+
+  for (unsigned int i = 0; i < Cells.size(); i++) {
+    int x, y;
+    
+    x = Cells[i].x;
+    y = Cells[i].y;
+    
+    start_x = end_x = x * ROW_SIZE;
+    start_y = end_y = GY - y * ROW_SIZE;
+    
+    j_draw_line(end_x+55, end_y+5, start_x+5, start_y+55, COLORS[80],5,0,0,WINDOW);
+    j_draw_line(end_x+55, end_y+55, start_x+5, start_y+5, COLORS[80],5,0,0,WINDOW);
+  }
+  
+}
+
 void 
 draw_agent( int X, int Y)
 {
@@ -106,6 +129,36 @@ draw_agent( int X, int Y)
   j_draw_line(start_x+5,start_y+55,start_x+15,start_y+35,COLORS[86],3,0,0,WINDOW);
   j_draw_line(start_x+15,start_y+35,start_x+25,start_y+55,COLORS[86],3,0,0,WINDOW);
   j_draw_line(start_x+5,start_y+55,start_x+25,start_y+55,COLORS[86],3,0,0,WINDOW);
+
+
+  j_refresh_window(WINDOW);
+}
+
+void 
+draw_human( int X, int Y)
+{
+  int start_x, start_y; //, end_x, end_y;
+  //std::cout << X << " " <<Y <<std::endl;
+  
+  start_x = X * ROW_SIZE + 25;
+  start_y = GY - ((Y+1)*ROW_SIZE);
+
+  // body
+  j_draw_line(start_x+10, start_y+26, start_x+21,start_y+15,COLORS[87],3,0,0,WINDOW);
+  j_draw_line(start_x+9, start_y+15, start_x+20,start_y+26,COLORS[87],3,0,0,WINDOW);
+
+  // feet
+  j_draw_line(start_x+8, start_y+27, start_x+10,start_y+27,COLORS[87],4,0,0,WINDOW);
+  j_draw_line(start_x+20, start_y+27, start_x+22,start_y+27,COLORS[87],4,0,0,WINDOW);
+
+  // head
+  j_draw_line(start_x+9, start_y+9, start_x+15,start_y+5,COLORS[87],3,0,0,WINDOW);
+  j_draw_line(start_x+9, start_y+9,start_x+15,start_y+13,COLORS[87],3,0,0,WINDOW);
+  j_draw_line(start_x+15, start_y+5, start_x+21,start_y+9,COLORS[87],3,0,0,WINDOW);
+  j_draw_line(start_x+15, start_y+13,start_x+21,start_y+9,COLORS[87],3,0,0,WINDOW);
+
+  // neck
+  j_draw_line(start_x+15,start_y+13,start_x+15,start_y+17,COLORS[87],3,0,0,WINDOW);
 
 
   j_refresh_window(WINDOW);
@@ -191,6 +244,7 @@ void draw_world() /* draw grid world */
   draw_columns();
   draw_rows();
   draw_walls();
+  draw_cells();
 }
 
 void draw_actions() /* draw history of actions */

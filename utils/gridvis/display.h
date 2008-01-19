@@ -58,6 +58,10 @@ typedef struct {
 } wall_t;
 
 typedef struct {
+  int x,y;
+} cell_t;
+
+typedef struct {
   int X; 
   int Y; 
   std::string act; 
@@ -78,6 +82,7 @@ typedef struct {
 // ///////////////////////////////////////
 
 extern std::vector<wall_t>   Walls;
+extern std::vector<cell_t>   Cells;
 extern std::vector<value_t>  Values;
 extern std::vector<value_t>  OptPolicy;
 extern std::vector<action_t> Actions;
@@ -130,6 +135,7 @@ void draw_start( int X, int Y) ;
 void draw_goal( int X, int Y);
 void draw_item( int X, int Y);
 void draw_agent( int X, int Y);
+void draw_human( int X, int Y);
 void draw_opt_vals();
 
 void redraw();
