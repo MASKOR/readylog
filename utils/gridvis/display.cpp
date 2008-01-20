@@ -16,6 +16,7 @@
 
 #include "display.h"
 #include <iostream>
+#include <stdio.h>
 
 #define min(A,B) (A<B ? A:B);
 #define max(A,B) (A>B ? A:B);
@@ -137,19 +138,13 @@ draw_agent( int X, int Y)
 void 
 draw_human( int X, int Y)
 {
+  std::cout << "display(draw_human): drawing human at (" << X << "," << Y << ")." <<std::endl;
+
   int start_x, start_y; //, end_x, end_y;
   //std::cout << X << " " <<Y <<std::endl;
   
   start_x = X * ROW_SIZE + 25;
   start_y = GY - ((Y+1)*ROW_SIZE);
-
-  // body
-  j_draw_line(start_x+10, start_y+26, start_x+21,start_y+15,COLORS[87],3,0,0,WINDOW);
-  j_draw_line(start_x+9, start_y+15, start_x+20,start_y+26,COLORS[87],3,0,0,WINDOW);
-
-  // feet
-  j_draw_line(start_x+8, start_y+27, start_x+10,start_y+27,COLORS[87],4,0,0,WINDOW);
-  j_draw_line(start_x+20, start_y+27, start_x+22,start_y+27,COLORS[87],4,0,0,WINDOW);
 
   // head
   j_draw_line(start_x+9, start_y+9, start_x+15,start_y+5,COLORS[87],3,0,0,WINDOW);
@@ -160,6 +155,17 @@ draw_human( int X, int Y)
   // neck
   j_draw_line(start_x+15,start_y+13,start_x+15,start_y+17,COLORS[87],3,0,0,WINDOW);
 
+  // hands
+  j_draw_line(start_x+9,  start_y+17, start_x+9,start_y+15, COLORS[87],3,0,0,WINDOW);
+  j_draw_line(start_x+21, start_y+17, start_x+21,start_y+15,COLORS[87],3,0,0,WINDOW);
+
+  // body
+  j_draw_line(start_x+10, start_y+26, start_x+21,start_y+16,COLORS[87],3,0,0,WINDOW);
+  j_draw_line(start_x+9, start_y+16, start_x+20,start_y+26,COLORS[87],3,0,0,WINDOW);
+
+  // feet
+  j_draw_line(start_x+8, start_y+27, start_x+10,start_y+27,COLORS[87],4,0,0,WINDOW);
+  j_draw_line(start_x+20, start_y+27, start_x+22,start_y+27,COLORS[87],4,0,0,WINDOW);
 
   j_refresh_window(WINDOW);
 }
@@ -253,7 +259,12 @@ void draw_actions() /* draw history of actions */
     //cout << " GridVis: redrawing action #" << i << " ("
     //	 << Actions[i].action << "," << Actions[i].X 
     //	 << "," << Actions[i].Y << ")." << endl;
-    draw_dir( Actions[i].action, Actions[i].X, Actions[i].Y );
+    if( Actions[i].action == GOTOR || Actions[i].action == GOTOG ) {
+      draw_goto( Actions[i].action, Actions[i].toX, Actions[i].toY, Actions[i].X, Actions[i].Y );
+    }
+    else {
+      draw_dir( Actions[i].action, Actions[i].X, Actions[i].Y );
+    }
   }
 }
 
@@ -325,6 +336,41 @@ void draw_dir(ACTION a, int X, int Y) {
     j_draw_line(start_x+25,start_y+35,start_x+5,start_y+55,COLORS[81],3,0,0,WINDOW);
     j_draw_line(start_x+25,start_y+55,start_x+5,start_y+35,COLORS[81],3,0,0,WINDOW);
     break;
+  case GOTOR: 
+  case GOTOG: 
+    break;
+  }
+
+  j_refresh_window(WINDOW);
+  
+}
+
+void draw_goto(ACTION a, int toX, int toY, int X, int Y ) {
+  
+  //  std::cout << X<< " " << Y << std::endl;
+  int start_x, start_y;
+  
+  start_x = X*ROW_SIZE;
+  start_y = GY - ((Y+1)*ROW_SIZE);
+
+  char buff [128];
+  sprintf( buff, "(%i,%i)", toX, toY );
+
+  switch (a) {
+  case NORTH: 
+  case EAST: 
+  case WEST: 
+  case SOUTH: 
+  case REST: 
+    break;
+  case GOTOR: 
+    j_draw_string(start_x+5,start_y+35, "GR", COLORS[81],WINDOW);
+    j_draw_string(start_x+5,start_y+55, buff, COLORS[81],WINDOW);
+    break;
+  case GOTOG: 
+    j_draw_string(start_x+5,start_y+35, "GG", COLORS[81],WINDOW);
+    j_draw_string(start_x+5,start_y+55, buff, COLORS[81],WINDOW);
+    break;
   }
 
   j_refresh_window(WINDOW);
@@ -359,6 +405,9 @@ void draw_opt_vals() {
     case REST: 
       j_draw_line(start_x+25,start_y+35,start_x+5,start_y+55,COLORS[60],3,0,0,WINDOW);
       j_draw_line(start_x+25,start_y+55,start_x+5,start_y+35,COLORS[60],3,0,0,WINDOW);
+      break;
+    case GOTOR: 
+    case GOTOG: 
       break;
     }
     
@@ -398,6 +447,9 @@ void draw_pol(ACTION a, int X, int Y) {
     j_draw_line(start_x+25,start_y+35,start_x+5,start_y+55,COLORS[83],3,0,0,WINDOW);
     j_draw_line(start_x+25,start_y+55,start_x+5,start_y+35,COLORS[83],3,0,0,WINDOW);
     break;
+  case GOTOR: 
+  case GOTOG: 
+    break;
   }
 
   j_refresh_window(WINDOW);
@@ -432,6 +484,9 @@ void draw_direction(ACTION a, STATE s)
   case REST: 
     j_draw_line(start_x+25,start_y+35,start_x+5,start_y+55,COLORS[60],3,0,0,WINDOW);
     j_draw_line(start_x+25,start_y+55,start_x+5,start_y+35,COLORS[60],3,0,0,WINDOW);
+    break;
+  case GOTOR: 
+  case GOTOG: 
     break;
   }
 }

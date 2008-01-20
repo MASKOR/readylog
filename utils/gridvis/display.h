@@ -64,6 +64,8 @@ typedef struct {
 typedef struct {
   int X; 
   int Y; 
+  int toX; 
+  int toY; 
   std::string act; 
   ACTION action;
   float value; 
@@ -73,6 +75,8 @@ typedef struct {
 typedef struct {
   int X; 
   int Y; 
+  int toX; 
+  int toY; 
   std::string act; 
   ACTION action;
 } action_t;
@@ -130,6 +134,7 @@ int convert_yloc_to_col(int y);
 STATE get_goal_from_user();
 
 void draw_dir(ACTION a, int X, int y);
+void draw_goto(ACTION a, int toX, int toY,  int X, int y);
 void draw_pol(ACTION a, int X, int Y);
 void draw_start( int X, int Y) ;
 void draw_goal( int X, int Y);

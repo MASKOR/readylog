@@ -38,11 +38,21 @@ STATE next_state(STATE olds, ACTION action)
 	   return(news);}
     break;
   case REST:
-    if (olds.row == 0)
-      return (olds);
-    else { news.col = olds.col;
-	   news.row = olds.row;
-	   return(news);}
+    news.col = olds.col;
+    news.row = olds.row;
+    return(news);
+    break;
+  case GOTOR:
+    return (olds);
+    //news.col = olds.col+action.toX;
+    //news.row = olds.row+action.toY;
+    //return(news);
+    break;
+  case GOTOG:
+    return (olds);
+    //news.col = action.toX;
+    //news.row = action.toY;
+    //return(news);
     break;
   }
   return news;

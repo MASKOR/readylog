@@ -21,7 +21,7 @@
 
 typedef struct {int row; int col;} STATE;
 
-typedef enum  {NORTH=0, EAST, SOUTH, WEST, REST} ACTION;
+typedef enum  {NORTH=0, EAST, SOUTH, WEST, REST, GOTOR, GOTOG} ACTION;
 
 STATE next_state(STATE olds, ACTION action);
 

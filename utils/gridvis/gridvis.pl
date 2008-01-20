@@ -32,6 +32,8 @@
 
 :- external(draw_action/3, "p_DrawAction").
 
+:- external(draw_goto/5, "p_DrawGoto").
+
 :- external(draw_policy/3, "p_DrawPolicy").
 
 :- external(draw_agent/2, "p_DrawAgent").

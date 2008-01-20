@@ -261,6 +261,68 @@ int p_DrawAction()
 }
 
 extern "C"
+int p_DrawGoto() 
+{
+  if( !winited ) {
+    //cerr << " ***** ERROR ***** window not initialized yet, can't draw" << endl;
+    return EC_succeed;
+  }    
+
+  EC_word ec_action = EC_word( EC_arg( 1 ) );
+  EC_word ec_toX = EC_word( EC_arg( 2 ) );
+  EC_word ec_toY = EC_word( EC_arg( 3 ) );
+  EC_word ec_X = EC_word( EC_arg( 4 ) );
+  EC_word ec_Y = EC_word( EC_arg( 5 ) );
+
+  char * strAction;
+  if ( ec_action.is_string( &strAction ) != EC_succeed) {
+    cerr << "In p_DrawGoto(): Failed to get Arg 1 " << endl;
+    return EC_fail;
+  };
+
+  long toX;
+  if ( ec_toX.is_long( &toX ) != EC_succeed) {
+    cerr << "In p_DrawGoto(): Failed to get Arg 2 " << endl;
+    return EC_fail;
+  };
+  long toY;
+  if ( ec_toY.is_long( &toY ) != EC_succeed) {
+    cerr << "In p_DrawGoto(): Failed to get Arg 3 " << endl;
+    return EC_fail;
+  };
+
+  long X;
+  if ( ec_X.is_long( &X ) != EC_succeed) {
+    cerr << "In p_DrawGoto(): Failed to get Arg 4 " << endl;
+    return EC_fail;
+  };
+  long Y;
+  if ( ec_Y.is_long( &Y ) != EC_succeed) {
+    cerr << "In p_DrawGoto(): Failed to get Arg 5 " << endl;
+    return EC_fail;
+  };
+
+  // to save action
+  action_t a;
+
+  switch(strAction[0]) {
+  case 'R' :
+    draw_goto(GOTOR, toX, toY, X, Y);
+    // save action for redraw:
+    a.toX = toX; a.toY = toY; a.X = X; a.Y = Y; a.action = GOTOR;
+    Actions.push_back( a );
+    break;
+  case 'G' :
+    draw_goto(GOTOG, toX, toY, X, Y);
+    // save action for redraw:
+    a.toX = toX; a.toY = toY; a.X = X; a.Y = Y; a.action = GOTOG;
+    Actions.push_back( a );
+    break;
+  };
+  return EC_succeed;
+}
+
+extern "C"
 int p_DrawPolicy()
 {
   if( !winited ) {
