@@ -64,27 +64,17 @@ update :-
              ;
 	     true
 	),
-        %vis_update,
+	vis_update,
+	%printf(" --- UPDATE ... done.\n", []),
 	true.
-	%printf(" --- UPDATE ... done.\n", []).
 
-/*
 vis_update :-
 	redraw, 
-	getval(real_start_pos, [StartX, StartY]),
-	draw_start(StartX,StartY),
-	getval(real_goal_pos, [GoalX, GoalY]),
-	draw_goal(GoalX,GoalY),
 	getval(real_agent_pos, [AgentX, AgentY]),
 	draw_agent(AgentX,AgentY),
-	getval(real_item_pos, [ItemX, ItemY]),
-	( [ItemX, ItemY] = [-1,-1] ->
-	    true
-	;
-	    draw_item(ItemX,ItemY)
-	),
+	getval(real_human_pos, [HumanX, HumanY]),
+	draw_human(HumanX,HumanY),
 	true.
-*/
 
 /** exogf_Update.
  *  updates all the exogenous fluents (sensing/world_model/...)
@@ -121,11 +111,12 @@ xTra(goto_prim(Xrelto, Yrelto), H) :-
         execdelay,
         Xn is X + Xrelto,
         Yn is Y + Yrelto,
-        setval( real_agent_pos, [Xn, Yn] ).
+        setval( real_agent_pos, [Xn, Yn] ),
+	draw_goto("R", Xrelto, Yrelto, X, Y).
 
 xTra(noop, H)  :- 
 	printColor( pink, " xTra: EXEC 'noop'", []), 
-	has_val( pos, V, H ), 
+	has_val( epf_agent_pos, V, H ), 
 	V = [X,Y], 
 	printf(" at %w \n", [V]), 
         execdelay,
@@ -202,7 +193,7 @@ translateActionToKey( Key, Action ) :-
 
 % down
 translateActionToKey( Key, Action ) :-
-        Key = 50, !,
+        (Key = 50;Key = 66), !,
         getval(real_human_pos, [X, Y]),
         YY is Y - 1,
         setval(real_human_pos, [X, YY]),
@@ -210,7 +201,7 @@ translateActionToKey( Key, Action ) :-
 
 % left
 translateActionToKey( Key, Action ) :-
-        Key = 52, !,
+        (Key = 52;Key = 68), !,
         getval(real_human_pos, [X, Y]),
         XX is X - 1,
         setval(real_human_pos, [XX, Y]),
@@ -218,7 +209,7 @@ translateActionToKey( Key, Action ) :-
 
 % right
 translateActionToKey( Key, Action ) :-
-        Key = 54, !,
+        (Key = 54;Key = 67), !,
         getval(real_human_pos, [X, Y]),
         XX is X + 1,
         setval(real_human_pos, [XX, Y]),
@@ -226,7 +217,7 @@ translateActionToKey( Key, Action ) :-
 
 % up
 translateActionToKey( Key, Action ) :-
-        Key = 56, !,
+        (Key = 56;Key = 65), !,
         getval(real_human_pos, [X, Y]),
         YY is Y + 1,
         setval(real_human_pos, [X, YY]),

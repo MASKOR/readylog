@@ -47,19 +47,21 @@ t2 :- icp( [ exogf_Update,
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  Shortcuts (for convenience)
 
+go :- vis, icp( [ exogf_Update, fng ] ).
+
 /** startup visualization 
  *  and draw initial stuff
  */
-/*
-vis :-  display,
-	getval(real_start_pos, [StartX, StartY]),
-	draw_start(StartX,StartY),
-	getval(real_goal_pos, [GoalX, GoalY]),
-	draw_goal(GoalX,GoalY),
-	getval(real_item_pos, [ItemX, ItemY]),
-	draw_item(ItemX,ItemY).
-*/
-
+vis :-  display_ng,
+%	getval(real_start_pos, [StartX, StartY]),
+%	draw_start(StartX,StartY),
+%	getval(real_goal_pos, [GoalX, GoalY]),
+%	draw_goal(GoalX,GoalY),
+	getval(real_agent_pos, [AgentX, AgentY]),
+	draw_agent(AgentX,AgentY),
+	getval(real_human_pos, [HumanX, HumanY]),
+	draw_human(HumanX,HumanY),
+	true.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

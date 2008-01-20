@@ -22,7 +22,7 @@
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  WORLD
-world(1,1,5,5).
+world(1,1,10,10).
 
 is_pos(X, Y) :-
       world( XMin, YMin, XMax, YMax ),
@@ -36,6 +36,9 @@ function(f_is_pos(X, Y), V,
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  OCCUPIED
 occupied(3, 3).
+occupied(4, 4).
+occupied(5, 5).
+occupied(6, 6).
 
 function(is_occupied(X,Y), V,
          lif(occupied(X,Y),V=true, V=false)).
@@ -46,11 +49,9 @@ function(is_occupied(X,Y), V,
 /** get domain info for visualization.
  * compile a list of information on the domain we act in
  */
-/*
-get_fng_domain(X, Y, M) :-
+get_domain_ng(X, Y, [], O) :-
 	world(_, _, X, Y),
-	findall([A, B], occupied(A, B), W).
-*/
+	findall([A, B], occupied(A, B), O).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  FLUENTS                                                           %%
@@ -89,8 +90,9 @@ exog_fluent_getValue( epf_sense_human, V, _S ) :- !,
         abs(Ytmp, Ydiff),
         R is Xdiff + Ydiff, 
         (
-            ( R < 5 ) -> 
-            V = [Xdiff, Ydiff]
+           ( R < 5 ) -> 
+              %V = [Xdiff, Ydiff]
+              V = [Xtmp, Ytmp]
         ;
             V = 0
         ).
