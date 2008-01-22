@@ -99,7 +99,7 @@ void draw_walls() {
 
 void
 draw_cells() {
-  int start_x, start_y, end_x, end_y;
+  int draw_x, draw_y;
   
   std::cout << "display(draw_cells): drawing " <<   Cells.size() << " cells." <<std::endl;
 
@@ -109,11 +109,11 @@ draw_cells() {
     x = Cells[i].x;
     y = Cells[i].y;
     
-    start_x = end_x = x * ROW_SIZE;
-    start_y = end_y = GY - y * ROW_SIZE;
+    draw_x = x * ROW_SIZE;
+    draw_y = GY - (y+1) * ROW_SIZE;
     
-    j_draw_line(end_x+55, end_y+5, start_x+5, start_y+55, COLORS[80],5,0,0,WINDOW);
-    j_draw_line(end_x+55, end_y+55, start_x+5, start_y+5, COLORS[80],5,0,0,WINDOW);
+    j_draw_line(draw_x+55, draw_y+5, draw_x+5, draw_y+55, COLORS[80],5,0,0,WINDOW);
+    j_draw_line(draw_x+55, draw_y+55, draw_x+5, draw_y+5, COLORS[80],5,0,0,WINDOW);
   }
   
 }
