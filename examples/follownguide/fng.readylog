@@ -97,6 +97,19 @@ exog_fluent_getValue( epf_sense_human, V, _S ) :- !,
             V = 0
         ).
 
+exog_prim_fluent( epf_fng_mode ).
+exog_fluent_getValue( epf_fng_mode, V, _S ) :- !,
+      getval( wm_fng_mode, V).
+
+exog_prim_fluent( epf_fng_guide_target ).
+exog_fluent_getValue( epf_fng_guide_target, V, _S ) :- !,
+      getval( wm_fng_guide_target, V).
+
+exog_prim_fluent( epf_fng_teach_target ).
+exog_fluent_getValue( epf_fng_teach_target, V, _S ) :- !,
+      getval( wm_fng_teach_target, V).
+
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  ACTIONS                                                           %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -202,6 +215,43 @@ poss(human_left, true).
 causes_val(human_left, epf_human_pos, V,
            and([ epf_human_pos=[Xh,Yh], X is Xh - 1, V = [X, Yh] ])
           ).
+
+%% follow
+exog_action(follow_mode).
+poss(follow_mode, true).
+causes_val(follow_mode, epf_fng_mode, V,
+           and([ V = fng_follow_mode ])
+          ).
+
+%% guide
+exog_action(guide_mode(_X,_Y)).
+poss(guide_mode(_,_), true).
+% causes_val(guide_mode(_X,_Y), epf_fng_mode, V,
+%            and([ V = fng_guide_mode ])
+%           ).
+% causes_val(guide_mode(X,Y), epf_fng_guide_target, V,
+%            and([ V = [X,Y] ])
+%           ).
+
+exog_action(guide_mode(_NAME)).
+poss(guide_mode(_NAME), true).
+% causes_val(guide_mode(_NAME), epf_fng_mode, V,
+%            and([ V = fng_guide_mode ])
+%           ).
+% causes_val(guide_mode(NAME), epf_fng_guide_target, V,
+%            and([ V = NAME ])
+%           ).
+
+%% teach
+exog_action(teach_mode(_X,_Y,_N)).
+poss(teach_mode, true).
+% causes_val(teach_mode(_X,_Y,_N), epf_fng_mode, V,
+%            and([ V = fng_teach_mode ])
+%           ).
+% causes_val(teach_mode(X,Y,N), epf_fng_teach_target, V,
+%            and([ V = [X,Y,N] ])
+%           ).
+
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  READYLOG ACTIONS                    %%

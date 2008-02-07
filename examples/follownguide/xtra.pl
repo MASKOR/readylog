@@ -23,6 +23,8 @@
 
 :- write(" --> loading xtra.pl ... \n").
 
+:- lib(util).
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  settings                            %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -42,6 +44,11 @@ exec_ask4outcome :- true.
 
 /* real position of the human */
 :- setval( real_human_pos, [3,1] ).
+
+
+:- setval( real_fng_mode, [] ).
+:- setval( real_fng_guide_target, [] ).
+:- setval( real_fng_teach_target, [] ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%                                      %%
@@ -91,6 +98,12 @@ xTra(exogf_Update, _H) :- !,
         ;
             setval( wm_human_pos, 0 )
         ),
+	getval( real_fng_mode, V_FNG_MODE ), 
+	setval( wm_fng_mode, V_FNG_MODE ),
+	getval( real_fng_guide_target, V_FNG_GUIDE_TARGET ), 
+	setval( wm_fng_guide_target, V_FNG_GUIDE_TARGET ),
+	getval( real_fng_teach_target, V_FNG_TEACH_TARGET ), 
+	setval( wm_fng_teach_target, V_FNG_TEACH_TARGET ),
 	printf(" *** exogf_Update DONE. *** \n", []), flush(output).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -191,6 +204,53 @@ translateActionToKey( Key, Action ) :-
         Action = show_fluents.
 
 
+% teach in (t)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 116, !,
+        printf( "!!! Got Key 't'!\n    teach in position\n", [] ), flush( output ),
+        setval(real_fng_mode, teach_mode),
+	getval(real_human_pos, [X,Y]),
+	printf( "** please insert the name of the location to teach (finish with RET):\n", [] ), flush( output ),
+	printf( "*** NAME:", [] ), flush( output ),
+	read_line(NAME),
+	printf( "** you want to teach (%w,%w) as '%w'\n", [X,Y,NAME] ), flush( output ),
+        setval(real_fng_teach_target, [X, Y, NAME]),
+        Action = teach_mode(X,Y,NAME).
+
+% follow mode (f)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 102, !,
+        printf( " !!! Got Key 'f'!\n    switching to follow_mode\n", [] ), flush( output ),
+        Action = follow_mode.
+
+% guide mode (g)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 103, !,
+        printf( "!!! Got Key 'g'!\n    switching to guide_mode\n", [] ), flush( output ),
+        setval(real_fng_mode, guide_mode),
+        printf( "** PLEASE CHOOSE:    (1) name of location    (2) pos [x,y] :\n", [] ), flush( output ),
+	getkey_blocking(Gchoice), Gtype is Gchoice - 48,
+	( Gtype = 1 ->
+	    printf( "** please insert the name of the location to guide to (finish with RET):\n", [] ), flush( output ),
+	    printf( "*** NAME:", [] ), flush( output ),
+	    read_line(NAME),
+	    setval(real_fng_guide_target, NAME),
+	    Action = guide_mode(NAME)
+	    ;
+	    printf( "** please insert position to guide to (NO ENTER REQUIRED!):\n", [] ), flush( output ),
+	    printf( "*** X:", [] ), flush( output ),
+	    getkey_blocking(Xkey), X is Xkey - 48,
+	    printf( "*** Y:", [] ), flush( output ),
+	    getkey_blocking(Ykey), Y is Ykey - 48,
+	    printf( "** you want to be guided to (%w,%w)\n", [X,Y] ), flush( output ),
+	    setval(real_fng_guide_target, [X, Y]),
+	    Action = guide_mode(X,Y)
+	).
+
+
 % down
 translateActionToKey( Key, Action ) :-
         (Key = 50;Key = 66), !,
@@ -223,20 +283,6 @@ translateActionToKey( Key, Action ) :-
         setval(real_human_pos, [X, YY]),
         Action = human_up.
         
-/*
-% Teleport Button (t)
-%
-translateActionToKey( Key, Action ) :-
-        Key = 116, !,
-        printf( "Got Key 't'!\n", [] ), flush( output ),
-        printf( "** please insert position to teleport to (NO ENTER REQUIRED!):\n", [] ), flush( output ),
-        printf( "*** X:", [] ), flush( output ),
-	getkey_blocking(Xkey), X is Xkey - 48,
-        printf( "*** Y:", [] ), flush( output ),
-	getkey_blocking(Ykey), Y is Ykey - 48,
-        printf( "** you want to teleport to (%w,%w)\n", [X,Y] ), flush( output ),
-        Action = teleport(X,Y).
-*/
 % Unknown Case
 %
 translateActionToKey( Key, Action ) :- !,
