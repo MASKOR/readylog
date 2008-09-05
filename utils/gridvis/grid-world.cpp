@@ -9,6 +9,20 @@ STATE next_state(STATE olds, ACTION action)
   STATE news;
 
   switch (action) {
+  case TLEFT:
+    if (olds.col == 0)
+      return (olds);
+    else { news.col = olds.col-1;
+	   news.row = olds.row;
+	   return(news);}
+    break;
+  case TRIGHT:
+    if (olds.col == 0)
+      return (olds);
+    else { news.col = olds.col-1;
+	   news.row = olds.row;
+	   return(news);}
+    break;
   case WEST: 
     if (olds.col == 0)
       return (olds);

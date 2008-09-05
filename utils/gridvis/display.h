@@ -11,6 +11,7 @@
  *           $Id$
  *        author: Alexander Ferrein <ferrein@cs.rwth-aachen.de>
  *        mod by: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
+ *        mod by: Dennis Pannhausen <Dennis.Pannhausen@rwth-aachen.de>
  *   description: encapsulation of X-based grid display
  *
  * ************************************************************************ */
@@ -59,6 +60,22 @@ typedef struct {
 
 typedef struct {
   int x,y;
+} pit_t;
+
+typedef struct {
+  int x,y;
+} breeze_t;
+
+typedef struct {
+  int x,y;
+} stench_t;
+
+typedef struct {
+  int x,y;
+} shade_t;
+
+typedef struct {
+  int x,y;
 } cell_t;
 
 typedef struct {
@@ -86,6 +103,10 @@ typedef struct {
 // ///////////////////////////////////////
 
 extern std::vector<wall_t>   Walls;
+extern std::vector<pit_t>    Pits;
+extern std::vector<breeze_t> Breezes;
+extern std::vector<stench_t> Stenches;
+extern std::vector<shade_t>  Shades;
 extern std::vector<cell_t>   Cells;
 extern std::vector<value_t>  Values;
 extern std::vector<value_t>  OptPolicy;
@@ -108,6 +129,18 @@ extern jwin *WINDOW; ;/* define reference to a global variable for the window */
 void init_win(int wd, int ht);
 
 void draw_columns();
+
+void draw_walls();
+
+void draw_pits();
+
+void draw_breezes();
+
+void draw_stench();
+
+void draw_cells();
+
+void draw_shades();
 
 void draw_rows();
 
@@ -134,12 +167,17 @@ int convert_yloc_to_col(int y);
 STATE get_goal_from_user();
 
 void draw_dir(ACTION a, int X, int y);
+void draw_turn(ACTION a, int x, int y);
 void draw_goto(ACTION a, int toX, int toY,  int X, int y);
 void draw_pol(ACTION a, int X, int Y);
 void draw_start( int X, int Y) ;
 void draw_goal( int X, int Y);
+void draw_gold( int X, int Y);
 void draw_item( int X, int Y);
 void draw_agent( int X, int Y);
+void draw_arrow( int X, int Y, std::string D );
+void draw_wumpus_hunter( int X, int Y, std::string D, bool A );
+void draw_wumpus( int Y, int Y, bool A );
 void draw_human( int X, int Y);
 void draw_opt_vals();
 

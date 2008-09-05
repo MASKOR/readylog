@@ -1,0 +1,236 @@
+/* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
+ *
+ *           $Id: agent.readylog 01 2008-08-14 18:33:15Z dp $
+ *        author: Dennis Pannhausen <Dennis.Pannhausen@rwth-aachen.de>
+ *   description: application of ReadyLog in the Wumpus domain.
+ *
+ * ************************************************************************ */
+
+:- write(" --> loading agent.readylog ...\n").
+
+%:- lib(toplevel).
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  INCLUDES                            %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% ReadyLog interpreter
+:- ensure_loaded("../../interpreter/readylog/readylog.pl").
+%% eXogenous stuff
+:- ensure_loaded("exog.readylog").
+
+%% Wumpus Domain definition
+:- ensure_loaded("wumpus.readylog").
+%% Functions
+:- ensure_loaded("functions.readylog").
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  LIBRARIES                           %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% GridVisualization
+:- load("../../ecl/keyboard.so").
+:- ["../../include/keyboard.pl"].
+%% GridVisualization
+:- load("../../ecl/gridvis.so").
+:- ["../../include/gridvis.pl"].
+
+      
+%% ================================================================== %%
+%%  PROCEDURES                                                        %%
+%% ================================================================== %%
+
+
+/** goto(x,y) using prim_actions */
+proc(goto(X,Y),
+     [
+        %cout( blue, " ***** proc goto(%w,%w) ***** \n", [X,Y]),
+        ?( Target = [X,Y] ),
+        %
+        while( epf_agent_pos \= Target, %[X,Y] ),
+                    nondet( [ go_forward, 
+                              turn_left,
+                              turn_right
+                            ] )
+                  )
+     ]
+    ).
+
+/** goto(x,y) using deterministic procedures */
+proc(goto_det(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        %
+        while( epf_agent_pos \= Target,
+               nondet( [ go_forward_det, 
+                         turn_left_det,
+                         turn_right_det
+                       ] )
+             )
+     ]
+    ).
+
+/** helper function to add an element to a list */
+function( adl(E,L), V,
+          append( E, L, V ) ).
+
+%% ================================================================== %%
+%%  ACTION PROCEDURES                                                 %%
+%% ================================================================== %%
+
+
+%% ================================================================== %%
+%%  FIND AND GET GOLD                                                 %%
+%% ================================================================== %%
+
+proc( find_gold,
+      [
+         cout(" === STARTING FIND_GOLD === \n"),
+         exogf_Update,
+         %% save current pos to return gold
+         ?( epf_agent_pos = [HomeX,HomeY] ),
+         ?( XG = 2 ),
+         ?( YG = 3 ),
+         search_gold( XG, YG ),
+         if( epf_gold_reachable = "F",
+             [ cout(" === CANNOT REACH GOLD SAFELY... GOING HOME === "),
+               reset_visited,
+               while( epf_agent_pos \= [HomeX,HomeY] ,
+                      [go_home( HomeX,HomeY ),
+                      exogf_Update]
+                    ),
+               cout(" === FINISHED FIND_GOLD === \n")
+             ],
+             [ %% else
+               cout( green, " *** found gold at %w,%w *** \n", [XG,YG] ),
+               goto_gold( XG, YG ),
+               grab_gold,
+               reset_visited,
+               while( (epf_carry_gold=true, epf_agent_pos \= [HomeX,HomeY]) ,
+                      [carry_gold( HomeX,HomeY ),
+                       exogf_Update]
+                    ),
+               cout(" === FINISHED FIND_GOLD === \n")
+             ]
+           ) %% endif
+      ]
+    ).
+
+proc( search_gold( XG, YG ),
+      [
+         cout(" --- search gold --- \n"),
+         exogf_Update,
+         while( (epf_sense_gold = false, epf_gold_reachable = "T" ),
+                [
+                   %exogf_Update,
+                   solve( [ if( (epf_wumpus_alive = true, epf_agent_arrow = true),
+                                [ nondet( [ go_forward,
+                                          turn_left,
+                                          turn_right,
+                                          shoot
+                                        ] ),
+                                 nondet( [ go_forward,
+                                          turn_left,
+                                          turn_right,
+                                          shoot
+                                        ] ),
+                                 nondet( [ go_forward,
+                                          turn_left,
+                                          turn_right,
+                                          shoot
+                                        ] ),
+                                 nondet( [ go_forward,
+                                          turn_left,
+                                          turn_right,
+                                          shoot
+                                        ] )
+                                ],
+                                [ nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right
+                                          ] ),
+                                 nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right
+                                          ] ),
+                                 nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right
+                                          ] ),
+                                 nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right
+                                          ] )
+                                 ]
+                               )
+                          ], 4, reward_search_gold ),
+                   exogf_Update
+                ]
+              ),
+         ?( epf_sense_gold = SenseID ),
+         cout( red, " +++ SenseID = %w \n", [SenseID] ),
+        % ?( IPOS = f_gold_pos_by_id( SenseID ) ),
+         ?( IPOS = [XG, YG] )
+      ]
+    ).
+
+proc( goto_gold(X,Y) ,
+      [
+         cout( yellow, " --- goto gold --- \n", [] ),
+         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
+      ]
+    ).
+
+proc( grab_gold,
+      [
+         cout(" --- grab gold --- \n"),
+         ?( epf_agent_pos = [X,Y] ),
+         pickup_gold,
+         cout(" --- gold successfully picked up --- \n")
+      ]
+    ).
+
+proc( carry_gold(X,Y),
+      [
+         cout(" --- bringing gold home --- \n"),
+         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
+      ]
+    ).
+
+proc( go_home(X,Y),
+      [
+         cout(" --- going home --- \n"),
+         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
+      ]
+    ).
+
+%% ================================================================== %%
+%%  TESTING PROCEDURES                                                %%
+%% ================================================================== %%
+
+proc( testg,
+      [
+         exogf_Update,
+         ?( epf_sense_gold = V ),
+         cout(V)
+      ]
+    ).
+
+proc( tstf_num,
+      [
+         exogf_Update,
+         ?( num_visited = V ),
+         cout( red, " *+*+* num_visited = %w *+*+* \n%b", [V])
+      ]
+    ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- write(" <-- loading agent.readylog done.\n").

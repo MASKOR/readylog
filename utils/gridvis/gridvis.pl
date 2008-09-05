@@ -17,6 +17,7 @@
  *           $Id$
  *        author: Alexander Ferrein <ferrein@cs.rwth-aachen.de>
  *        mod by: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
+ *        mod by: Dennis Pannhausen  <Dennis.Pannhausen@rwth-aachen.de>
  *   description: external interface to draw gridworlds (maze etc)
  *
  * ************************************************************************ */
@@ -30,7 +31,11 @@
 
 :- external(start_display_ng/4, "p_StartDisplayNG").
 
+:- external(start_display_wumpus/6, "p_StartDisplayWumpus").
+
 :- external(draw_action/3, "p_DrawAction").
+
+:- external(update_shades/1, "p_UpdateShades").
 
 :- external(draw_goto/5, "p_DrawGoto").
 
@@ -38,9 +43,17 @@
 
 :- external(draw_agent/2, "p_DrawAgent").
 
+:- external(draw_arrow/3, "p_DrawArrow").
+
+:- external(draw_wumpus_hunter/4, "p_DrawWumpusHunter").
+
+:- external(draw_wumpus/3, "p_DrawWumpus").
+
 :- external(draw_human/2, "p_DrawHuman").
 
 :- external(draw_goal/2, "p_DrawGoal").
+
+:- external(draw_gold/2, "p_DrawGold").
 
 :- external(draw_item/2, "p_DrawItem").
 
@@ -70,3 +83,6 @@ display :- get_domain(X, Y, W), start_display(X, Y, W).
 
 display_ng :- get_domain_ng(X, Y, W, O), start_display_ng(X, Y, W, O).
 
+display_wumpus :- get_domain_wumpus(X, Y, W, P, WI, S), start_display_wumpus(X, Y, W, P, WI, S).
+
+breeze_test :- start_display_wumpus(10, 10, [], [[2,2],[4,3]],[[4,4]]).

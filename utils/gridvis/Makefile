@@ -23,7 +23,8 @@
 
 BASEDIR = ../..
 
-ifneq ($(realpath /usr/bin/motif-config),)
+# ifneq ($(realpath /usr/bin/motif-config),)
+ifneq ($(realpath /usr/local/bin/motif-config),)
   HAVE_MOTIF    = 1
 endif
 
