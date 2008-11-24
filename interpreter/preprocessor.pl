@@ -1371,6 +1371,7 @@ write_header(Stream) :-
 	printf(Stream, "\n", []),
 	printf(Stream, ":- pragma(nodebug).\n", []).
 
+
 erase_rhomb(FileIn, FileOut) :-
 	concat_string( ["tr -d '#' < ", FileIn, " > ", FileOut],
 		       TRString),

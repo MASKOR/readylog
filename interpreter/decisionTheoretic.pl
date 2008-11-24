@@ -49,7 +49,10 @@
 /* --------------------------------------------------------- */
 % {{{ header + flags
 
-:- lib(scattered).       /* to avoid error: non consecutive */
+%:- lib(scattered).       /* to avoid error: non consecutive */
+%% the above is deprecated (since v5.6) in favor of discontinguous/1
+%% but we are using dynamic (for BestDoM and BestDoMOpt) now instead!
+
 :- set_flag(print_depth,500).
 
 

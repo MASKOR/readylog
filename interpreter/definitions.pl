@@ -25,7 +25,9 @@
 %:- use_module( library(clpr) ).
 :- lib(fd).
 :- lib(lists).
-:- lib(scattered).
+%:- lib(scattered).       /* to avoid error: non consecutive */
+%% the above is deprecated (since v5.6) in favor of discontinguous/1
+%% but we should be using dynamic anyway!
 %:- lib(ordset).
 
 :- dynamic
@@ -79,7 +81,15 @@
 	event_costs/3,
 	/* --  events: created by preprocessor   */
 	prolog_event_poss/2, 
-	prolog_event_costs/3.
+	prolog_event_costs/3,
+	/* --  prolog_poss: created by preprocessor   */
+	prolog_poss/2,
+	/* --  decisionTheoretic predicates */
+        bestDoM/9,
+        bestDoMOpt/10,
+	/* --  other */
+        causes_val/3,
+        sets_val/4.
 
 
 
