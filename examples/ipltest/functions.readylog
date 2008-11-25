@@ -1,0 +1,136 @@
+/* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
+ *
+ *           $Id: functions.readylog 01 2008-08-14 18:34:58Z dp $
+ *        author: Dennis Pannhausen <Dennis.Pannhausen@rwth-aachen.de>
+ *   description: Functions used in the ReadyLog Wumpus domain
+ *
+ * ************************************************************************ */
+
+:- write(" --> loading functions.readylog ...\n").
+
+%% ================================================================== %%
+%%  REWARD FUNCTIONS                                                  %%
+%% ================================================================== %%
+%% (good) reward functions are ESSENTIAL for DT-planning!
+%% it is VERY important to construct a simple yet realistic function
+%% that allows to access how good the current state is, 
+%% that is easy to compute and that guides the planning
+
+/** (Standard) reward function.
+ * This is really VERY VERY important for DT-planning!
+ */
+function( reward, V, 
+          lif( epf_agent_pos = [3,3], 
+               V=100, 
+               V=(-1) ) 
+        ).
+
+/** parameterized reward function.
+ */
+function( reward(X,Y), V, 
+          lif( epf_agent_pos = [X,Y], 
+               V=100, 
+               V=(-1) ) 
+        ).
+
+/** parameterized reward function.
+ * this reward function already gives hints on where to go
+ * by giving the negative manhattan dist to goal as the reward
+ */
+function( reward_heuristic(X,Y), V, 
+          and([ lif( epf_agent_pos = [X,Y], 
+                     V=100,
+                     and([ epf_agent_pos = [PosX,PosY],
+                           PreDiffX = X - PosX,
+                           lif( PreDiffX > 0,
+                                DiffX = -PreDiffX,
+                                DiffX =  PreDiffX ),
+                           PreDiffY = Y - PosY,
+                           lif( PreDiffY > 0,
+                                DiffY = -PreDiffY,
+                                DiffY =  PreDiffY ),
+                           V = DiffX+DiffY
+                         ]) 
+                   )
+              ])
+        ).
+
+/** reward function for finding gold.
+ */
+function( reward_search_gold, Reward,
+          and([ lif( epf_wumpus_alive = true,
+                     RewardKillWumpus = 0,
+                     RewardKillWumpus = 50
+                   ),
+                lif( epf_sense_gold = true, % "= true" seems to be important!
+                     RewardFoundGold = 100,
+                     RewardFoundGold = 0
+                   ),
+                lif( epf_agent_arrow = true,
+                     RewardSavedArrow = 20,
+                     RewardSavedArrow = (-20)
+                   ),
+                RewardExploration = ( (epf_distance_to_closest_safe_cell * (-1)) +
+                                      ( epf_num_visited * 20) +
+                                      /** reward for turning into an direction that's
+                                       *  promising for exploration */
+                                       epf_num_facedShades),
+                Reward = (
+                          RewardKillWumpus +
+                          RewardFoundGold +
+                          RewardSavedArrow +
+                          RewardExploration
+                         )
+              ])
+        ).
+
+%function( f_distance_to_closest_safe_cell, V, 
+%          and([ epf_cells_know_no_wumpus = CKNW,
+%                epf_cells_know_no_pit = CKNP,
+%                intersection(CKNW, CKNP, CSAFE),
+%                world( XMin, YMin, XMax, YMax ),
+%                MinXDist is XMax,
+%                MinYDist is YMax,
+%                MinManhattan is (XMax + YMax),
+%                epf_agent_pos = [AgentX, AgentY],
+%                Candidate is MinManhattan,
+%                ( foreach([X,Y], CSAFE) do      %% doesn't work :(
+%                  /** compute Manhattan Distance to agent */
+%                  and([ 
+%                        Candidate is 42
+%                        abs((X - AgentX), DistX),
+%                        abs((Y - AgentY), DistY),
+%                        Manhattan is (DistX + DistY),
+%                        lif( Manhattan =< MinManhattan, Candidate is Manhattan, true )
+%                      ])                  
+%                ),
+%                V = Candidate
+%              ])
+%        ).
+
+function( f_gold_pos_by_id(PosID), V,
+          and([
+                 IDiff is PosID - 5,
+                 IDifv is PosID - 4,
+                 IDmod is IDiff mod 3,
+                 IDdiv is IDifv div 3,
+                 lif( IDmod = 2,
+                      XDiff = -1,
+                      XDiff = IDmod),
+                 YDiff = IDdiv,
+                 pos = [X,Y],
+                 XG is X + XDiff, YG is Y + YDiff,
+                % printf( " PosID %w, IDiff %w, IDifv %w, IDmod %w, IDdiv %w, XI %w, YI %w\n", [PosID, IDiff, IDifv, IDmod, IDdiv, XG, YG] ),
+                 V = [XG, YG]
+              ])
+        ).
+
+:- write(" <-- loading functions.readylog done.\n").

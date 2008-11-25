@@ -1,0 +1,6 @@
+proc(testproc,
+    [testtoken, anothertesttoken,
+     solve([ichBinDerAnfangVomSolve, nondet([doA, doB, doC]), ichBinDasEndeVomSolve]
+           , 1, rewardf)
+     , dwajdo, blablubb
+    ]).
