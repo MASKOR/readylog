@@ -4,4 +4,4 @@
 
 :- pragma(nodebug).
 prolog_ipl_proc( testproc ).
-prolog_ipl_proc( testproc ) :-testtokenanothertesttokenHere had been a solve!dwajdoblablubb.
+prolog_ipl_proc( testproc ) :-[testtoken, anothertesttoken, solve([nondet([doA, ichBinDasEndeVomSolve], [doB, ichBinDasEndeVomSolve], [doC, ichBinDasEndeVomSolve])], 1, rewardf)[dwajdo, blablubb].

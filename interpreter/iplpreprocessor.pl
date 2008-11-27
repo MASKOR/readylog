@@ -45,38 +45,46 @@
 
 process_proc( [solve(Prog, Horizon, RewardFunction) | RestProgram], Stream ) :-
         %process_solve( Prog, Horizon, RewardFunction, Stream ),
-        printf(Stream, "Here had been a solve!", []), !,
+        term_string( solve(Prog, Horizon, RewardFunction), SolveString ),
+        string_length( SolveString, SolveLength ),
+        process_solve( Prog, Horizon, RewardFunction, Stream ),
+%        printf(Stream, "Here had been a solve of length %w!", [SolveLength]), !,
         process_proc( RestProgram, Stream ).
 
 %process_proc( [Term | RestProgram], Stream ) :-
 %        printf(Stream, "%w", [Term]), !,
 %        process_proc( RestProgram, Stream ).
 
-process_proc( [], Stream).
+%process_proc( [], Stream).
+        
+%process_proc( ProcString, Stream ).
 
-process_proc( [Term | RestProgram], Stream ) :-
-        printf( Stream, "%w", [Term] ),
-        process_proc( RestProgram, Stream ).
+process_proc( Proc, Stream ) :-
+%         printf( Stream, "SEARCHING FOR SUBSTRING\n", []),
+%         type_of( ProcString, X ),
+%         printf( Stream, "ProcString: %w is of type %w.\n", [ProcString, X]),
+%         printf( Stream, "ProcLength: %w\n", [ProcLength]),
+         term_string( Proc, ProcString ),
+         ( substring( ProcString, "solve", SolvePos ) ->
+                string_length(ProcString, ProcLength),
+%               printf( Stream, "SolvePos: %w\n", [SolvePos]),
+                BeforeLength is SolvePos - 1,
+                substring( ProcString, 1, BeforeLength, BeforeString ),
+                RestLength is 1+(ProcLength-SolvePos),
+                substring( ProcString, SolvePos, RestLength, SolveAndAfterString ),
+                printf( Stream, "%w", [BeforeString]),
+                % Using term_string(-,+) cut away the rest of the (Prolog term) proc,
+                % so that after a type conversion it would match the string
+                % SolveAndAfterString. This way we keep the term structure.
+                % TODO: To get a Prolog term, we have to add "[". This currently
+                % leads to superfluous left brackets after the solve context.
+                concat_strings( "[", SolveAndAfterString, SolveAndAfterStringPlusBracket ),
+                term_string( RestProc, SolveAndAfterStringPlusBracket ),
+                process_proc( RestProc, Stream )
+            ;
+                printf( Stream, "%w", [ProcString] )
+         ).
 
-%%process_proc( E, Stream ) :-
-%%        E \= [_E|_L],
-%%        printf(Stream, "E = %w, and E is atomic.", [E]).
-%        printf(Stream, "%w", [E]).
-
-%%process_proc( [E | E1], Stream ) :-
-%        printf(Stream, "Before Test E=%w, E1=%w", [E,E1]),
-%%        E1 =.. [solve|args],
-%        printf(Stream, "After Test", []),
-%%        process_proc(E, Stream), %!,
-%%        process_proc(E1, Stream).
-
-%%process_proc( [E | E1], Stream ) :-
-%%        process_proc(E, Stream), %!,
-%%        process_proc(E1, Stream).
-
-
-%process_proc( E, Stream ) :-
-%        process_proc([E], Stream).
 
 process_proc( ProcName, ProcBody, Stream ) :-        
         printf(Stream, "prolog_ipl_proc( %w ).\n", [ProcName]),
@@ -121,8 +129,15 @@ process_all_proc_aux([(ProcName, ProcBody)|List_rest], Stream) :-
 process_solve( [], Horizon, RewardFunction, _Stream ).
 
 process_solve( Program, Horizon, RewardFunction, Stream ) :-
-	apply_rho( Program, Rho_Program, Stream ),
-%	apply_tau_prime_H( Program, Horizon, Reward, Tau_Prime_H_Program ),
+%        printf( Stream, "Applying rho.\n", [] ),
+        Initial_Rho_Program = [],
+        apply_rho( Program, Initial_Rho_Program, Rho_Program, Stream ),
+        Initial_Tau_Prime_H_Program = [],
+%        printf(Stream, "apply_tau_prime_H(%w, %w, %w, %w, %w\n)",
+%                       [Rho_Program, Horizon, Initial_Tau_Prime_H_Program,
+%                        Tau_Prime_H_Program, Stream]),
+	apply_tau_prime_H( Rho_Program, Horizon, Initial_Tau_Prime_H_Program,
+                           Tau_Prime_H_Program, Stream ),
 %        apply_tau( Tau_Prime_H_Program, Horizon, Reward,
 %                   Tau_Prime_Program_Alpha, Tau_Prime_Program_Nondet,
 %                   Tau_Prime_Horizon ), !,
@@ -130,7 +145,7 @@ process_solve( Program, Horizon, RewardFunction, Stream ) :-
 %                                                 Tau_Prime_Program_Nondet,
 %                                                 Tau_Prime_Horizon,
 %                                                 Reward]).
-        printf(Stream, "solve(%w, %w, %w)", [Program, Horizon, RewardFunction]).
+        printf(Stream, "solve(%w, %w, %w)", [Tau_Prime_H_Program, Horizon, RewardFunction]).
 
 /* ----------------------------------------------------------
    transformation operators
@@ -142,37 +157,132 @@ process_solve( Program, Horizon, RewardFunction, Stream ) :-
  * a nondet. Afterwards, the argument list of the nondet
  * is transformed into a set.
  */
-%apply_rho( [], _Stream ).
-%%apply_rho( Program, Stream ) :-
-%%        printf(Stream, "%w", [Program]).
 
-%apply_rho( [pickBest(Value, Domain, Delta) | Omega], Stream ) :- !,
-%        ProgramList = makeSetFrom[DeltaWithValueReplacedByAllValuesFromDomain],
-%        printf(Stream, "nondet(%w)%w", [ProgramList, Omega]).
+apply_rho( [], Program, Rho_Program, Stream ) :-
+        Rho_Program = Program.
 
+/** TODO rho(pickBest) */
+%apply_rho( [pickBest(F, Domain, Delta) | Omega], Program, Rho_Program, Stream ) :- !,
+%        flatten(Delta, Delta_flat),
+%        findall(Value,
+%                (Value::Domain, indomain(Value)),
+%                Value_list),
+%        domain(numbers),
+%        printf( Stream, "numbers is a domain\n", []),
+%        printf( Stream, "Value_list: %w\n", [Value_list]),
+%        findall(Delta_sub,
+%                (Value::Domain, indomain(Value), subvl( F, Value, Delta_flat, Delta_sub )),
+%                Delta_sub_list),
+%        append(Program, [nondet(Delta_sub_list)], Program_New),
+%        apply_rho( Omega, Program_New, Rho_Program, Stream ).
+               
+/** TODO rho(star) */
 %apply_rho( [Alpha*|Omega], Stream ) :- !,
 %        printf(Stream, "%w%w", [ProgramSet, Omega]).
 
-apply_rho( [nondet(ProgList) | Omega], Stream ) :- !,
-        printf(Stream, "{", []),
-        print_list_as_set(ProgList, Stream),
-        % print out the rest of the program unchanged
-        % as rho only affects the first nondet
-        printf(Stream, "%w", [Omega]). % need a function to print out whole program
+apply_rho( [nondet(ProgList) | Omega], Program, Rho_Program, Stream ) :- !,
+%        printf(Stream, "ProgList: %w.\n", [ProgList]),
+        list_to_string(ProgList, ReducedString),
+%        printf(Stream, "ReducedString: %w.\n", [ReducedString]),
+        append(Program, [{ReducedString} ], Program_New),
+        apply_rho( Omega, Program_New, Rho_Program, Stream ).
 
-apply_rho( [], Stream ).
+apply_rho( [Term | Omega], Program, Rho_Program, Stream ) :- !,
+%        printf(Stream, "Program: %w\n", [Program]),
+        append(Program, [Term], Program_New),
+%        printf(Stream, "Appending: [%w]\n", [Term]),        
+%        printf(Stream, "Program_New: %w\n", [Program_New]),
+%        printf(Stream, "Omega: %w\n", [Omega]),
+        apply_rho( Omega, Program_New, Rho_Program, Stream ).
+%        printf(Stream, "Rho_Program_After_Recursion: %w\n", [Rho_Program]).
 
-apply_rho( [Term | Omega], Stream ) :-
-        printf(Stream, "%w", [Term]),
-        Rho_Program = [Term | Omega],
-        apply_rho( Omega, Stream ).
+%print_list_as_set([], Stream) :- printf(Stream, "}", []).
+%print_list_as_set([L1], Stream) :- printf(Stream, "%w}", [L1]).
+%print_list_as_set([L1 | L], Stream) :-
+%        printf(Stream, "%w, ", [L1]),
+%        print_list_as_set(L, Stream).
 
-print_list_as_set([], Stream) :- printf(Stream, "}", []).
-print_list_as_set([L1], Stream) :- printf(Stream, "%w}", [L1]).
-print_list_as_set([L1 | L], Stream) :-
-        printf(Stream, "%w, ", [L1]),
-        print_list_as_set(L, Stream).
+/** tau_prime_H integrates the arbitrary program omega
+ * following the first nondet statement into the set of
+ * nondeterministic choices:
+ * solve([alpha; nondet(p_1,...,p_n); omega], H, rew)
+ * === tau_prime_H ===>
+ * solve([alpha; nondet(q_1,...,q_m)], H, rew).
+ */
 
+/** ignore everything before the first nondet */
+apply_tau_prime_H( [Alpha | [{P_List} | Omega]], Horizon, Program,
+                   Tau_Prime_H_Program, Stream ) :- !,
+%        printf(Stream, "Encountered alpha = %w.\n", [Alpha]),
+%        printf(Stream, "apply_tau_prime_H( %w, %w, %w, %w, %w ).\n",
+%                       [[{P_List} | Omega], Horizon, Program,
+%                       Tau_Prime_H_Program, Stream]),
+        apply_tau_prime_H( [{P_List} | Omega], Horizon, Program,
+                           Tau_Prime_H_Program, Stream ).
+
+/** omega = ... */
+
+/** Empty program */
+apply_tau_prime_H( [{P_List} | []], Horizon, Program,
+                   Tau_Prime_H_Program, Stream ) :- !,
+%        printf(Stream, "Encountered Empty Program.\n", []),
+        /** TODO: sort P_List */
+        append(Program, [nondet(P_List)], Program_New),
+        Tau_Prime_H_Program = Program_New.
+
+
+/** Test Action */
+
+/** Primitive Action */
+apply_tau_prime_H( [{P_List} | [Term | Omega_Prime]], Horizon, Program,
+                   Tau_Prime_H_Program, Stream ) :- !,
+%        printf(Stream, "Encountered Primitive Action.\n", []),
+%        printf(Stream, "Integrating %w into %w.\n", [Term, {P_List}]),
+        integrate({P_List}, [Term], {P_List_New}),
+%        printf(Stream, "New Program List: %w.\n", [{P_List_New}]),
+        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
+                           Tau_Prime_H_Program, Stream ).
+
+integrate({P_String}, [], {P_String_New}) :-
+        P_String_New = P_String.
+
+integrate({P_String}, [Term], {P_String_New}) :-
+        string_to_list(P_String, P_List),
+        findall(X,
+                ( member(Y, P_List), append([Y], [Term], X) ),
+               P_List_New),
+        list_to_string(P_List_New, P_String_New).
+
+list_to_string( [], String ) :- !, 
+        String = "".
+
+list_to_string( List, ReducedString ) :- !,
+        /** cut away brackets around the argument list */
+        term_string(List, String),
+        string_length(String, StringLength),
+        ReducedLength is (StringLength - 2),
+        substring( String, 2, ReducedLength, ReducedString ).
+
+string_to_list( "", List ) :- !,
+         List = [].
+
+string_to_list( String, List ) :- !,
+        split_string( String, ",", " \t", StringList),
+        findall( X,
+                 ( member(Y, StringList), atom_string(X,Y) ),
+                 List ).
+
+/** Stochastic Action */
+
+/** Conditional */
+
+/** Loop */
+
+/** Nondeterministic Choice */
+
+/** PickBest */
+
+/** Star */
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
