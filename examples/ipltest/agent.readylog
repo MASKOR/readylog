@@ -1,6 +1,5 @@
 proc(testproc,
     [testtoken, anothertesttoken,
-     solve([ichBinDerAnfangVomSolve, nondet([doA, doB, doC]), ichBinDasEndeVomSolve]
-           , 1, rewardf)
+     solve([ichBinDerAnfangVomSolve, ?(testBeforeSolve), while(loopCond = true, doLoop), if(condBeforeSolve, doABeforeSolve, doBBeforeSolve), nondet([doA, doB, doC]), if( phi, phiIsTrue, phiIsFalse ), pickBest(node, [red, green, blue], doSomethingDeterministic(node)), ichBinDasEndeVomSolve], 3, rewardf)
      , dwajdo, blablubb
     ]).
