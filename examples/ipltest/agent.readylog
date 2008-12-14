@@ -1,5 +1,5 @@
 proc(testproc,
     [testtoken, anothertesttoken,
-     solve([ichBinDerAnfangVomSolve, ?(testBeforeSolve), nondet([doA, doB]), star([starFirst, if(true, trueStar, falseStar), starLast]), doMeAfterStar, ichBinDasEndeVomSolve], 3, rewardf)
+     solve([ichBinDerAnfangVomSolve, ?(testBeforeSolve), nondet([doA, doB]), while( true, [firstInLoop, secondInLoop] ), ichBinDasEndeVomSolve], 3, rewardf)
      , dwajdo, blablubb
     ]).
