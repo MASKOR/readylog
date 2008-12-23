@@ -1,5 +1,4 @@
 proc(testproc,
     [testtoken, anothertesttoken,
-     solve([ichBinDerAnfangVomSolve, ?(testBeforeSolve), nondet([doA, doB]), while( true, [firstInLoop, secondInLoop] ), ichBinDasEndeVomSolve], 3, rewardf)
-     , dwajdo, blablubb
+     if( true, [solve([do1, deterministicAction, nondet([doA, doB])], 3, rewardf)]), dwajdo, blablubb
     ]).

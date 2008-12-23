@@ -76,5 +76,18 @@ use_caching :- true.
  */
 :- setval(debug_exoq, true).
 
-
+/** IPLearn: Inductive policy learning for DT-planning.
+ * turn on for activating the IPLearning component
+ */
+:- setval(iplearn, false).
+iplearn :- getval(iplearn, X), !, X=true.
+toggle_iplearn :- getval(iplearn, X),
+       (
+          X ->
+          setval(iplearn, false),
+          printf("IPLearn turned OFF\n", [])
+       ;
+          setval(iplearn, true),
+          printf("IPLearn turned ON\n", [])
+       ).
 

@@ -291,6 +291,16 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	;
 	  true
 	),
+        % <DP was here>
+        (
+          iplearn -> get_all_fluent_names(FluentNames),
+                     printf("Fluent names: %w\n", [FluentNames])%,
+%                     get_all_fluent_values(S, FluentValues),
+%                     printf("Fluent values: %w\n", [FluentValues])
+        ;
+                     true
+        ),
+        % </DP was here>
 	Policy_r = applyPolicy(Policy),
 	S_r = S.
 

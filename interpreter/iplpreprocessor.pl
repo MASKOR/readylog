@@ -13,7 +13,7 @@
  *  the Free Software Foundation; only version 2 of the License!
  * ***************************************************************************
  *
- *           $Id: iplpreprocessor.pl 01 2008-11-20 11:55:04Z dp $
+ *           $Id: iplpreprocessor.pl 177 2008-11-20 11:55:04Z dp $
  *         @date: 20.11.08
  *       @author: Dennis Pannhausen <Dennis.Pannhausen@rwth-aachen.de>
  *   description: preprocessor for (i)nductive (p)olicy (l)earning
@@ -34,8 +34,30 @@
 
 :- write("** loading iplpreprocessor.pl\n"). 
 
+/* --------------------------------------------------------- */
+/*  Header + Flags                                           */
+/* --------------------------------------------------------- */
+% {{{ header + flags
+
 :- ensure_loaded('readylog.pl').
 :- ensure_loaded("../../utils/utils.pl").
+
+/** IPLearn: Inductive policy learning for DT-planning.
+ * turn on for activating the IPLearning component
+ */
+%:- setval(iplearn, false).
+%iplearn :- getval(iplearn, X), !, X=true.
+%toggle_iplearn :- getval(iplearn, X),
+%        (
+%          X ->
+%          setval(iplearn, false),
+%          printf("IPLearn turned OFF\n", [])
+%        ;
+%          setval(iplearn, true),
+%          printf("IPLearn turned ON\n", [])
+%        ).
+
+% }}}
 
 /* ----------------------------------------------------------
    procedures
@@ -43,52 +65,390 @@
 % {{{ procedures
 % >>>>
 
-process_proc( [solve(Prog, Horizon, RewardFunction) | RestProgram], Stream ) :-
-        process_solve( Prog, Horizon, RewardFunction, Stream ),
-        process_proc( RestProgram, Stream ).
+process_proc( [], Processed, Stream ) :- !,
+%        printf( Stream, "\n******* Empty. ******\n", [] ),
+        Processed = [].
 
-process_proc( Proc, Stream ) :-
-%         printf( Stream, "SEARCHING FOR SUBSTRING\n", []),
-%         type_of( ProcString, X ),
-%         printf( Stream, "ProcString: %w is of type %w.\n", [ProcString, X]),
-%         printf( Stream, "ProcLength: %w\n", [ProcLength]),
-         term_string( Proc, ProcString ),
-         ( substring( ProcString, "solve", SolvePos ) ->
-                string_length(ProcString, ProcLength),
-%               printf( Stream, "SolvePos: %w\n", [SolvePos]),
-                BeforeLength is SolvePos - 1,
-                substring( ProcString, 1, BeforeLength, BeforeString ),
-                RestLength is 1+(ProcLength-SolvePos),
-                substring( ProcString, SolvePos, RestLength, SolveAndAfterString ),
-                printf( Stream, "%w", [BeforeString]),
-                /** Using term_string(-,+) cut away the rest of the (Prolog term) proc,
-                 *  so that after a type conversion it would match the string
-                 *  SolveAndAfterString. This way we keep the term structure.
-                 *  TODO: To get a Prolog term, we have to add "[". This currently
-                 *  leads to superfluous left brackets after the solve context. */
-                concat_strings( "[", SolveAndAfterString, SolveAndAfterStringPlusBracket ),
-                term_string( RestProc, SolveAndAfterStringPlusBracket ),
-                process_proc( RestProc, Stream )
-            ;
-                printf( Stream, "%w", [ProcString] )
-         ).
 
-process_proc( ProcName, ProcBody, Stream ) :-        
+process_proc( [if(Cond, Sigma1, Sigma2) | RestProgram], Processed, Stream ) :- !,
+        /** Test, if Sigma1 is nondeterministic program. If so, we must
+         *  first transform this subprogram. */
+%         printf( Stream, "Sigma1: %w\n", [Sigma1] ),
+        term_string( Sigma1, Sigma1S ),
+        ( substring( Sigma1S, "solve", _Pos ) ->
+             /** If contains a solve context. */
+%             printf( Stream, "\n*~*~SIGMA1_BEGIN*~*\n", [] ),
+             process_proc( Sigma1, ProcessedSigma1, Stream )
+%             printf( Stream, "\nProcessed Sigma1: %w\n", [ProcessedSigma1] ),
+%             printf( Stream, "\n*~*~SIGMA1_END*~*\n", [] )
+        ;
+             true
+        ),
+        /** Test, if Sigma2 is nondeterministic program. If so, we must
+         *  first transform this subprogram. */
+%        printf( Stream, "Sigma2: %w\n", [Sigma2] ),
+        term_string( Sigma2, Sigma2S ),
+        ( substring( Sigma2S, "solve", _Pos ) ->
+             /** If contains a solve context. */
+%             printf( Stream, "\n*~*~SIGMA2_BEGIN*~*\n", [] ),
+             process_proc( Sigma2, ProcessedSigma2, Stream )
+%             printf( Stream, "\nProcessed Sigma2: %w\n", [ProcessedSigma2] ),
+%             printf( Stream, "\n*~*~SIGMA2_END*~*\n", [] )
+        ;
+             true
+        ),
+        process_proc( RestProgram, ProcessedRest, Stream ),
+        ( ( ground( ProcessedSigma1 ), ground( ProcessedSigma2 ) ) ->
+             /** both subprograms are nondeterministic */
+             append( [if(Cond, ProcessedSigma1, ProcessedSigma2)],
+                     ProcessedRest, Processed)
+        ;
+             /** not both subprograms are nondeterministic */
+             ( ground( ProcessedSigma1 ) ->
+                  /** only Sigma1 is nondeterministic */
+                  append( [if(Cond, ProcessedSigma1, Sigma2)],
+                          ProcessedRest, Processed)
+             ;
+                  /** Sigma1 is deterministic */
+                  ( ground( ProcessedSigma2 ) ->
+                       /** only Sigma2 is nondeterministic */
+                       append( [if(Cond, Sigma1, ProcessedSigma2)],
+                                ProcessedRest, Processed)
+                  ;
+                       /** both subprograms are deterministic */
+                       append( [if(Cond, Sigma1, Sigma2)],
+                                ProcessedRest, Processed)
+                  )
+             )
+        ).
+
+process_proc( [if(Cond, Sigma) | RestProgram], Processed, Stream ) :-
+        process_proc( [if(Cond, Sigma, []) | RestProgram], Processed, Stream ).
+
+process_proc( [while(Cond, Sigma) | RestProgram], Processed, Stream ) :- !,
+        /** Test, if Sigma is nondeterministic program. If so, we must
+         *  first transform this subprogram. */
+%        printf( Stream, "Sigma: %w\n", [Sigma] ),
+ 
+        term_string( Sigma, SigmaS ),
+        ( substring( SigmaS, "solve", _Pos ) ->
+             /** While contains a solve context. */
+%             printf( Stream, "\n*~*~SIGMA_BEGIN*~*\n", [] ),
+             process_proc( Sigma, ProcessedSigma, Stream ),
+%             printf( Stream, "\nProcessed Sigma: %w\n", [ProcessedSigma] ),
+%             printf( Stream, "\n*~*~SIGMA_END*~*\n", [] ),
+             
+             process_proc( RestProgram, ProcessedRest, Stream ),
+             append( [while(Cond, ProcessedSigma)], ProcessedRest, Processed)
+
+%             /** The while comes before any other nondeterministic
+%              *  statement. Thus, we already transform it,
+%              *  directly integrating the rest program. */
+%             printf(Stream, "Encountered nondeterministic loop.\n", []),
+%
+%             term_string( Cond, CondS ),
+%%             list_to_string( RestProgram, RestProgramS ),
+%             term_string( RestProgram, RestProgramS ),
+%
+%             /** Find out the parameters of the transformed
+%              *  solve statement. */
+%             printf( Stream, "ProcessedSigma: %w\n", [ProcessedSigma] ),
+%             term_string( ProcessedSigma, ProcessedSigmaS ),
+%             printf( Stream, "ProcessedSigmaS: %w\n", [ProcessedSigmaS] ),
+%             append( StartSigma, SolveAndRest, ProcessedSigma ),
+%             SolveAndRest = [solve(ProgSigma, HorizonSigma, RewardSigma) | EndSigma],
+%             printf( Stream, "SolveAndRest: %w\n", [SolveAndRest] ),
+%             Solve = [solve(ProgSigma, HorizonSigma, RewardSigma)],
+%%             term_string( StartSigma, StartSigmaS ),
+%             printf( Stream, "Start: %w\n", [StartSigma] ),
+%             term_string( Solve, SolveS ),
+%             printf( Stream, "Solve: %w\n", [Solve] ),
+%             printf( Stream, "SolveS: %w\n", [SolveS] ),
+%%             term_string( EndSigma, EndSigmaS ),
+%             printf( Stream, "Rest: %w\n", [EndSigma] ),
+%             printf( Stream, "HorizonSigma: %w\n", [HorizonSigma] ),
+%
+%%             /** Alpha is of form
+%%              *  "if(neg(Cond), RestProgram, ProcessedSigma;".
+%%              *  To make it a valid Prolog term, we express it as
+%%              *  [if(neg(Cond), RestProgram, ProcessedSigma),remove2before].
+%%              *  Afterwards we have to replace "),remove2before" by
+%%              *  a semicolon.
+%%              **/
+%%             concat_strings( "[if(neg(", CondS, AlphaS1 ),
+%%             concat_strings( AlphaS1, "),", AlphaS2 ),
+%%             comma_to_semicolon( RestProgramS, RestProgramSemiS, Stream ),
+%%             concat_strings( AlphaS2, RestProgramSemiS, AlphaS3 ),
+%%             concat_strings( AlphaS3, ",", AlphaS4 ),
+%%             comma_to_semicolon( SolveS, ProcessedSigmaSemiS, Stream ),
+%%             concat_strings( AlphaS4, ProcessedSigmaSemiS, AlphaS5 ),
+%%             concat_strings( AlphaS5, "),remove2before]", AlphaS ),
+%%             printf( Stream, "AlphaS: %w\n", [AlphaS]),
+%%             term_string( AlphaTmp, AlphaS ),
+%
+%             /** Alpha is of form
+%              *  "if(neg(Cond), RestProgram, ProcessedSigma;".
+%              *  To make it a valid Prolog term, we express it as
+%              *  [if(neg(Cond), RestProgram, ProcessedSigma)].
+%              *  PROBLEM?: consume of nested else-branch is not
+%              *  computed correctly!?
+%              **/
+%             concat_strings( "[if(neg(", CondS, AlphaS1 ),
+%             concat_strings( AlphaS1, "),", AlphaS2 ),
+%%%             comma_to_semicolon( RestProgramS, RestProgramSemiS, Stream ),
+%%%             concat_strings( AlphaS2, RestProgramSemiS, AlphaS3 ),
+%             concat_strings( AlphaS2, RestProgramS, AlphaS3 ),
+%             concat_strings( AlphaS3, ",", AlphaS4 ),
+%%             /** MISTAKE: Not only solve, but also begin of Sigma! */
+%%             comma_to_semicolon( SolveS, ProcessedSigmaSemiS, Stream ),
+%%%             comma_to_semicolon( ProcessedSigmaS, ProcessedSigmaSemiS, Stream ),
+%%%             concat_strings( AlphaS4, ProcessedSigmaSemiS, AlphaS5 ),
+%             concat_strings( AlphaS4, ProcessedSigmaS, AlphaS5 ),
+%%             concat_strings( AlphaS5, "),remove2before]", AlphaS ),
+%             concat_strings( AlphaS5, ")]", AlphaS ),
+%             printf( Stream, "AlphaS: %w\n", [AlphaS]),
+%             term_string( AlphaTmp, AlphaS ),
+%
+%              
+%%             printf( Stream, "#### Begin Star Test:\n", [] ),
+%%             expand_alpha( [if(true, [doSomething], [doSomethingElse])], [ending], 2, Program_Initial,
+%%                           Star_Test_Program, Stream ),
+%%             printf( Stream, "#### Star Test Program: %w\n", [Star_Test_Program] ),
+%
+%             /** We need to know, how much horizon one execution of Alpha
+%              *  will consume at least. The horizon consumption of the solve
+%              *  sub program is estimated by its horizon */
+%             printf( Stream, "AlphaTmp: %w\n", [AlphaTmp]),
+%             horizon_consumption(AlphaTmp, Consume, Stream),
+%
+%             /** We construct a nested list of if statements using
+%              *  dummy placeholders for Alpha and the Ending. */
+%             /** TODO: We just append RestProgram without transforming it
+%              *  first! So before appending it, check if it contains
+%              *  a solve. If so, transform it first. */
+%             Program_Initial = [],
+%             Alpha = [alphaPlaceholder],
+%             Ending = [endingPlaceholder],
+%             printf( Stream, "Horizon consumption of AlphaTmp: %w\n", [Consume]),
+%%             expand_alpha( Alpha, Consume, Ending, HorizonSigma, Program_Initial,
+%%                           Star_Program, Stream ),
+%             expand_alpha( Alpha, Consume, Ending, Horizon, Program_Initial,
+%                           Star_Program, Stream ),
+%             printf( Stream, "Star_Program: %w\n", [Star_Program] ),
+%
+%             /** Substitute the placeholders. */
+%             list_to_string( Star_Program, Star_ProgramS1 ),
+%             printf( Stream, "Star_ProgramS1: %w\n", [Star_ProgramS1] ),
+%
+%             /** Create a new string for Alpha of form
+%              *  "if(neg(Cond), RestProgram, ProcessedSigma;".
+%              *  This time put in the original solve without
+%              *  semicolons. */
+%             concat_strings( "if(neg(", CondS, AlphaNewS1 ),
+%             concat_strings( AlphaNewS1, "),", AlphaNewS2 ),
+%             comma_to_semicolon( RestProgramS, RestProgramSemiS, Stream ),
+%             concat_strings( AlphaNewS2, RestProgramSemiS, AlphaNewS3 ),
+%             concat_strings( AlphaNewS3, ",", AlphaNewS4 ),
+%             concat_strings( AlphaNewS4, ProcessedSigmaS, AlphaNewS5 ),
+%             concat_strings( AlphaNewS5, "; ", AlphaNewS ),
+%             printf( Stream, "AlphaNewS: %w\n", [AlphaNewS]),
+%%             term_string( AlphaNewTmp, AlphaNewS ),
+%
+%             replace_string( Star_ProgramS1, "alphaPlaceholder", AlphaNewS,
+%                             Star_ProgramS2, Stream ),
+%             /** Ending is of form
+%              *  "[]);" */
+%             replace_string( Star_ProgramS2, "endingPlaceholder", "[]);",
+%                             Star_Program_FinalS, Stream ),
+%             string_to_list( Star_Program_FinalS, Star_Program_Final ),
+%             
+%             /** Append the if-clauses instead of the while */
+%%             append( Begin, Star_Program_Final, Processed )
+%             Processed = Star_Program_Final
+        ;
+              /** While contains no solve context. */
+             process_proc( RestProgram, ProcessedRest, Stream ),
+             append( [while(Cond, Sigma)], ProcessedRest, Processed)
+        ).
+
+process_proc( [solve(Prog, Horizon, RewardFunction) | RestProgram],
+              Processed, Stream ) :- !,
+%        printf( Stream, "\n******* Encountered solve. ******\n", [] ),
+        process_solve( Prog, Horizon, RewardFunction, ProcessedSolve, Stream ),
+%        printf( Stream, "\n******* Rest_Program: %w. ******\n", [RestProgram] ),
+        process_proc( RestProgram, ProcessedRest, Stream ),
+%        printf( Stream, "\n******* ProcessedRest: %w. ******\n", [ProcessedRest] ),
+        append( ProcessedSolve, ProcessedRest, Processed ).
+%        printf( Stream, "\n******* Processed: %w. ******\n", [Processed] ).
+
+/** If the proc only consists of a single action without [], we
+ *  add those brackets. */
+process_proc( Program, Processed, Stream ) :-
+        Program \= [_Action],
+        !,
+        NewProgram = [Program],
+        process_proc( NewProgram, Processed, Stream ).
+
+process_proc( [Term | RestProgram], Processed, Stream ) :- !,
+%        printf( Stream, "\n******* Encountered Term: %w. ******\n", [Term] ),
+%        printf( Stream, "\n******* Rest_Program: %w. ******\n", [RestProgram] ),
+        process_proc( RestProgram, ProcessedRest, Stream ),
+        append( [Term], ProcessedRest, Processed ).
+%        printf( Stream, "\n******* Processed: %w. ******\n", [Processed] ).
+
+
+%process_proc( Proc, Processed, Stream ) :-
+%         term_string( Proc, ProcString ),
+%         ( substring( ProcString, "solve", SolvePos ) ->
+%                string_length(ProcString, ProcLength),
+%%               printf( Stream, "SolvePos: %w\n", [SolvePos]),
+%                BeforeLength is SolvePos - 1,
+%                substring( ProcString, 1, BeforeLength, BeforeString ),
+%                RestLength is 1+(ProcLength-SolvePos),
+%                substring( ProcString, SolvePos, RestLength, SolveAndAfterString ),
+%                printf( Stream, "%w", [BeforeString]),
+%                /** Using term_string(-,+) cut away the rest of the (Prolog term) proc,
+%                 *  so that after a type conversion it would match the string
+%                 *  SolveAndAfterString. This way we keep the term structure.
+%                 *  At the end of BeforeString, we included the opening
+%                 *  bracket(s) [ for the subprogram that contains the solve.
+%                 *  To get a valid Prolog term for the rest, we need to move those
+%                 *  brackets over to the SolveAndAfterString. */
+%%                printf( Stream, "\nmove_right( \"[\", %w, %w, RestProcS, Stream )\n", [BeforeString, SolveAndAfterString] ),
+%                move_right( "[", BeforeString, SolveAndAfterString, RestProcS, Stream ),
+%                 /** At the beginning of the proc we cut away an opening bracket [
+%                  *  that has to be added now to get a valid Prolog term.
+%                  *  TODO: Currently this leads to superfluous left brackets after the solve
+%                  *  context. */
+%                concat_strings( "[", RestProcS, RestProcSPlusBracket ),
+%        printf( Stream, "\n******* RestProcSPlusBracket: %w. ******\n", [RestProcSPlusBracket] ),
+%                term_string( RestProc, RestProcSPlusBracket ),
+%        printf( Stream, "\n******* RestProc: %w. ******\n", [RestProc] ),
+%                term_string( Before, BeforeString ),
+%                process_Proc( Before, Processed1, Stream ),
+%                process_proc( RestProc, Processed2, Stream ),
+%                
+%            ;
+%                true
+%         ),
+%         append
+
+process_proc_aux( ProcName, ProcBody, Stream ) :-        
         printf(Stream, "prolog_ipl_proc( %w ).\n", [ProcName]),
         printf(Stream, "prolog_ipl_proc( %w ) :-", [ProcName] ),
-        process_proc( ProcBody, Stream ),
+%        printf( Stream, "Processing ProcBody: %w\n", [ProcBody] ),
+        /** Make the arguments of cout strings again. */
+        fix_couts( ProcBody, ProcBodyNew, Stream ),
+%        printf( Stream, "ProcBodyNew: %w\n", [ProcBodyNew] ),
+        process_proc( ProcBodyNew, Processed, Stream ),
+        /** write the transformed proc to the file */
+        printf( Stream, "%w", [Processed] ),
         printf(Stream, ".\n", []).
 
 process_all_proc( Stream ) :-
         findall( (ProcName, ProcBody),
                  proc(ProcName, ProcBody),
                  ProcList), !,
+%        findall( ProcName,
+%                 proc(ProcName, ProcBody),
+%                 ProcNames), !,
+%        printf( Stream, "All procs: %w\n", [ProcNames] ),
         process_all_proc_aux(ProcList, Stream).
 
 process_all_proc_aux([], _Stream) :- !.
 process_all_proc_aux([(ProcName, ProcBody)|List_rest], Stream) :-
-        process_proc( ProcName, ProcBody, Stream), !,
-        process_all_proc_aux(List_rest, Stream).
+%        printf( Stream, "process_proc_aux(%w, %w, Stream)\n", [ProcName, ProcBody] ),
+        process_proc_aux( ProcName, ProcBody, Stream ), !,
+        process_all_proc_aux( List_rest, Stream ).
+
+/** During compilation, Prolog rips the cout arguments from their
+ *  quotation marks; we now give them back. We do this in a
+ *  preprocessing step, as we would otherwise miss some
+ *  (e.g., in deterministic subprograms of if-clauses). */
+fix_couts( [], Fixed, Stream ) :- !,
+        Fixed = [].
+
+fix_couts( [cout(V) | RestProgram], Fixed, Stream ) :- !,
+%        printf( Stream, "\nEncountered cout(V).\n", [] ),
+        fix_couts( RestProgram, FixedRest, Stream ),
+        term_string( V, VString ),
+        append( [cout(VString)], FixedRest, Fixed ).
+
+fix_couts( [cout(F, V) | RestProgram], Fixed, Stream ) :- !,
+%        printf( Stream, "\nEncountered cout(F, V).\n", [] ),
+        fix_couts( RestProgram, FixedRest, Stream ),
+%        term_string( V, VString ),
+        term_string( F, FString ),
+        append( [cout(FString, V)], FixedRest, Fixed ).
+
+fix_couts( [cout(Color, F, V) | RestProgram], Fixed, Stream ) :- !,
+%        printf( Stream, "\nEncountered cout(Color, F, V).\n", [] ),
+        fix_couts( RestProgram, FixedRest, Stream ),
+%        term_string( V, VString ),
+        term_string( F, FString ),
+        append( [cout(Color, FString, V)], FixedRest, Fixed ).
+
+fix_couts( [if(Cond, Sigma1, Sigma2) | RestProgram], Fixed, Stream ) :- !,
+%        printf( Stream, "\nEncountered if.\n", [] ),
+        fix_couts( Sigma1, FixedSigma1, Stream ),
+        fix_couts( Sigma2, FixedSigma2, Stream ),
+        fix_couts( RestProgram, FixedRest, Stream ),
+        append( [if(Cond, FixedSigma1, FixedSigma2)], FixedRest, Fixed ).
+
+fix_couts( [if(Cond, Sigma) | RestProgram], Fixed, Stream ) :-
+        fix_couts( [if(Cond, Sigma, []) | RestProgram], Fixed, Stream ).
+
+fix_couts( [while(Cond, Sigma) | RestProgram], Fixed, Stream ) :- !,
+%        printf( Stream, "\nEncountered while.\n", [] ),
+        fix_couts( Sigma, FixedSigma, Stream ),
+%        printf( Stream, "FixedSigma: %w\n", [FixedSigma] ),
+        fix_couts( RestProgram, FixedRest, Stream ),
+%        printf( Stream, "FixedRest: %w\n", [FixedRest] ),
+        append( [while(Cond, FixedSigma)], FixedRest, FixedTmp ),
+%        printf( Stream, "FixedTmp: %w\n", [FixedTmp] ),
+        Fixed = FixedTmp.
+
+fix_couts( Program, Fixed, Stream ) :-
+        not(is_list(Program)),
+        % Program \= [_Action],
+        !,
+%        printf( Stream, "\nEncountered single action %w.\n", [Program] ),
+        Fixed = Program.
+
+fix_couts( [Term | RestProgram], Fixed, Stream ) :- !,
+%        printf( Stream, "\nEncountered Term %w.\n", [Term] ),
+%        printf( Stream, "RestProgram: %w.\n", [RestProgram] ),
+        fix_couts( RestProgram, FixedRest, Stream ),
+%        printf( Stream, "FixedRest: %w.\n", [FixedRest] ),
+%        ( ground(Fixed) ->
+%                    printf( Stream, "Fixed already defined!\n", [] )
+%        ;
+%                    printf( Stream, "Fixed undefined.\n", [] )
+%        ),
+        /** TODO: remove additional outer [], when the program consists
+         *  of more than a single action. */
+        Fixed = [Term | FixedRest].
+
+/** Transform a sub-procedure Program into Result */
+%process_sub_proc( [], Result, _Stream ) :-
+%        Result = [].
+%
+%process_sub_proc( Program, Result, Stream ).
+
+%move_right( _Character, "", _RightString, FinalString, _Stream ) :-
+%        FinalString = "".
+%
+%move_right( Character, LeftString, RightString, FinalString, Stream ) :-
+%        ( append_strings( LeftWithoutChar, Character, LeftString ) ->
+%                     /** If Character is the last character in LeftString */
+%                     concat_strings( Character, RightString,
+%                                     RightWithChar ),
+%                     move_right( Character, LeftWithoutChar, RightWithChar,
+%                                 FinalString, Stream)
+%        ;
+%                     /** Else end recursion. */
+%                     FinalString = RightString
+%        ).
 
 /* ----------------------------------------------------------
    solve statements
@@ -112,26 +472,44 @@ process_all_proc_aux([(ProcName, ProcBody)|List_rest], Stream) :-
  *  alpha; solve(nondet(q_1,...,q_m), H, rew).
  */
 
-process_solve( [], _Horizon, _RewardFunction, _Stream ).
+process_solve( [], _Horizon, _RewardFunction, Processed, _Stream ) :-
+        Processed = [].
 
-process_solve( Program, Horizon, RewardFunction, Stream ) :-
+/** If the solve program only consists of a single action without [], we
+ *  add those brackets. */
+process_solve( Program, Horizon, RewardFunction, Processed, Stream ) :-
+        Program \= [_Action],
+        NewProgram = [Program],
+        process_solve( NewProgram, Horizon, RewardFunction, Processed, Stream ).
+
+/** If the solve program contains a call to a proc, we have to follow that trail.
+ *  Otherwise we might loose a solve context. Consider this example:
+ *  proc( procOne, [solve(procTwo, H, R)] ).
+ *  proc( procTwo, [nondet[a,b]] ).
+ *  The procTwo would be treated as a primitive action, pulled outside the solve
+ *  and the solve would be deleted. */
+
+process_solve( Program, Horizon, RewardFunction, Processed, Stream ) :-
 %        printf( Stream, "Applying rho.\n", [] ),
         Initial_Rho_Program = [],
-        apply_rho( Program, Initial_Rho_Program, Rho_Program, Stream ),
-%       printf( Stream, "rho successfully applied.\n", [] ),
-%        printf(Stream, "%w\n", [Rho_Program]),
+%        printf( Stream, "apply_rho(%w, [], Rho_Program, Stream)\n,", [Program] ),
+        apply_rho( [solve(Program, Horizon, RewardFunction)],
+                   Initial_Rho_Program, Rho_Program, Stream ),
+%        printf(Stream, "Rho_Program: %w\n", [Rho_Program]),
         Initial_Tau_Prime_H_Program = [],
-%        printf(Stream, "apply_tau_prime_H(%w, %w, %w, %w, %w\n)",
-%                       [Rho_Program, Horizon, Initial_Tau_Prime_H_Program,
+%        printf(Stream, "apply_tau_prime_H(%w, %w, %w, %w\n)",
+%                       [Rho_Program, Initial_Tau_Prime_H_Program,
 %                        Tau_Prime_H_Program, Stream]),
-	apply_tau_prime_H( Rho_Program, Horizon, Initial_Tau_Prime_H_Program,
+	apply_tau_prime_H( Rho_Program, Initial_Tau_Prime_H_Program,
                            Tau_Prime_H_Program, Stream ),
 %        printf(Stream, "%w\n", [Tau_Prime_H_Program]),
         apply_tau( solve(Tau_Prime_H_Program, Horizon, RewardFunction),
                          Tau_Program, Stream),
 %        printf(Stream, "solve(%w, %w, %w)", [Tau_Program, Tau_Horizon,
 %               RewardFunction]).
-        printf(Stream, "%w", [Tau_Program]).
+%        printf(Stream, "%w", [Tau_Program]),
+        Processed = Tau_Program.
+
 
 /* ----------------------------------------------------------
    transformation operators
@@ -150,6 +528,16 @@ process_solve( Program, Horizon, RewardFunction, Stream ) :-
 
 apply_rho( [], Program, Rho_Program, _Stream ) :- !,
         Rho_Program = Program.
+
+apply_rho( [solve(Prog, Horizon, RewardFunction)], Program,
+           Rho_Program, Stream ) :- !,
+        apply_rho(Prog, Program, Rho_Program_Tmp, Stream),
+        Rho_Program = [solve(Rho_Program_Tmp, Horizon, RewardFunction)].
+
+apply_rho( [{P_List} | Omega], Program, Rho_Program, Stream ) :- !,
+        /** Rho had already been applied to this program before. Thus,
+         *  do not change anything. */
+        append(Program, [{P_List} | Omega], Rho_Program).
 
 apply_rho( [pickBest(F, Domain, Delta) | Omega], Program, Rho_Program, Stream ) :- !,
         findall( Delta_New,
@@ -181,6 +569,78 @@ apply_rho( [star(Alpha) | Omega], Program, Rho_Program, Stream ) :- !,
          *  the nondeterministic set, we do not need to remember Omega
          *  now. */
         append(Program_New, Omega, Rho_Program).
+
+apply_rho( [if(Cond, Sigma1, Sigma2) | Omega], Program, Rho_Program, Stream ) :- !,
+        is_deterministic( Sigma1, Result1, Stream ),
+%        printf( Stream, "Sigma1 is deterministic is %w.\n", [Result1] ),
+        is_deterministic( Sigma2, Result2, Stream ),
+%        printf( Stream, "Sigma2 is deterministic is %w.\n", [Result2] ),
+        ( (Result1 = true, Result2 = true) ->
+                           /** Skip if statement. */
+                           append(Program, [if(Cond, Sigma1, Sigma2)], Program_New),
+                           apply_rho( Omega, Program_New, Rho_Program_Tmp, 
+                                      Stream ),
+                           Rho_Program = Rho_Program_Tmp
+        ;
+                           /** The first nondeterministic statement is found
+                            *  inside Sigma1 or Sigma2. But as we do not allow
+                            *  nested solve statements, the solve context inside
+                            *  Sigma1 and Sigma2 will be independent of a possible
+                            *  solve in Omega. That is why me may apply rho
+                            *  recursively. */
+                           ( (Result1 = true) ->
+                                    apply_rho( Sigma2, [], Rho_Program_Sigma2, Stream),
+                                    append(Program, [if(Cond, Sigma1, Rho_Program_Sigma2)],
+                                           Program_New),
+                                    apply_rho( Omega, Program_New, Rho_Program_Tmp,
+                                               Stream ),
+                                    Rho_Program = Rho_Program_Tmp
+                           ;
+                                    ( (Result2 = true) ->
+                                             apply_rho( Sigma1, [], Rho_Program_Sigma1, Stream),
+                                             append(Program, [if(Cond, Rho_Program_Sigma1, Sigma2)],
+                                                    Program_New),
+                                                    apply_rho( Omega, Program_New, Rho_Program_Tmp,
+                                                               Stream ),
+                                             Rho_Program = Rho_Program_Tmp
+                                    ;
+                                             /** Both Sigma1 and Sigma2 are nondeterministic */
+%                                             printf( Stream, "Both Sigma1 and Sigma2 are nondeterministic.\n", [] ),
+                                             apply_rho( Sigma1, [], Rho_Program_Sigma1, Stream),
+                                             apply_rho( Sigma2, [], Rho_Program_Sigma2, Stream),
+                                             append(Program, [if(Cond, Rho_Program_Sigma1,
+                                                                       Rho_Program_Sigma2)],
+                                                    Program_New),
+                                                    apply_rho( Omega, Program_New, Rho_Program_Tmp,
+                                                               Stream ),
+                                             Rho_Program = Rho_Program_Tmp
+                                    )
+                           )
+        ).
+
+apply_rho( [if(Cond, Sigma) | Omega], Program, Rho_Program, Stream ) :-
+        apply_rho( [if(Cond, Sigma, []) | Omega], Program, Rho_Program, Stream ).
+
+apply_rho( [while(Cond, Sigma) | Omega], Program, Rho_Program, Stream ) :- !,
+        is_deterministic( Sigma, Result, Stream ),
+        ( Result = true -> /** Skip while. */
+                           append(Program, [while(Cond, Sigma)], Program_New),
+                           apply_rho( Omega, Program_New, Rho_Program_Tmp, 
+                                      Stream ),
+                           Rho_Program = Rho_Program_Tmp
+        ;
+                           /** The first nondeterministic statement is found
+                            *  inside Sigma. But as we do not allow nested solve
+                            *  statements, the solve context inside Sigma will
+                            *  be independent of a possible solve in Omega. That
+                            *  is why me may apply rho recursively. */
+                           apply_rho( Sigma, [], Rho_Program_Sigma, Stream),
+                           append(Program, [while(Cond, Rho_Program_Sigma)],
+                                  Program_New),
+                           apply_rho( Omega, Program_New, Rho_Program_Tmp,
+                                      Stream ),
+                           Rho_Program = Rho_Program_Tmp
+        ).
 
 apply_rho( [nondet(ProgList) | Omega], Program, Rho_Program, Stream ) :- !,
 %        printf(Stream, "ProgList: %w.\n", [ProgList]),
@@ -216,6 +676,10 @@ apply_rho( [Term | Omega], Program, Rho_Program, Stream ) :- !,
  *  solve([alpha; nondet(q_1,...,q_m)], H, rew).
  */
 
+apply_tau_prime_H( [solve(Prog, Horizon, _RewardFunction)], Program,
+                   Tau_Prime_H_Program, Stream ) :- !,
+        apply_tau_prime_H( Prog, Horizon, Program, Tau_Prime_H_Program,
+                           Stream ). 
 
 /** omega = ... */
 
@@ -268,7 +732,8 @@ apply_tau_prime_H( [{Star} | Omega_Prime], Horizon,
          Program_Initial = [],
 %         printf( Stream, "expand_alpha(%w, %w, %w, [], Star_Program, Stream)\n",
 %                 [Alpha, Omega, Horizon] ),
-         expand_alpha( Alpha, Omega_Prime, Horizon, Program_Initial,
+         horizon_consumption(Alpha, Consume, Stream),
+         expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program_Initial,
                        Star_Program, Stream ),
 %         printf( Stream, "Star_Program: %w\n", [Star_Program] ),
 
@@ -309,7 +774,9 @@ apply_tau_prime_H( [{P_List} | [star(Alpha) | Omega_Prime]], Horizon,
           *  when expanding Alpha. A naive approach would be to subtract the minimal
           *  horizon consumption of all p_i. */
          Program_Initial = [],
-         expand_alpha( Alpha, Omega_Prime, Horizon, Program_Initial, Star_Program, Stream ),
+         horizon_consumption(Alpha, Consume, Stream),
+         expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program_Initial,
+                       Star_Program, Stream ),
 %         apply_tau_prime_H_aux( [{P_List} | [star(Alpha) | Omega_Prime]],
 %                                Horizon, Program_Initial, Tau_Prime_H_Program_Tmp,
 %                                Stream ),
@@ -404,7 +871,9 @@ apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
          /** Construct a list of all sequences of condition tests and Sigma. Also
           *  append the failing condition and Omega_Prime to each program in
           *  the list. */
-         expand_alpha( Alpha, Ending, Horizon, Program_Initial, Star_Program, Stream ),
+         horizon_consumption(Alpha, Consume, Stream),
+         expand_alpha( Alpha, Consume, Ending, Horizon, Program_Initial, Star_Program,
+                       Stream ),
 %         printf( Stream, "Star_Program: %w\n", [Star_Program] ),
          term_string( Cond, CondS ),
          concat_strings( "?(neg(", CondS, NegCondPart1S ),
@@ -467,9 +936,82 @@ apply_tau_prime_H( [{P_List} | [Term | Omega_Prime]], Horizon, Program,
         apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
                            Tau_Prime_H_Program, Stream ).
 
+%/** TODO: Has to be treated by tau instead! */
+%/** Loop containing a solve statement */         
+%apply_tau_prime_H( [while(Cond, Sigma) | Omega],
+%                   Horizon, Program, Tau_Prime_H_Program, Stream ) :- !, 
+%         printf(Stream, "Encountered nondeterministic loop.\n", []),
+%         /** Test, if Sigma is nondeterministic program. If so, we must
+%          *  replace the while loop by a finite nested conditional program */
+%%         printf( Stream, "Sigma: %w\n", [Sigma] ),
+%         term_string( Sigma, SigmaS ),
+%         ( substring( SigmaS, "solve", _Pos ) ->
+%                            /** Loop contains a solve context. */
+%                            Program_Initial = [],
+%                            term_string( Cond, CondS ),
+%                            list_to_string( Omega, OmegaS ),
+%                            /** Alpha is of form
+%                             *  "else Sigma; if(neg(Cond) then Omega" =>
+%                             *  "Sigma); if(neg(Cond), Omega," */
+%                            concat_strings( SigmaS, "); if(neg(", AlphaS1 ),
+%                            concat_strings( AlphaS1, CondS, AlphaS2 ),
+%                            concat_strings( AlphaS2, "), ", AlphaS3 ),
+%                            concat_strings( AlphaS3, OmegaS, AlphaS4 ),
+%                            concat_strings( AlphaS4, ",", AlphaS ),
+%                            term_string( Alpha, AlphaS ),
+%                            printf( Stream, "Alpha: %w\n", [Alpha] ),
+%                            /** Ending is of form
+%                             *  "[]);" */
+%                            EndingS = "[]);",
+%                            term_string( Ending, EndingS ),
+%                            /** Construct a nested list of if statements.
+%                             *  When the horizon is reached, append the 
+%                             *  empty program as the else case.
+%                             *  The horizon consumption of the solve program is
+%                             *  estimated by its horizon. */
+%                            /** TODO: We just append Omega without transforming it
+%                             *  first! So before appending it, check if it contains
+%                             *  a solve. If so, transform it first. */
+%                            expand_alpha( Alpha, Ending, Horizon, Program_Initial,
+%                                          Star_Program, Stream ),
+%                            printf( Stream, "Star_Program: %w\n", [Star_Program] ),
+%                            /** Add the statement "if(neg(Cond), Omega, "
+%                             *  in the beginning. */
+%                            concat_strings( "if(neg(", CondS, Tmp1S ),
+%                            concat_strings( Tmp1S, "), ", Tmp2S ),
+%                            concat_strings( Tmp2S, OmegaS, Tmp3S ),
+%                            concat_strings( Tmp3S, ", ", Tmp4S ),
+%                            string_to_list( Tmp4S, Begin ),
+%                            append( Begin, Star_Program, Star_Program_Tmp ),
+%                            /** Append the if-clauses instead of the while */
+%                            append(Star_Program_Tmp, Program, Tau_Prime_H_Program)
+%         ;
+%                            /** Loop only contains deterministic programs. */
+%                            /** Transform the rest of the program first. */
+%                            apply_tau_prime_H( Omega, Horizon, Program,
+%                                               Tau_Prime_H_Program_Rest, Stream ),
+%                            append([while(Cond, Sigma)], Tau_Prime_H_Program_Rest,
+%                                    Tau_Prime_H_Program)
+%         ).
+
+apply_tau_prime_H( [if(Cond, Sigma1, Sigma2) | Omega], Horizon, Program,
+                   Tau_Prime_H_Program, Stream ) :- !,
+        /** As Sigma1 or Sigma2 might contain nondeterministic programs,
+         *  we have to apply tau_prime_H to them.
+         *  TODO: For optimisation, we could test, if they contain { }
+         *  and otherwise just skip them. */
+        apply_tau_prime_H( Sigma1, Horizon, [], Tau_Prime_H_Program_Sigma1, Stream ),
+        apply_tau_prime_H( Sigma2, Horizon, [], Tau_Prime_H_Program_Sigma2, Stream ),
+        apply_tau_prime_H( Omega, Horizon, Program,
+                           Tau_Prime_H_Program_Omega, Stream ),
+        append([if(Cond, Tau_Prime_H_Program_Sigma1, Tau_Prime_H_Program_Sigma2)],
+               Tau_Prime_H_Program_Omega, Tau_Prime_H_Program).
+
 /** Ignore (but store) everything before the first nondet,
  *  that means, ignore everything not starting with a
- *  set of programs. */
+ *  set of programs.
+ *  Note that if and while statements containing solve
+ *  statements have been handled differently before. */
 apply_tau_prime_H( [Alpha | Omega], Horizon, Program,
                    Tau_Prime_H_Program, Stream ) :- !,
 %        printf(Stream, "Encountered alpha = %w.\n", [Alpha]),
@@ -478,17 +1020,14 @@ apply_tau_prime_H( [Alpha | Omega], Horizon, Program,
 %                       Tau_Prime_H_Program, Stream]),
         apply_tau_prime_H( Omega, Horizon, Program,
                            Tau_Prime_H_Program_Nondet, Stream ),
-        append([Alpha], Tau_Prime_H_Program_Nondet, Tau_Prime_H_Program_Solve),
-        Tau_Prime_H_Program = Tau_Prime_H_Program_Solve.
+        append([Alpha], Tau_Prime_H_Program_Nondet, Tau_Prime_H_Program).
 
-expand_alpha( Alpha, Omega_Prime, Horizon, Program, Star_Program, Stream ) :-
-         /** Determine recursively, how many horizon consuming actions Alpha
-          *  will execute at least.
+expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program, Star_Program, Stream ) :-
+         /** Consume is the minimal horizon consumption of Alpha.
           *  If this number is =< Horizon, then append another Alpha.
           *  A too long final sequence will only be considered up to
           *  the horizon by the Readylog interpreter.
           */
-         horizon_consumption(Alpha, Consume, Stream),
 %         printf( Stream, "Horizon consumption of %w: %w\n", [Alpha, Consume] ),
          ( (Consume > Horizon) -> /** End recursion. */
                                   Star_Program = []
@@ -514,7 +1053,7 @@ expand_alpha( Alpha, Omega_Prime, Horizon, Program, Star_Program, Stream ) :-
                                   /** Continue appending Alpha. Note, that
                                    *  the parameter P_w_AlphaFinal does not
                                    *  contain Omega_Prime. */
-                                  expand_alpha( Alpha, Omega_Prime, Horizon_New, P_w_AlphaFinal,
+                                  expand_alpha( Alpha, Consume, Omega_Prime, Horizon_New, P_w_AlphaFinal,
                                                 Star_Program_Tmp, Stream ),
                                   append( P_w_Alpha_OmegaFinal, Star_Program_Tmp, Star_Program )
          ).
@@ -531,6 +1070,63 @@ expand_alpha( Alpha, Omega_Prime, Horizon, Program, Star_Program, Stream ) :-
  * === tau_prime ===>
  * alpha; solve([nondet(q_1,...,q_m)], H, rew).
  */
+
+%/** Loop containing a solve statement */         
+%apply_tau( [while(Cond, Sigma) | Omega],
+%                   Horizon, Program, Tau_Prime_H_Program, Stream ) :- !, 
+%         printf(Stream, "Encountered nondeterministic loop.\n", []),
+%         /** Test, if Sigma is nondeterministic program. If so, we must
+%          *  replace the while loop by a finite nested conditional program */
+%%         printf( Stream, "Sigma: %w\n", [Sigma] ),
+%         term_string( Sigma, SigmaS ),
+%         ( substring( SigmaS, "solve", _Pos ) ->
+%                            /** Loop contains a solve context. */
+%                            Program_Initial = [],
+%                            term_string( Cond, CondS ),
+%                            list_to_string( Omega, OmegaS ),
+%                            /** Alpha is of form
+%                             *  "else Sigma; if(neg(Cond) then Omega" =>
+%                             *  "Sigma); if(neg(Cond), Omega," */
+%                            concat_strings( SigmaS, "); if(neg(", AlphaS1 ),
+%                            concat_strings( AlphaS1, CondS, AlphaS2 ),
+%                            concat_strings( AlphaS2, "), ", AlphaS3 ),
+%                            concat_strings( AlphaS3, OmegaS, AlphaS4 ),
+%                            concat_strings( AlphaS4, ",", AlphaS ),
+%                            term_string( Alpha, AlphaS ),
+%                            printf( Stream, "Alpha: %w\n", [Alpha] ),
+%                            /** Ending is of form
+%                             *  "[]);" */
+%                            EndingS = "[]);",
+%                            term_string( Ending, EndingS ),
+%                            /** Construct a nested list of if statements.
+%                             *  When the horizon is reached, append the 
+%                             *  empty program as the else case.
+%                             *  The horizon consumption of the solve program is
+%                             *  estimated by its horizon. */
+%                            /** TODO: We just append Omega without transforming it
+%                             *  first! So before appending it, check if it contains
+%                             *  a solve. If so, transform it first. */
+%                            expand_alpha( Alpha, Ending, Horizon, Program_Initial,
+%                                          Star_Program, Stream ),
+%                            printf( Stream, "Star_Program: %w\n", [Star_Program] ),
+%                            /** Add the statement "if(neg(Cond), Omega, "
+%                             *  in the beginning. */
+%                            concat_strings( "if(neg(", CondS, Tmp1S ),
+%                            concat_strings( Tmp1S, "), ", Tmp2S ),
+%                            concat_strings( Tmp2S, OmegaS, Tmp3S ),
+%                            concat_strings( Tmp3S, ", ", Tmp4S ),
+%                            string_to_list( Tmp4S, Begin ),
+%                            append( Begin, Star_Program, Star_Program_Tmp ),
+%                            /** Append the if-clauses instead of the while */
+%                            append(Star_Program_Tmp, Program, Tau_Prime_H_Program)
+%         ;
+%                            /** Loop only contains deterministic programs. */
+%                            /** Transform the rest of the program first. */
+%                            apply_tau_prime_H( Omega, Horizon, Program,
+%                                               Tau_Prime_H_Program_Rest, Stream ),
+%                            append([while(Cond, Sigma)], Tau_Prime_H_Program_Rest,
+%                                    Tau_Prime_H_Program)
+%         ).
 
 /** Empty Program */
 apply_tau(solve([], _Horizon, _RewardFunction), Tau_Program,
@@ -624,6 +1220,36 @@ apply_tau(solve([?(Term) | Omega], Horizon, RewardFunction), Tau_Program, Stream
         apply_tau(solve(Omega, Horizon, RewardFunction), Tau_Program_Tmp, Stream),
         append( [?(Term)], Tau_Program_Tmp, Tau_Program ).
 
+/** If the solve program contains a call to a proc, we have to follow that trail, and
+ *  recursively make sure that the proc is purely deterministic before pulling it out.
+ *  Otherwise we might loose a solve context. Consider this example:
+ *  proc( procOne, [solve(procTwo, H, R)] ).
+ *  proc( procTwo, [nondet[a,b]] ).
+ *  The procTwo would be treated as a primitive action, pulled outside the solve
+ *  and the solve would be deleted. */
+apply_tau(solve([ProcName | Omega], Horizon, RewardFunction), Tau_Program, Stream ) :- 
+%        printf( Stream, "\nEncountered Proc. ProcName: %w\n", [ProcName] ),
+        proc( ProcName, ProcBody ), !,
+%        printf( Stream, "ProcBody: %w is deterministic is ", [ProcBody] ),
+        is_deterministic( ProcBody, Result, Stream ),
+%        printf( Stream, "%w\n", [Result] ),
+        ( Result = true -> /** Proc is deterministic */
+                           horizon_consumption( ProcBody, Consume, Stream ),
+                           Horizon_New is (Horizon - Consume),
+                           apply_tau(solve(Omega, Horizon_New, RewardFunction),
+                                     Tau_Program_Tmp, Stream),
+                           ( Horizon > 0 ->
+                                     append( [ProcName], Tau_Program_Tmp, Tau_Program )
+                           ;
+                                     Tau_Program = Tau_Program_Tmp
+                           )
+        ;
+                           /** Proc is nondeterministic */
+                           /** We leave Proc untouched, and do not extract potential
+                            *  deterministic parts. */
+                           Tau_Program = [solve([ProcName | Omega], Horizon, RewardFunction)]
+        ).
+
 /** Primitive Action, Stochastic Action */
 apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program, Stream ) :- !,
 %        printf(Stream, "simple/stochastic action %w encountered\n", [Term]),
@@ -638,6 +1264,59 @@ apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program, Stream ) 
 %              printf(Stream, "This should never happen, because of CUT above!\n", []),
               Tau_Program = Tau_Program_Tmp
         ).
+
+is_deterministic( [], Result, _Stream ) :-
+        Result = true.
+
+%is_deterministic( Program, Result, Stream ) :-
+%        Program \= [_Action],
+%        NewProgram = [Program],
+%        is_deterministic( NewProgram, Result, Stream ).
+
+is_deterministic( [ProcName | Rest], Result, Stream ) :-
+        proc( ProcName, ProcBody ), !,
+        is_deterministic( ProcBody, ResultTmp, Stream ),
+        ( ResultTmp = false -> 
+                Result = false
+        ;
+                is_deterministic( Rest, Result, Stream )
+        ).
+
+is_deterministic( [if(_Cond, Sigma1, Sigma2) | Rest], Result, Stream ) :- !,
+        is_deterministic( [Sigma1], ResultTmp1, Stream ),
+        is_deterministic( [Sigma2], ResultTmp2, Stream ),
+        ( (ResultTmp1 = false; ResultTmp2 = false) -> 
+                Result = false
+        ;
+                is_deterministic( Rest, Result, Stream )
+        ).
+
+is_deterministic( [if(Cond, Sigma) | Rest], Result, Stream ) :-
+        is_deterministic( [if(Cond, Sigma, []) | Rest], Result, Stream ).
+
+
+is_deterministic( [while(_Cond, Sigma) | Rest], Result, Stream ) :- !,
+%        printf(Stream, "While! Sigma=%w\n", [Sigma]),
+        is_deterministic( [Sigma], ResultTmp, Stream ),
+%        printf(Stream, "While result: %w\n", [ResultTmp]),
+        ( ResultTmp = false -> 
+                Result = false
+        ;
+                is_deterministic( Rest, Result, Stream )
+        ).
+        
+is_deterministic( [nondet(_Args) | _Rest], Result, _Stream ) :- !,
+        Result = false.
+
+is_deterministic( [pickBest(_Args) | _Rest], Result, _Stream ) :- !,
+        Result = false.
+
+is_deterministic( [star(_Args) | _Rest], Result, _Stream ) :- !,
+        Result = false.
+
+is_deterministic( [_Term | Rest], Result, Stream ) :- !,
+        is_deterministic( Rest, Result, Stream ).
+        
 
 /* ----------------------------------------------------------
    utilities                           
@@ -748,34 +1427,47 @@ comma_to_semicolon_aux( String, String_New, Stream ) :-
 
         concat_strings( LeftResult, RightResult, String_New ).
 
-/** compute *minimal* horizon consumption for *deterministic* programs */
+/** Compute horizon consumption for program. That will be the *minimal*
+ *  consumption for deterministic sub-programs, and the *horizon* for
+ *  solve sub-programs. */
 /** TODO: What about nondeterministic programs inside star? */
 horizon_consumption([], Consume, _Stream) :- !,
         Consume = 0.
 
+%%horizon_consumption([remove2before], Consume, _Stream) :- !,
+%%        Consume = 0.
+
 horizon_consumption([if(_Cond, Sigma1, Sigma2) | Rest], Consume, Stream) :- !, 
-        horizon_consumption( [Sigma1 | Rest], Consume1, Stream ),
-%         printf( Stream, "Horizon consumption of Sigma1=%w: %w\n", [Sigma1, Consume1] ),
-        horizon_consumption( [Sigma2 | Rest], Consume2, Stream ),
-%         printf( Stream, "Horizon consumption of Sigma2=%w: %w\n", [Sigma2, Consume2] ),
-        min( Consume1, Consume2, Consume ).
+        horizon_consumption( Sigma1, Consume1, Stream ),
+%         printf( Stream, "if-clause... Horizon consumption of Sigma1=%w: %w\n", [Sigma1, Consume1] ),
+        horizon_consumption( Sigma2, Consume2, Stream ),
+%         printf( Stream, "if-clause... Horizon consumption of Sigma2=%w: %w\n", [Sigma2, Consume2] ),
+        min( Consume1, Consume2, ConsumeTmp ),
+        horizon_consumption( Rest, ConsumeR, Stream ),
+%         printf( Stream, "if-clause... Horizon consumption of Rest=%w: %w\n", [Rest, ConsumeR] ),
+        Consume is ( ConsumeTmp + ConsumeR ).
 
 horizon_consumption([if(Cond, Sigma) | Rest], Consume, Stream) :-
-        horizon_consumption([if(Cond, Sigma, []) | Rest], Consume, Stream).
+        horizon_consumption( [if(Cond, Sigma, [])], ConsumeIf, Stream ),
+        horizon_consumption( Rest, ConsumeR, Stream ),
+        Consume is ( ConsumeIf + ConsumeR ).
 
 horizon_consumption([while(_Cond, Sigma) | Rest], Consume, Stream) :- !,
-        horizon_consumption([Sigma | Rest], Consume, Stream).
+        horizon_consumption( Sigma, ConsumeWhile, Stream ),
+        horizon_consumption( Rest, ConsumeR, Stream ),
+        Consume is ( ConsumeWhile + ConsumeR ).
 
 horizon_consumption([?(_Test) | Rest], Consume, Stream) :- !,
         horizon_consumption(Rest, Consume, Stream).
 
 horizon_consumption([_Action | Rest], Consume, Stream) :- !,
         horizon_consumption(Rest, Consume_Rest, Stream),
+%         printf( Stream, "action %w... Horizon consumption of Rest=%w: %w\n", [Action, Rest, Consume_Rest] ),
         Consume is (1 + Consume_Rest).
 
-subsequence([],_RestY).
-subsequence([Item | RestX], [Item | RestY]) :-
-        subsequence(RestX,RestY).
+%subsequence([],_RestY).
+%subsequence([Item | RestX], [Item | RestY]) :-
+%        subsequence(RestX,RestY).
 
 join_prog_lists( {P_String1}, {P_String2}, {P_String_Joined} ) :-
         /** add brackets around first argument */
@@ -1020,7 +1712,7 @@ replace_term_aux( Program, Term, Value, Program_New, Stream ) :- !,
 %              printf( Stream, "Term is *not* found...\n", [] ),
               Program_New = Program
         ).
-        
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         

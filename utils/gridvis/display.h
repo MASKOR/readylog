@@ -177,7 +177,7 @@ void draw_item( int X, int Y);
 void draw_agent( int X, int Y);
 void draw_arrow( int X, int Y, std::string D );
 void draw_wumpus_hunter( int X, int Y, std::string D, bool A );
-void draw_wumpus( int Y, int Y, bool A );
+void draw_wumpus( int X, int Y, bool A );
 void draw_human( int X, int Y);
 void draw_opt_vals();
 

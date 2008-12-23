@@ -99,7 +99,8 @@ proc( find_gold,
          ?( epf_agent_pos = [HomeX,HomeY] ),
          ?( XG = 2 ),
          ?( YG = 3 ),
-         search_gold( XG, YG ),
+%         search_gold( XG, YG ),
+         search_gold,
          if( epf_gold_reachable = "F",
              [ cout(" === CANNOT REACH GOLD SAFELY... GOING HOME === "),
                reset_visited,
@@ -124,7 +125,8 @@ proc( find_gold,
       ]
     ).
 
-proc( search_gold( XG, YG ),
+%proc( search_gold( XG, YG ),
+proc( search_gold,
       [
          cout(" --- search gold --- \n"),
          exogf_Update,
@@ -176,9 +178,9 @@ proc( search_gold( XG, YG ),
                 ]
               ),
          ?( epf_sense_gold = SenseID ),
-         cout( red, " +++ SenseID = %w \n", [SenseID] ),
+         cout( red, " +++ SenseID = %w \n", [SenseID] )
         % ?( IPOS = f_gold_pos_by_id( SenseID ) ),
-         ?( IPOS = [XG, YG] )
+        % ?( IPOS = [XG, YG] )
       ]
     ).
 
@@ -192,7 +194,7 @@ proc( goto_gold(X,Y) ,
 proc( grab_gold,
       [
          cout(" --- grab gold --- \n"),
-         ?( epf_agent_pos = [X,Y] ),
+%         ?( epf_agent_pos = [X,Y] ),
          pickup_gold,
          cout(" --- gold successfully picked up --- \n")
       ]

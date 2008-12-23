@@ -63,6 +63,11 @@
  */
 :- ensure_loaded('decisionTheoretic').
 
+/** load inductive policy learning extension.
+ *  feature can be turned on/off by toggle_iplearn flag
+ */
+:- ensure_loaded('iplearner.pl').
+
 /** load options extension.
  *  this is currently not in use 
  *  because it needs full enumeration of the state space
