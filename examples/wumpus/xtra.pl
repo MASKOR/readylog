@@ -246,7 +246,7 @@ xTra(exogf_Update, _H) :- !,
 %                 true
 %          )
 %        ),
-        getval( wm_num_facedShades, V_CELLS_FSHA ), 
+%%        getval( wm_num_facedShades, V_CELLS_FSHA ), 
 %        printColor( red, " Currently I'm facing %w shaded cells\n", [V_CELLS_FSHA]),        
 
         V_AGENT_POS = [CurrX, CurrY],
@@ -273,7 +273,7 @@ xTra(exogf_Update, _H) :- !,
 %                              printColor( green, " Sensing a stench at %w \n", [V_AGENT_POS]),
                               ( not member([CurrX, CurrY], V_CELLS_SME ) -> append( V_CELLS_SME, [[CurrX, CurrY]], V_CELLS_SME_NEW ),
                                                                             setval( real_cells_smelly, V_CELLS_SME_NEW ),
-                                                                            setval( wm_cells_smelly, V_CELLS_SEM_NEW )
+                                                                            setval( wm_cells_smelly, V_CELLS_SME_NEW )
                                                                             ;
                                                                             true
                               )
@@ -284,7 +284,7 @@ xTra(exogf_Update, _H) :- !,
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
         %%  Diagnostic rules to infer the position of pits(not yet)/no pits  %%
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-        getval( real_cells_know_no_pit, V_CELLS_K_N_P ),
+%%        getval( real_cells_know_no_pit, V_CELLS_K_N_P ),
         % cells that have been visited and are free of breezes, have no pits as neighbours
         get_all_positions( V_CELLS_POS ),
         % printColor( red, " All positions: %w \n", [V_CELLS_POS]),
@@ -379,7 +379,7 @@ xTra(exogf_Update, _H) :- !,
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
         %%  Diagnostic rules to infer the position of the wumpus(not yet)/no wumpus  %%
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-        getval( real_cells_know_no_wumpus, V_CELLS_K_N_W ),
+%%        getval( real_cells_know_no_wumpus, V_CELLS_K_N_W ),
         % cells that have been visited and are free of stench, have no wumpus as neighbour
         get_all_positions( V_CELLS_POS ),
         % printColor( red, " All positions: %w \n", [V_CELLS_POS]),
@@ -578,7 +578,7 @@ xTra(exogf_Update, _H) :- !,
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %% deterministic execution
 
-xTra(go_forward,H) :-
+xTra(go_forward,_H) :-
         printColor( pink, " xTra: EXEC 'go_forward'", []),
         getval( real_agent_pos, [X,Y] ),
         printf(" at %w,%w ", [X,Y]),
@@ -611,9 +611,9 @@ xTra(go_forward,H) :-
                       getval(real_cells_shaded, RCSC_east),
 %                      printf(" the following cells are shaded: %w \n", [RCSC_east]),                    
                       update_shades(RCSC_east),
-                       /** count faced shades */
+%%                       /** count faced shades */
 %                       printColor(blue, " counting faced shades... \n",[]),
-                       getval( real_cells_shaded, CS_EAST ),
+%%                       getval( real_cells_shaded, CS_EAST ),
 %                       printColor(blue, " real_cells_shaded: %w \n",[CS_EAST]),
                        world( XMin, YMin, XMax, YMax ),
                               findall([Xs, Y],
@@ -654,8 +654,8 @@ xTra(go_forward,H) :-
                        getval(real_cells_shaded, RCSC_south),
 %                       printf(" the following cells are shaded: %w \n", [RCSC_south]),                    
                        update_shades(RCSC_south),
-                       /** count faced shades */
-                       getval( real_cells_shaded, CS_SOUTH ),
+%%                       /** count faced shades */
+%%                       getval( real_cells_shaded, CS_SOUTH ),
                        world( XMin, YMin, XMax, YMax ),
                               findall([X, Ys],
                                       ( YSouth is Y-1,
@@ -694,8 +694,8 @@ xTra(go_forward,H) :-
                       getval(real_cells_shaded, RCSC_west),
 %                      printf(" the following cells are shaded: %w \n", [RCSC_west]),                    
                       update_shades(RCSC_west),
-                      /** count faced shades */
-                      getval( real_cells_shaded, CS_WEST ),
+%%                      /** count faced shades */
+%%                      getval( real_cells_shaded, CS_WEST ),
                       world( XMin, YMin, XMax, YMax ),
                              findall([Xs, Y],
                                      ( XWest is X-1,
@@ -734,8 +734,8 @@ xTra(go_forward,H) :-
                        getval(real_cells_shaded, RCSC_north),
 %                       printf(" the following cells are shaded: %w \n", [RCSC_north]),                    
                        update_shades(RCSC_north),
-                       /** count faced shades */
-                       getval( real_cells_shaded, CS_WEST ),
+%%                       /** count faced shades */
+%%                       getval( real_cells_shaded, CS_WEST ),
                        world( XMin, YMin, XMax, YMax ),
                               findall([X, Ys],
                                       ( YNorth is Y+1,
@@ -751,7 +751,7 @@ xTra(go_forward,H) :-
                        ;
                        true ).
         
-xTra(turn_left,H) :-
+xTra(turn_left,_H) :-
         printColor( pink, " xTra: EXEC 'turn_left'", []),
         getval( real_agent_pos, [X,Y] ),
         printf(" at %w,%w ", [X,Y]),
@@ -766,8 +766,8 @@ xTra(turn_left,H) :-
                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "north", A]),
                       draw_wumpus_hunter(X, Y, "north", A),
                       draw_action("1", X, Y),
-                      /** count faced shades */
-                      getval( real_cells_shaded, CS_NORTH ),
+%%                      /** count faced shades */
+%%                      getval( real_cells_shaded, CS_NORTH ),
                       world( XMin, YMin, XMax, YMax ),
                              findall([X, Ys],
                                      ( YNorth is Y+1,
@@ -787,8 +787,8 @@ xTra(turn_left,H) :-
                        printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "east", A]),
                        draw_wumpus_hunter(X, Y, "east", A),
                        draw_action("1", X, Y),
-                       /** count faced shades */
-                       getval( real_cells_shaded, CS_EAST ),
+%%                       /** count faced shades */
+%%                       getval( real_cells_shaded, CS_EAST ),
                        world( XMin, YMin, XMax, YMax ),
                               findall([Xs, Y],
                                       ( XEast is X+1,
@@ -808,8 +808,8 @@ xTra(turn_left,H) :-
                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "south", A]),
                       draw_wumpus_hunter(X, Y, "south", A),
                       draw_action("1", X, Y),
-                      /** count faced shades */
-                      getval( real_cells_shaded, CS_SOUTH ),
+%%                      /** count faced shades */
+%%                      getval( real_cells_shaded, CS_SOUTH ),
                       world( XMin, YMin, XMax, YMax ),
                              findall([X, Ys],
                                      ( YSouth is Y-1,
@@ -829,8 +829,8 @@ xTra(turn_left,H) :-
                        printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "west", A]),
                        draw_wumpus_hunter(X, Y, "west", A),
                        draw_action("1", X, Y),
-                       /** count faced shades */
-                       getval( real_cells_shaded, CS_WEST ),
+%%                       /** count faced shades */
+%%                       getval( real_cells_shaded, CS_WEST ),
                        world( XMin, YMin, XMax, YMax ),
                               findall([Xs, Y],
                                       ( XWest is X-1,
@@ -846,7 +846,7 @@ xTra(turn_left,H) :-
                        ;
                        true ).
         
-xTra(turn_right,H) :-
+xTra(turn_right,_H) :-
         printColor( pink, " xTra: EXEC 'turn_left'", []),
         getval( real_agent_pos, [X,Y] ),
         printf(" at %w,%w ", [X,Y]),
@@ -860,8 +860,8 @@ xTra(turn_right,H) :-
                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "south",A]),
                       draw_wumpus_hunter(X, Y, "south",A),
                       draw_action("2", X, Y),
-                      /** count faced shades */
-                      getval( real_cells_shaded, CS_SOUTH ),
+%%                      /** count faced shades */
+%%                      getval( real_cells_shaded, CS_SOUTH ),
                       world( XMin, YMin, XMax, YMax ),
                              findall([X, Ys],
                                      ( YSouth is Y-1,
@@ -881,8 +881,8 @@ xTra(turn_right,H) :-
                        printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "west", A]),
                        draw_wumpus_hunter(X, Y, "west", A),
                        draw_action("2", X, Y),
-                       /** count faced shades */
-                       getval( real_cells_shaded, CS_WEST ),
+%%                       /** count faced shades */
+%%                       getval( real_cells_shaded, CS_WEST ),
                        world( XMin, YMin, XMax, YMax ),
                               findall([Xs, Y],
                                       ( XWest is X-1,
@@ -902,8 +902,8 @@ xTra(turn_right,H) :-
                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "north", A]),
                       draw_wumpus_hunter(X, Y, "north", A),
                       draw_action("2", X, Y),
-                      /** count faced shades */
-                      getval( real_cells_shaded, CS_NORTH ),
+%%                      /** count faced shades */
+%%                      getval( real_cells_shaded, CS_NORTH ),
                       world( XMin, YMin, XMax, YMax ),
                              findall([X, Ys],
                                      ( YNorth is Y+1,
@@ -923,8 +923,8 @@ xTra(turn_right,H) :-
                        printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "east", A]),
                        draw_wumpus_hunter(X, Y, "east", A),
                        draw_action("2", X, Y),
-                       /** count faced shades */
-                       getval( real_cells_shaded, CS_EAST ),
+%%                       /** count faced shades */
+%%                       getval( real_cells_shaded, CS_EAST ),
                        world( XMin, YMin, XMax, YMax ),
                               findall([Xs, Y],
                                       ( XEast is X+1,
@@ -940,19 +940,19 @@ xTra(turn_right,H) :-
                        ;
                        true ).
 
-xTra(shoot,H) :-
+xTra(shoot,_H) :-
         printColor( pink, " xTra: EXEC 'shoot'", []),
         setval(real_agent_arrow, "F"),
         setval(wm_agent_arrow, false),
         world( XMin, YMin, XMax, YMax ),
         getval( real_agent_pos, [X,Y]),
         getval( real_agent_direction, D),
-        getval( real_wumpus_pos, [WX, WY]),
+%%        getval( real_wumpus_pos, [WX, WY]),
         /** animation of flying arrow: */
         execdelay,
         ( D="east" ->  findall(XA_east, between(X, XMax, 1, XA_east), XLIST_east),
                        ( foreach( XA_east, XLIST_east ) do
-                         getval( real_agent_pos, [X_east,Y_east]),
+                         getval( real_agent_pos, [_X_east,Y_east]),
                          getval( real_wumpus_pos, [WX_east, WY_east]),
                          is_pos(XA_east,Y_east),
                          draw_arrow(XA_east, Y_east, "east"),
@@ -969,8 +969,8 @@ xTra(shoot,H) :-
                        ;
                        true ),
         ( D="south" -> findall(YA_south, between(YMin, Y, 1, YA_south), YLIST_south),
-                       ( foreach( YA_south, YLIST_east ) do
-                         getval( real_agent_pos, [X_south, Y_south]),
+                       ( foreach( YA_south, YLIST_south ) do
+                         getval( real_agent_pos, [X_south, _Y_south]),
                          getval( real_wumpus_pos, [WX_south, WY_south]),
                          is_pos(X_south, YA_south),
                          draw_arrow(X_south, YA_south, "south"),
@@ -988,7 +988,7 @@ xTra(shoot,H) :-
                        true ),
         ( D="west" ->  findall(XA_west, between(XMin, X, 1, XA_west), XLIST_west),
                        ( foreach( XA_west, XLIST_west ) do
-                         getval( real_agent_pos, [X_west,Y_west]),
+                         getval( real_agent_pos, [_X_west,Y_west]),
                          getval( real_wumpus_pos, [WX_west, WY_west]),
                          is_pos(XA_west,Y_west),
                          draw_arrow(XA_west, Y_west, "west"),
@@ -1006,7 +1006,7 @@ xTra(shoot,H) :-
                        true ),
         ( D="north" -> findall(YA_north, between(Y, YMax, 1, YA_north), YLIST_north),
                        ( foreach( YA_north, YLIST_north) do
-                         getval( real_agent_pos, [X_north, Y_north]),
+                         getval( real_agent_pos, [X_north, _Y_north]),
                          getval( real_wumpus_pos, [WX_north, WY_north]),
                          is_pos(X_north, YA_north),
                          draw_arrow(X_north, YA_north, "north"),
@@ -1024,7 +1024,7 @@ xTra(shoot,H) :-
                        true ).
           
 
-xTra(rest,H)  :- 
+xTra(rest,_H)  :- 
 	printColor( pink, " xTra: EXEC 'rest'", []), 
         getval( real_agent_pos, [X,Y] ),
         printf(" at %w,%w ", [X,Y]),
@@ -1035,7 +1035,7 @@ xTra(rest,H)  :-
         execdelay,
 	draw_action("0", X, Y).
 
-xTra(noop,H)  :- 
+xTra(noop,_H)  :- 
 	printColor( pink, " xTra: EXEC 'noop'", []), 
         getval( real_agent_pos, [X,Y] ),
         printf(" at %w,%w ", [X,Y]),
@@ -1046,7 +1046,7 @@ xTra(noop,H)  :-
         execdelay,
 	draw_action("0", X, Y).
 
-xTra(pickup_gold,H) :- 
+xTra(pickup_gold,_H) :- 
 	printColor( pink, " xTra: EXEC 'pickup_gold'", []), 
         getval( real_agent_pos, [X,Y] ),
         printf(" at %w,%w ", [X,Y]),

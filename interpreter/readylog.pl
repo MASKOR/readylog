@@ -125,8 +125,16 @@ icpgolog(E) :-
 	    writeln("ADVANCED PROGRESSION DISABLED."),
 	    nl
 	),
-        icpgo(E, [s0]). 
-
+        % <DP was here>
+        (iplearn ->
+            writeln("INDUCTIVE POLICY LEARNING ENABLED."),
+            nl
+        ;
+            writeln("INDUCTIVE POLICY LEARNING DISABLED."),
+            nl
+        ),
+        % </DP was here>
+        icpgo(E, [s0]).
 
 /* (1)- exogenous action occured */ 
 icpgo(E,H) :-
@@ -169,7 +177,6 @@ icpgo(E,H) :-
 	/* now that we there is an exo action,
 	we process it in icpgo(1) */
 	icpgo(E,H).
-
 
 
 /* ----------------------------------------------------------

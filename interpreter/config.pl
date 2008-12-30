@@ -76,6 +76,7 @@ use_caching :- true.
  */
 :- setval(debug_exoq, true).
 
+% <DP was here>
 /** IPLearn: Inductive policy learning for DT-planning.
  * turn on for activating the IPLearning component
  */
@@ -90,4 +91,10 @@ toggle_iplearn :- getval(iplearn, X),
           setval(iplearn, true),
           printf("IPLearn turned ON\n", [])
        ).
+
+/** Create a hash table to store the filenames (keys) for
+ *  the different solve contexts (values). */
+%:- local reference(solveHashTable).
+:- hash_create(SolveHashTable), setval(solveHashTable, SolveHashTable).
+% </DP was here>
 
