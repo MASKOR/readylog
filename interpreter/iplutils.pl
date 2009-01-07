@@ -291,8 +291,7 @@ replace_character( String, OldChar, NewChar, ResultString ) :- !,
                                        RightLength, RightFromPrime),
                             replace_character(LeftFromPrime, OldChar, NewChar, LeftResult),
                             replace_character(RightFromPrime, OldChar, NewChar, RightResult),
-                            concat_strings(LeftResult, NewChar, ResultStringTmp),
-                            concat_strings(ResultStringTmp, RightResult, ResultString)
+                            concat_string([LeftResult, NewChar, RightResult], ResultString)
                      )
               )
         ;
@@ -326,8 +325,7 @@ replace_string( String, Pattern, Value, String_New, Stream ) :-!,
                     RestLength is (StringLength - PatternPosRight + 1),
                     substring( String, PatternPosRight, RestLength, Right ),
                     replace_string( Right, Pattern, Value, String_Right_Tmp, Stream),
-                    concat_strings( String_Left_Tmp, Value, String_Tmp1 ),
-                    concat_strings( String_Tmp1, String_Right_Tmp, String_New )
+                    concat_string( [String_Left_Tmp, Value, String_Right_Tmp], String_New )
               )
         ;
               /** If Pattern is not found in String */
@@ -376,8 +374,7 @@ replace_term_aux( Program, Term, Value, Program_New, Stream ) :- !,
 %                    printf( Stream, "Right string: %w\n", [Right] ),
                     replace_term_aux( Right, Term, Value, Program_Right_Tmp, Stream),
 %                    printf( Stream, "Right string successfully replaced by %w\n", [Program_Right_Tmp] ),
-                    concat_strings( Program_Left_Tmp, Value, Program_Tmp1 ),
-                    concat_strings( Program_Tmp1, Program_Right_Tmp, Program_New )
+                    concat_string( [Program_Left_Tmp, Value, Program_Right_Tmp], Program_New )
               )
         ;
               /** If Term is not found in the string Program */
@@ -526,11 +523,9 @@ is_deterministic( [_Term | Rest], Result, Stream ) :- !,
 
 join_prog_lists( {P_String1}, {P_String2}, {P_String_Joined} ) :-
         /** add brackets around first argument */
-        concat_strings( "[", P_String1, RS1Left),
-        concat_strings( RS1Left, "], ", ReducedString1 ),
+        concat_string( ["[", P_String1, "], "], ReducedString1 ),
         /** add brackets around second argument */
-        concat_strings( "[", P_String2, RS2Left),
-        concat_strings( RS2Left, "]", ReducedString2 ),
+        concat_string( ["[", P_String2, "]"], ReducedString2 ),
         /** join argument lists */
         concat_strings( ReducedString1, ReducedString2, P_String_Joined ).
 

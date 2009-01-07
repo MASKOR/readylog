@@ -26,6 +26,9 @@
 :- ensure_loaded("agent.readylog").
 %% the pre-processed agent (SSAs and stuff)
 :- ensure_loaded("processed_agent.pl").
+%% the ipl-pre-processed agent (transformed procs with
+%% solve contexts in standard form)
+:- ensure_loaded("ipl_processed_agent.pl").
 
 %:- initial_val( pos, V ), setval(real_pos, V).
 
@@ -67,7 +70,7 @@
 
 
 /* dennis's test stuff */
-dp :- vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
+dp :- toggle_iplearn, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
 dpdebug :- toggle_dtdebug, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
 dp_novis :- initialise_wumpus_lists, icp( find_gold ).
 
@@ -94,8 +97,8 @@ initialise_smelly :- get_smelly_wumpus(S),
  *  and draw initial stuff
  */
 vis_wumpus :- display_wumpus,
-	getval(real_start_pos, [StartX, StartY]),
-	draw_start(StartX,StartY),
+%	getval(real_start_pos, [StartX, StartY]),
+%	draw_start(StartX,StartY),
 	getval(real_gold_pos, [GoldX, GoldY]),
 	draw_gold(GoldX,GoldY).
 

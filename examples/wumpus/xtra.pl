@@ -21,7 +21,7 @@
  *
  * ************************************************************************ */
 
-:- write(" --> loading xtra.pl ... \n").
+:- write(" --> loading utils.pl ... \n").
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  settings                            %%
@@ -65,7 +65,9 @@ exec_ask4outcome :- true.
 /* list of cells that are known to contain no wumpus */
 :- setval( real_cells_know_no_wumpus, [[1,1]] ).
 
-/* real position of our agent */
+/* real position of our agent
+ * default value
+ * overwritten randomly via place_agent(Seed)*/
 :- setval( real_agent_pos, [1,1] ).
 
 /* real direction our agent is facing in */
@@ -74,13 +76,17 @@ exec_ask4outcome :- true.
 /* is the arrow still available to the agent */
 :- setval( real_agent_arrow, "T" ).
 
-/* real position of the wumpus */
+/* real position of the wumpus
+ * default value
+ * overwritten randomly via place_wumpus(Seed)*/
 :- setval( real_wumpus_pos, [1,3] ).
 
 /* is wumpus alive */
 :- setval( real_wumpus_alive, "T" ).
 
-/* real position of the gold */
+/* real position of the gold
+ * default value
+ * overwritten randomly via place_gold(Seed)*/
 :- setval( real_gold_pos, [2,3] ).
 
 /* is our agent carrying the gold */
@@ -89,7 +95,9 @@ exec_ask4outcome :- true.
 /* can the agent reach the gold safely */
 :- setval( real_gold_reachable, "T" ).
 
-/* starting position */
+/* starting position
+ * default value
+ * overwritten randomly via place_agent(Seed)*/
 :- setval( real_start_pos, [1,1] ).
 
 /* distance to closest cell that can be explored safely */
@@ -166,7 +174,7 @@ xTra(exogf_Update, _H) :- !,
 	setval( wm_agent_pos, V_AGENT_POS ),
         
         getval( real_agent_direction, V_AGENT_DIRECTION ),
-%	printColor( yellow, " V_AGENT_DIRECTION = %w \n", [V_AGENT_DIRECTION]), 
+	%printColor( yellow, " V_AGENT_DIRECTION = %w \n", [V_AGENT_DIRECTION]), 
         ( V_AGENT_DIRECTION = "east" -> setval( wm_agent_direction, east )
                                         ;
                                         true ),
@@ -1057,6 +1065,163 @@ xTra(pickup_gold,_H) :-
         execdelay,
 	setval(real_carry_gold, true),
         setval(wm_carry_gold, true).
+
+/** Randomly distribute 1 to 3 pits in the world.
+ *  The Seed allows for reproducibility of configurations. */
+xTra(distribute_pits(Seed), _H) :- !,
+        random_number(Seed, 1, 3, NumberOfPits),
+        printf("Number of pits is: %w\n", [NumberOfPits]),
+        /** Distribute recursively till NumberOfPits is 0.
+         *  Implemented in wumpus.readylog. */
+        distribute_pits_aux(NumberOfPits, Seed),
+        findall( [X,Y],
+                 pit(X,Y),
+                 PitList ),
+        print_list(PitList),
+        printf("update_pits...", []),
+        update_pits(PitList),
+        printf(" successful.\n", []),
+        redraw.
+
+/** Re-compute the position of breezes. */
+xTra(distribute_breezes, _H) :- !,
+%        /** update_breezes_aux implemented
+%         *  in wumpus.readylog */
+%        update_breezes_aux,
+        printf("Retracting all breezes.\n", []),
+        retract_all(breeze(_,_)),
+        findall( [X,Y],
+                 ( world( XMin, YMin, XMax, YMax ),
+                   between(XMin, XMax, 1, X),
+                   between(YMin, YMax, 1, Y),
+                   not is_pit(X,Y),
+                   /** horizontal and vertical neighbour cells of
+                    *  pits are breezy */
+                   XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
+                   ( is_pit(XW, Y);
+                     is_pit(X, YS);
+                     is_pit(XE, Y);
+                     is_pit(X, YN)
+                   )
+                 ),
+                 BreezeList
+               ),
+%        print_list(BreezeList),
+        setval( real_cells_breezy, BreezeList ),
+        ( foreach([X,Y], BreezeList) do
+              printf("Asserting breeze(%w, %w).\n", [X,Y]),
+              assert(breeze(X,Y))
+        ),
+        printf("update_breezes...", []),
+        update_breezes(BreezeList),
+        printf(" successful.\n", []),
+        redraw.
+
+/** Re-compute the position of stenches. */
+xTra(distribute_stenches, _H) :- !,
+        printf("Retracting all stenches.\n", []),
+        retract_all(stench(_,_)),
+        findall( [X,Y],
+                 ( world( XMin, YMin, XMax, YMax ),
+                   between(XMin, XMax, 1, X),
+                   between(YMin, YMax, 1, Y),
+                   not is_pit(X,Y),
+                   /** horizontal and vertical neighbour cells of
+                    *  pits are breezy */
+                   XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
+                   ( is_wumpus(XW, Y);
+                     is_wumpus(X, YS);
+                     is_wumpus(XE, Y);
+                     is_wumpus(X, YN)
+                   )
+                 ),
+                 StenchList
+               ),
+%        print_list(StenchList),
+        setval( real_cells_smelly, StenchList ),
+        ( foreach([X,Y], StenchList) do
+              printf("Asserting stench(%w, %w).\n", [X,Y]),
+              assert(stench(X,Y))
+        ),
+        printf("update_stenches...", []),
+        update_stenches(StenchList),
+        printf(" successful.\n", []),
+        redraw.
+
+/** Randomly place the wumpus.
+ *  The Seed allows for reproducibility of placement. */
+xTra(place_wumpus(Seed), _H) :- !,
+        world( XMin, YMin, XMax, YMax),
+        SeedTmp1 is (Seed * 23), 
+        mod( SeedTmp1, 2147483647, NewSeed1),
+        random_number(NewSeed1, XMin, XMax, PosX),
+        SeedTmp2 is (NewSeed1 * 23), 
+        mod( SeedTmp2, 2147483647, NewSeed2),
+        random_number(NewSeed2, YMin, YMax, PosY),
+        printf("Trying to put wumpus to [%w, %w]\n", [PosX, PosY]),
+        ( pit(PosX, PosY) ->
+              /** There's a pit already, try again */
+              place_wumpus(NewSeed2)
+        ;
+              printf("Placing wumpus at [%w,%w].\n", [PosX,PosY]),
+              setval( real_wumpus_pos, [PosX, PosY] )
+        ),
+        redraw.
+
+/** Randomly place the agent (and the start/exit cell).
+ *  The Seed allows for reproducibility of placement. */
+xTra(place_agent(Seed), _H) :- !,
+        world( XMin, YMin, XMax, YMax),
+        SeedTmp1 is (Seed * 23), 
+        mod( SeedTmp1, 2147483647, NewSeed1),
+        random_number(NewSeed1, XMin, XMax, PosX),
+        SeedTmp2 is (NewSeed1 * 23), 
+        mod( SeedTmp2, 2147483647, NewSeed2),
+        random_number(NewSeed2, YMin, YMax, PosY),
+        printf("Trying to put agent to [%w, %w]\n", [PosX, PosY]),
+        getval( real_wumpus_pos, [WumpusX, WumpusY] ),
+        ( ( pit(PosX, PosY); [WumpusX, WumpusY] = [PosX, PosY] ) ->
+              /** There's a pit or the wumpus already, try again */
+              place_agent(NewSeed2)
+        ;
+              printf("Placing agent at [%w,%w].\n", [PosX,PosY]),
+              setval( real_agent_pos, [PosX, PosY] ),
+              setval( real_start_pos, [PosX, PosY] ),
+              /** agent has seen the starting cell */
+              findall( [X,Y],
+                       ( world( XMin, YMin, XMax, YMax ),
+                         between(XMin, XMax, 1, X),
+                         between(YMin, YMax, 1, Y),
+                         is_pos(X,Y),
+                         [X,Y] \== [PosX, PosY]
+                       ),
+                       ShadeList ),
+              print_list(ShadeList),
+              setval(real_cells_shaded, ShadeList),
+              update_shades(ShadeList)
+        ),
+        redraw.
+
+/** Randomly place the gold.
+ *  The Seed allows for reproducibility of placement. */
+xTra(place_gold(Seed), _H) :- !,
+        world( XMin, YMin, XMax, YMax),
+        SeedTmp1 is (Seed * 23), 
+        mod( SeedTmp1, 2147483647, NewSeed1),
+        random_number(NewSeed1, XMin, XMax, PosX),
+        SeedTmp2 is (NewSeed1 * 23), 
+        mod( SeedTmp2, 2147483647, NewSeed2),
+        random_number(NewSeed2, YMin, YMax, PosY),
+        printf("Trying to put gold to [%w, %w]\n", [PosX, PosY]),
+        getval( real_agent_pos, [AgentX, AgentY] ),
+        ( ( pit(PosX, PosY); [AgentX, AgentY] = [PosX, PosY] ) ->
+              /** There's a pit or the agent already, try again */
+              place_gold(NewSeed2)
+        ;
+              printf("Placing gold at [%w,%w].\n", [PosX,PosY]),
+              setval( real_gold_pos, [PosX, PosY] )
+        ),
+        redraw.
 
 xTra(reset_visited,_H) :- 
 	printColor( pink, " xTra: EXEC 'reset_visited'", []), 

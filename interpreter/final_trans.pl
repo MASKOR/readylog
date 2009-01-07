@@ -490,9 +490,19 @@ transPr( E, S, EE, SS, P) :-
 % 	E_sub =.. [ProcName|Args_eval_s],
 % 	/* - look up procedure with evaluated actual parameters - */
 % 	proc( E_sub, E_body), !, 
-	/* do not evaluate args */
-	proc( E, E_body), !, 
-	transPr( E_body, S, EE, SS, P).
+% <DP was here>
+        ( iplearn ->
+           /* use transformed proc with solve contexts in standard form */
+           /* do not evaluate args */
+           ipl_proc( E, E_body), !, transPr( E_body, S, EE, SS, P)
+        ;
+	   /* do not evaluate args */
+	   proc( E, E_body), !, transPr( E_body, S, EE, SS, P)
+        ).
+%	/* do not evaluate args */
+%	proc( E, E_body), !, 
+%	transPr( E_body, S, EE, SS, P).
+% </DP was here>
 
 % }}}
 

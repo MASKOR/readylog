@@ -16,6 +16,8 @@
 
 :- write(" --> loading wumpus.readylog ... \n").
 
+:- ensure_loaded("wumpus_utils.pl").
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  DOMAIN DEFINITION                                                 %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -87,9 +89,42 @@ function(f_is_wall(Xfrom, Yfrom, Xto, Yto), V,
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  PITS
 
-pit(3,1).
-pit(3,3).
-pit(4,4).
+/** Let pit positions be dynamic for randomisation. */
+:- dynamic pit/2.
+
+/** (Facts about) Pits are created by the distribute_pits(Seed)
+ *  action in xtra.pl, which calls distribute_pits_aux. */
+/** Distribute pits randomly until NumberOfPits is 0. */
+distribute_pits_aux(0, _Seed) :- !.
+
+distribute_pits_aux(NumberOfPits, Seed) :-
+        world( XMin, YMin, XMax, YMax ),
+        SeedTmp1 is (Seed * 23), 
+        mod( SeedTmp1, 2147483647, NewSeed1),
+        random_number(NewSeed1, XMin, XMax, XRand),
+        SeedTmp2 is (NewSeed1 * 23),
+        mod( SeedTmp2, 2147483647, NewSeed2),
+        random_number(NewSeed2, YMin, YMax, YRand),
+        ( pit(XRand, YRand) ->
+              /** Pit already exists. Try again. */
+              distribute_pits_aux(NumberOfPits, NewSeed2)
+        ;
+              printf("assert(pit(%w, %w))\n", [XRand, YRand]),
+              assert(pit(XRand, YRand)),
+              ( pit(XRand, YRand) ->
+                 printf("Pit has successfully been asserted.\n", [])
+              ;
+                 true
+              ),
+              NewNumberOfPits is (NumberOfPits - 1),
+              distribute_pits_aux(NewNumberOfPits, NewSeed2)
+        ).    
+
+%:- assert(pit(3,1)).
+
+%:- retract(pit(3,1)).
+
+%:- assert(pit(3,3)), assert(pit(4,4)).
 
 is_pit(X, Y) :- is_pos(X, Y),
                 pit(X, Y).
@@ -98,22 +133,55 @@ function(f_is_pit(X, Y), V,
          lif( is_pit(X, Y),
               V=true, V=false)).
 
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  BREEZES 
 
-breeze(X, Y) :- ( world( XMin, YMin, XMax, YMax ),
-                  between(XMin, XMax, 1, X),
-                  between(YMin, YMax, 1, Y),
-                  not is_pit(X,Y),
-                  /** horizontal and vertical neighbour cells of
-                   *  pits are breezy */
-                  XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
-                  ( is_pit(XW, Y);
-                    is_pit(X, YS);
-                    is_pit(XE, Y);
-                    is_pit(X, YN)
-                  )
-                ).
+/** Let breezes be dynamic for randomisation. */
+:- dynamic breeze/2.
+
+/** (Facts about) Breezes are created by the distribute_breezes
+ *  action in xtra.pl. */
+
+%update_breezes_aux :-
+%        printf("Retracting all breezes.\n", []),
+%        retract_all(breeze(_,_)),
+%        findall( [X,Y],
+%                 ( world( XMin, YMin, XMax, YMax ),
+%                   between(XMin, XMax, 1, X),
+%                   between(YMin, YMax, 1, Y),
+%                   not is_pit(X,Y),
+%                   /** horizontal and vertical neighbour cells of
+%                    *  pits are breezy */
+%                   XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
+%                   ( is_pit(XW, Y);
+%                     is_pit(X, YS);
+%                     is_pit(XE, Y);
+%                     is_pit(X, YN)
+%                   )
+%                 ),
+%                 BreezeList
+%               ),
+%        setval( real_cells_breezy, BreezeList ).
+%        ( foreach((X,Y), BreezeList) do
+%             printf("Asserting breeze(%w, %w).\n", [X,Y]),
+%             assert(breeze(X,Y))
+%        ).
+
+%breeze(X, Y) :- ( world( XMin, YMin, XMax, YMax ),
+%                  between(XMin, XMax, 1, X),
+%                  between(YMin, YMax, 1, Y),
+%                  not is_pit(X,Y),
+%                  /** horizontal and vertical neighbour cells of
+%                   *  pits are breezy */
+%                  XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
+%                  ( is_pit(XW, Y);
+%                    is_pit(X, YS);
+%                    is_pit(XE, Y);
+%                    is_pit(X, YN)
+%                  )
+%                ).
+
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  WUMPUS
@@ -130,21 +198,27 @@ function(f_is_wumpus(X, Y), V,
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  STENCH
 
-stench(X, Y) :- ( world( XMin, YMin, XMax, YMax ),
-                  between(XMin, XMax, 1, X),
-                  between(YMin, YMax, 1, Y),
-                  not is_pit(X,Y),
-                  /* horizontal and vertical neighbour cells of
-                   * the wumpus smell (for simplicity also when
-                   * it's February 29th in leap years and the
-                   * wumpus had its bath) */
-                  XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
-                  ( is_wumpus(XW, Y);
-                    is_wumpus(X, YS);
-                    is_wumpus(XE, Y);
-                    is_wumpus(X, YN)
-                  )
-                ).
+/** Let stenches be dynamic for randomisation. */
+:- dynamic stench/2.
+
+/** (Facts about) Stenches are created by the distribute_stenches
+ *  action in xtra.pl. */
+
+%stench(X, Y) :- ( world( XMin, YMin, XMax, YMax ),
+%                  between(XMin, XMax, 1, X),
+%                  between(YMin, YMax, 1, Y),
+%                  not is_pit(X,Y),
+%                  /* horizontal and vertical neighbour cells of
+%                   * the wumpus smell (for simplicity also when
+%                   * it's February 29th in leap years and the
+%                   * wumpus had its bath) */
+%                  XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
+%                  ( is_wumpus(XW, Y);
+%                    is_wumpus(X, YS);
+%                    is_wumpus(XE, Y);
+%                    is_wumpus(X, YN)
+%                  )
+%                ).
 
 is_stench(X, Y) :- is_pos(X, Y),
                    stench(X, Y).
@@ -161,8 +235,8 @@ function(f_is_stench(X, Y), V,
 shade_init(X, Y) :- world( XMin, YMin, XMax, YMax ),
                     between(XMin, XMax, 1, X),
                     between(YMin, YMax, 1, Y),
-                    is_pos(X,Y),
-                    not ([X,Y]=[1,1]). /** agent has seen the starting cell */
+                    is_pos(X,Y).
+%                    not ([X,Y]=[1,1]). /** agent has seen the starting cell */
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  BREEZY
@@ -273,10 +347,10 @@ exog_fluent_getValue( epf_cells_visited, V, _S ) :- !,
 %%  been visited already       %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
-exog_prim_fluent( epf_visited(_X,_Y) ).
-exog_fluent_getValue( epf_visited(_X,_Y), V, _S) :- !,
-      getval( wm_cells_visited, Vtemp ),
-      (  member( [_X,_Y], Vtemp ) -> V = true; V = false ).
+%%exog_prim_fluent( epf_visited(X,Y) ).
+%%exog_fluent_getValue( epf_visited(X,Y), V, _S) :- !,
+%%      getval( wm_cells_visited, Vtemp ),
+%%      (  member( [X,Y], Vtemp ) -> V = true; V = false ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  number of visited cells    %%
@@ -1043,10 +1117,38 @@ causes_val( pickup_gold, epf_carry_gold, V, V = true ).
 prim_action(noop).
 poss(noop, true ).
 
+/** Randomly distribute 1 to 3 pits in the world.
+ *  The Seed allows for reproducibility of configurations. */
+prim_action(distribute_pits(_Seed)).
+poss( distribute_pits(_Seed), true ).
+
+/** Re-compute the position of breezes. */
+prim_action(distribute_breezes).
+poss( distribute_breezes, true ).
+
+/** Re-compute the position of stenches. */
+prim_action(distribute_stenches).
+poss( distribute_stenches, true ).
+
+/** Randomly place the wumpus.
+ *  The Seed allows reproducibility of placement. */
+prim_action(place_wumpus(_Seed)).
+poss( place_wumpus(_Seed), true ).
+
+/** Randomly place the agent (and the start/exit cell).
+ *  The Seed allows reproducibility of placement. */
+prim_action(place_agent(_Seed)).
+poss( place_agent(_Seed), true ).
+
+/** Randomly place the gold.
+ *  The Seed allows reproducibility of placement. */
+prim_action(place_gold(_Seed)).
+poss( place_gold(_Seed), true ).
+ 
 prim_action(reset_visited).
 poss( reset_visited, true ).
 causes_val( reset_visited, visited(_,_), V, V = false ).
-causes_val( reset_visited, epf_visited(_,_), V, V = false ).
+%%causes_val( reset_visited, epf_visited(_,_), V, V = false ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  EvENTS                              %%

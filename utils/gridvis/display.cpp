@@ -110,7 +110,7 @@ draw_pits() {
       
       x = Pits[i].x;
       y = Pits[i].y;
-
+  
       draw_x = x * ROW_SIZE;
       draw_y = GY - (y+1) * ROW_SIZE;
 

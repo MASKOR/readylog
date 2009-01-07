@@ -844,11 +844,11 @@ int p_DrawStart()
     cerr << "failed to unify arg 1 in p_DrawGoal " << endl;
     return EC_fail;
   }
-  if( ec_X.is_long( &Y ) != EC_succeed ) {
+  if( ec_Y.is_long( &Y ) != EC_succeed ) {
     cerr << "failed to unify arg 2 in p_DrawGoal " << endl;
     return EC_fail;
   }
-
+  
   draw_start(X, Y);
 
   return EC_succeed;
@@ -1029,6 +1029,111 @@ int p_Redraw()
 
   //std::cout << " ***** ReDraw ***** refresh " << std::endl;
   j_refresh_window(WINDOW);
+
+  return EC_succeed;
+}
+
+extern "C"
+int p_UpdatePits()
+{
+  EC_word Arg1 = EC_word( EC_arg( 1 ) );
+
+  //  std::cout << "updating pits" << std::endl;
+  // Pits
+  Pits.clear();
+  std::vector<int> pit_list_elements;
+  EC_word pit_list = Arg1;
+  EC_word pit_sub_list, pit_element;
+  while(EC_succeed == pit_list.arg(1, pit_sub_list)) {
+    while (EC_succeed == pit_sub_list.arg(1, pit_element)) {
+      long pit_elem = 0;
+//        if (pit_element.is_nil()) {
+//       	cerr << " pit_element is NIL!" << endl;
+//       }	
+      if (pit_element.is_long(&pit_elem) != EC_succeed) {
+	cerr << "error in type in pit_elem: '" << pit_elem << "'" << endl;
+	return EC_fail;
+      }
+//      cout << "got pit_elem: '" << pit_elem << "'" << endl;
+      pit_list_elements.push_back(pit_elem);
+      pit_sub_list.arg(2,pit_sub_list);
+    }
+    Pit.x=pit_list_elements[0];
+    Pit.y=pit_list_elements[1];
+    pit_list_elements.clear();
+    Pits.push_back(Pit);
+    pit_list.arg(2,pit_list);
+  }
+
+  return EC_succeed;
+}
+
+extern "C"
+int p_UpdateBreezes()
+{
+  EC_word Arg1 = EC_word( EC_arg( 1 ) );
+
+  //  std::cout << "updating breezes" << std::endl;
+  // Breezes
+  Breezes.clear();
+  std::vector<int> breeze_list_elements;
+  EC_word breeze_list = Arg1;
+  EC_word breeze_sub_list, breeze_element;
+  while(EC_succeed == breeze_list.arg(1, breeze_sub_list)) {
+    while (EC_succeed == breeze_sub_list.arg(1, breeze_element)) {
+      long breeze_elem = 0;
+//        if (breeze_element.is_nil()) {
+//       	cerr << " breeze_element is NIL!" << endl;
+//       }	
+      if (breeze_element.is_long(&breeze_elem) != EC_succeed) {
+	cerr << "error in type in breeze_elem: '" << breeze_elem << "'" << endl;
+	return EC_fail;
+      }
+//      cout << "got breeze_elem: '" << breeze_elem << "'" << endl;
+      breeze_list_elements.push_back(breeze_elem);
+      breeze_sub_list.arg(2,breeze_sub_list);
+    }
+    Breeze.x=breeze_list_elements[0];
+    Breeze.y=breeze_list_elements[1];
+    breeze_list_elements.clear();
+    Breezes.push_back(Breeze);
+    breeze_list.arg(2,breeze_list);
+  }
+
+  return EC_succeed;
+}
+
+extern "C"
+int p_UpdateStenches()
+{
+  EC_word Arg1 = EC_word( EC_arg( 1 ) );
+
+  //  std::cout << "updating stenches" << std::endl;
+  // Stenches
+  Stenches.clear();
+  std::vector<int> stench_list_elements;
+  EC_word stench_list = Arg1;
+  EC_word stench_sub_list, stench_element;
+  while(EC_succeed == stench_list.arg(1, stench_sub_list)) {
+    while (EC_succeed == stench_sub_list.arg(1, stench_element)) {
+      long stench_elem = 0;
+//        if (stench_element.is_nil()) {
+//       	cerr << " stench_element is NIL!" << endl;
+//       }	
+      if (stench_element.is_long(&stench_elem) != EC_succeed) {
+	cerr << "error in type in stench_elem: '" << stench_elem << "'" << endl;
+	return EC_fail;
+      }
+//      cout << "got stench_elem: '" << stench_elem << "'" << endl;
+      stench_list_elements.push_back(stench_elem);
+      stench_sub_list.arg(2,stench_sub_list);
+    }
+    Stench.x=stench_list_elements[0];
+    Stench.y=stench_list_elements[1];
+    stench_list_elements.clear();
+    Stenches.push_back(Stench);
+    stench_list.arg(2,stench_list);
+  }
 
   return EC_succeed;
 }

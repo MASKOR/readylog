@@ -81,6 +81,27 @@ proc(goto_det(X,Y),
 /** helper function to add an element to a list */
 function( adl(E,L), V,
           append( E, L, V ) ).
+  
+%/** Randomly distribute 1 to 3 pits in the world.
+% *  The Seed allows reproducibility of configurations. */
+%proc( distribute_pits(Seed),
+%      [ 
+%        random_number(Seed, 1, 3, NumberOfPits),
+%        cout(blue, "Number of pits is: %w\n", [NumberOfPits])
+%      ]
+%    ).
+
+%/** Return a random number between A and B (inclusive)*/
+%proc( random_number(Seed, A, B, Number),
+%      [
+%        seed(Seed),
+%        random(N), 
+%        Tmp1 is (B - A + 1),
+%        mod(N, Tmp1, Tmp2),
+%        Number is (A + Tmp2)
+%      ]
+%    ).
+
 
 %% ================================================================== %%
 %%  ACTION PROCEDURES                                                 %%
@@ -95,6 +116,15 @@ proc( find_gold,
       [
          cout(" === STARTING FIND_GOLD === \n"),
          exogf_Update,
+         
+         %% initialise random configuration
+         distribute_pits(3),
+         distribute_breezes,
+         place_wumpus(4),
+         distribute_stenches,
+         place_agent(5),
+         place_gold(6),
+         
          %% save current pos to return gold
          ?( epf_agent_pos = [HomeX,HomeY] ),
          ?( XG = 2 ),
@@ -115,7 +145,7 @@ proc( find_gold,
                goto_gold( XG, YG ),
                grab_gold,
                reset_visited,
-               while( (epf_carry_gold=true, epf_agent_pos \= [HomeX,HomeY]) ,
+               while( (epf_carry_gold=true, epf_agent_pos \= [HomeX,HomeY]),
                       [carry_gold( HomeX,HomeY ),
                        exogf_Update]
                     ),

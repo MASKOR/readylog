@@ -25,6 +25,7 @@ CONFIGFILE   = $(BASEDIR)/cfg/config.xml
 
 ### #######################
 PARAMFILE    = $(BASEDIR)/utils/config.pl
+IPLPREPROCESSOR = $(BASEDIR)/interpreter/readylog/iplpreprocessor.pl
 PREPROCESSOR = $(BASEDIR)/interpreter/readylog/preprocessor.pl
 XMLTOPROLOG  = $(BASEDIR)/utils/xml2prolog.pl
 DOXYGENERATE = $(BASEDIR)/utils/doc.pl
@@ -42,9 +43,12 @@ ECLIPSE = eclipse
 
 ### RULES #################
 
-all: preprocess
+all: iplpreprocess preprocess
 
 ##
+
+iplpreprocess:
+	$(SILENT) $(ECLIPSE) -b $(IPLPREPROCESSOR) $(PWD)/$(FILENAME)
 
 preprocess:
 	$(SILENT) $(ECLIPSE) -b $(PREPROCESSOR) $(PWD)/$(FILENAME)

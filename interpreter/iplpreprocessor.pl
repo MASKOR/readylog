@@ -320,16 +320,21 @@ process_proc( [Term | RestProgram], Processed, Stream ) :- !,
 %         append
 
 process_proc_aux( ProcName, ProcBody, Stream ) :-        
-        printf(Stream, "prolog_ipl_proc( %w ).\n", [ProcName]),
-        printf(Stream, "prolog_ipl_proc( %w ) :-", [ProcName] ),
+        printf(Stream, "ipl_proc( %w, ", [ProcName]),
+%        printf(Stream, "ipl_proc( %w, %w ).\n", [ProcName, ProcBody]),
+%        printf(Stream, "ipl_proc( %w ) :-", [ProcName] ),
 %        printf( Stream, "Processing ProcBody: %w\n", [ProcBody] ),
         /** Make the arguments of cout strings again. */
         fix_couts( ProcBody, ProcBodyNew, Stream ),
 %        printf( Stream, "ProcBodyNew: %w\n", [ProcBodyNew] ),
         process_proc( ProcBodyNew, Processed, Stream ),
+%        /** cut away superfluous outer brackets [].
+%         *  Doesn't work :/ replaces variables by 
+%         *  Prolog placeholders... not nice. */
+%        list_to_string( Processed, ProcessedClean ),
         /** write the transformed proc to the file */
-        printf( Stream, "%w", [Processed] ),
-        printf(Stream, ".\n", []).
+        printf( Stream, "%w ).\n", [Processed] ).
+%        printf(Stream, ".\n", []).
 
 process_all_proc( Stream ) :-
         findall( (ProcName, ProcBody),
@@ -714,14 +719,13 @@ apply_tau_prime_H( [{P_List} | []], _Horizon, Program,
 %        printf(Stream, "Encountered Empty Program.\n", []),
         /** To enhance readability we put in some brackets
          *  around the programs to choose from */
-        concat_strings("[", P_List, Tmp1),
-        concat_strings(Tmp1, "]", Tmp2),
-        replace_string(Tmp2, " ", "", Tmp3, Stream),
-        replace_string(Tmp3, ",", "], [", Tmp4, Stream),
+        concat_string(["[", P_List, "]"], Tmp1),
+        replace_string(Tmp1, " ", "", Tmp2, Stream),
+        replace_string(Tmp2, ",", "], [", Tmp3, Stream),
         /** Before integration, we exchanged commas in tests,
          *  while statements, and if statements by placeholders.
          *  Now substitute them back. */
-        replace_string(Tmp4, "__COMMA__", ",", P_List_Clean, Stream),
+        replace_string(Tmp3, "__COMMA__", ",", P_List_Clean, Stream),
         /** TODO: sort P_List */
         append(Program, [nondet(P_List_Clean)], Program_New),
         Tau_Prime_H_Program = Program_New.
@@ -774,8 +778,7 @@ apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
                        Stream ),
 %         printf( Stream, "Star_Program: %w\n", [Star_Program] ),
          term_string( Cond, CondS ),
-         concat_strings( "?(neg(", CondS, NegCondPart1S ),
-         concat_strings( NegCondPart1S, "))", NegCondTestS ),
+         concat_string( ["?(neg(", CondS, "))"], NegCondTestS ),
 %         findall( X,
 %                  ( member(Y, Star_Program),
 %                    term_string(Y, YS),
@@ -786,9 +789,8 @@ apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
 %                  Star_Program_Ext ),
          /** Add the choice of [?(not(Cond)); Omega_Prime] in the beginning. */
          list_to_string( Omega_Prime, Omega_PrimeS ),
-         concat_strings( NegCondTestS, ";", Tmp1S ),
-         concat_strings( Tmp1S, Omega_PrimeS, Tmp2S ),
-         string_to_list( Tmp2S, Tmp2 ),
+         concat_string( [NegCondTestS, ";", Omega_PrimeS], Tmp1S ),
+         string_to_list( Tmp1S, Tmp2 ),
          append( Tmp2, Star_Program, Star_Program_Tmp ),
          /** Integrate the complete rest program into the nondeterministic set. */
          integrate( {P_List}, Star_Program_Tmp, {P_List_New}, Stream ),
@@ -1036,13 +1038,9 @@ apply_tau(solve([if(Cond, Sigma1, Sigma2) | Omega], Horizon, RewardFunction),
 
                 /** put together both sub-results */
                 term_string(Cond, CondString),
-                concat_strings( "if( ", CondString, S1 ),
-                concat_strings( S1, ", [", S2 ),
-                concat_strings( S2, Sigma1_Final, S3 ),
-                concat_strings( S3, "], [", S4 ),
-                concat_strings( S4, Sigma2_Final, S5 ),
-                concat_strings( S5, "] )", S6 ),
-                string_to_list(S6, Tau_Program)
+                concat_string( ["if( ", CondString, ", [", Sigma1_Final,
+                                "], [", Sigma2_Final, "] )"], FinalString ),
+                string_to_list(FinalString, Tau_Program)
         ).
 
 apply_tau(solve([if(Cond, Sigma) | Omega], Horizon, RewardFunction), Tau_Program,
@@ -1067,13 +1065,9 @@ apply_tau(solve([while(Cond, Sigma) | Omega], Horizon, RewardFunction),
 
                 /** put together both sub-results */
                 term_string(Cond, CondString),
-                concat_strings( "if( ", CondString, S1 ),
-                concat_strings( S1, ", [", S2 ),
-                concat_strings( S2, Tau1_Final, S3 ),
-                concat_strings( S3, "], [", S4 ),
-                concat_strings( S4, Tau2_Final, S5 ),
-                concat_strings( S5, "] )", S6 ),
-                string_to_list(S6, Tau_Program)
+                concat_string( ["if( ", CondString, ", [", Tau1_Final,
+                                "], [", Tau2_Final, "] )"], FinalString ),
+                string_to_list(FinalString, Tau_Program)
         ).
 
 /** Test Action */
@@ -1210,7 +1204,9 @@ runall(N, M) :-
 	),
 	/* compile the lately processed output before
 	stepping over to next level */
-	compile(NewFileName),
+        /** TODO: Will be forgotten, if compiled here. Compile
+         *  in preprocessor instead! */
+%	compile(NewFileName),
 	N_next is N+1,
 	runall(N_next, M).
 

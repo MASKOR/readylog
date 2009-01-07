@@ -35,6 +35,12 @@
 
 :- external(draw_action/3, "p_DrawAction").
 
+:- external(update_pits/1, "p_UpdatePits").
+
+:- external(update_breezes/1, "p_UpdateBreezes").
+
+:- external(update_stenches/1, "p_UpdateStenches").
+
 :- external(update_shades/1, "p_UpdateShades").
 
 :- external(draw_goto/5, "p_DrawGoto").
