@@ -81,7 +81,7 @@ use_caching :- true.
  * turn on for activating the IPLearning component
  */
 :- setval(iplearn, false).
-iplearn :- getval(iplearn, X), !, X=true.
+iplearn :- getval(iplearn, X), X=true.
 toggle_iplearn :- getval(iplearn, X),
        (
           X ->

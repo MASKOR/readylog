@@ -82,26 +82,6 @@ proc(goto_det(X,Y),
 function( adl(E,L), V,
           append( E, L, V ) ).
   
-%/** Randomly distribute 1 to 3 pits in the world.
-% *  The Seed allows reproducibility of configurations. */
-%proc( distribute_pits(Seed),
-%      [ 
-%        random_number(Seed, 1, 3, NumberOfPits),
-%        cout(blue, "Number of pits is: %w\n", [NumberOfPits])
-%      ]
-%    ).
-
-%/** Return a random number between A and B (inclusive)*/
-%proc( random_number(Seed, A, B, Number),
-%      [
-%        seed(Seed),
-%        random(N), 
-%        Tmp1 is (B - A + 1),
-%        mod(N, Tmp1, Tmp2),
-%        Number is (A + Tmp2)
-%      ]
-%    ).
-
 
 %% ================================================================== %%
 %%  ACTION PROCEDURES                                                 %%
@@ -115,28 +95,25 @@ function( adl(E,L), V,
 proc( find_gold,
       [
          cout(" === STARTING FIND_GOLD === \n"),
-         exogf_Update,
          
          %% initialise random configuration
-         distribute_pits(3),
-         distribute_breezes,
-         place_wumpus(4),
-         distribute_stenches,
-         place_agent(5),
-         place_gold(6),
+         distribute_pits(14322),
+         place_wumpus(224341),
+         place_agent(15232),
+         place_gold(2344),
+         
+         exogf_Update,
          
          %% save current pos to return gold
          ?( epf_agent_pos = [HomeX,HomeY] ),
-         ?( XG = 2 ),
-         ?( YG = 3 ),
-%         search_gold( XG, YG ),
+         ?( epf_gold_pos = [XG, YG] ),
          search_gold,
          if( epf_gold_reachable = "F",
              [ cout(" === CANNOT REACH GOLD SAFELY... GOING HOME === "),
                reset_visited,
                while( epf_agent_pos \= [HomeX,HomeY] ,
                       [go_home( HomeX,HomeY ),
-                      exogf_Update]
+                       exogf_Update]
                     ),
                cout(" === FINISHED FIND_GOLD === \n")
              ],
@@ -165,39 +142,12 @@ proc( search_gold,
                    %exogf_Update,
                    solve( [ if( (epf_wumpus_alive = true, epf_agent_arrow = true),
                                 [ nondet( [ go_forward,
-                                          turn_left,
-                                          turn_right,
-                                          shoot
-                                        ] ),
-                                 nondet( [ go_forward,
-                                          turn_left,
-                                          turn_right,
-                                          shoot
-                                        ] ),
-                                 nondet( [ go_forward,
-                                          turn_left,
-                                          turn_right,
-                                          shoot
-                                        ] ),
-                                 nondet( [ go_forward,
-                                          turn_left,
-                                          turn_right,
-                                          shoot
+                                            turn_left,
+                                            turn_right,
+                                            shoot
                                         ] )
                                 ],
                                 [ nondet( [ go_forward,
-                                            turn_left,
-                                            turn_right
-                                          ] ),
-                                 nondet( [ go_forward,
-                                            turn_left,
-                                            turn_right
-                                          ] ),
-                                 nondet( [ go_forward,
-                                            turn_left,
-                                            turn_right
-                                          ] ),
-                                 nondet( [ go_forward,
                                             turn_left,
                                             turn_right
                                           ] )
@@ -224,7 +174,6 @@ proc( goto_gold(X,Y) ,
 proc( grab_gold,
       [
          cout(" --- grab gold --- \n"),
-%         ?( epf_agent_pos = [X,Y] ),
          pickup_gold,
          cout(" --- gold successfully picked up --- \n")
       ]

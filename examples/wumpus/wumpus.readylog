@@ -93,38 +93,7 @@ function(f_is_wall(Xfrom, Yfrom, Xto, Yto), V,
 :- dynamic pit/2.
 
 /** (Facts about) Pits are created by the distribute_pits(Seed)
- *  action in xtra.pl, which calls distribute_pits_aux. */
-/** Distribute pits randomly until NumberOfPits is 0. */
-distribute_pits_aux(0, _Seed) :- !.
-
-distribute_pits_aux(NumberOfPits, Seed) :-
-        world( XMin, YMin, XMax, YMax ),
-        SeedTmp1 is (Seed * 23), 
-        mod( SeedTmp1, 2147483647, NewSeed1),
-        random_number(NewSeed1, XMin, XMax, XRand),
-        SeedTmp2 is (NewSeed1 * 23),
-        mod( SeedTmp2, 2147483647, NewSeed2),
-        random_number(NewSeed2, YMin, YMax, YRand),
-        ( pit(XRand, YRand) ->
-              /** Pit already exists. Try again. */
-              distribute_pits_aux(NumberOfPits, NewSeed2)
-        ;
-              printf("assert(pit(%w, %w))\n", [XRand, YRand]),
-              assert(pit(XRand, YRand)),
-              ( pit(XRand, YRand) ->
-                 printf("Pit has successfully been asserted.\n", [])
-              ;
-                 true
-              ),
-              NewNumberOfPits is (NumberOfPits - 1),
-              distribute_pits_aux(NewNumberOfPits, NewSeed2)
-        ).    
-
-%:- assert(pit(3,1)).
-
-%:- retract(pit(3,1)).
-
-%:- assert(pit(3,3)), assert(pit(4,4)).
+ *  action in xtra.pl. */
 
 is_pit(X, Y) :- is_pos(X, Y),
                 pit(X, Y).
@@ -202,7 +171,7 @@ function(f_is_wumpus(X, Y), V,
 :- dynamic stench/2.
 
 /** (Facts about) Stenches are created by the distribute_stenches
- *  action in xtra.pl. */
+ *  function in xtra.pl. */
 
 %stench(X, Y) :- ( world( XMin, YMin, XMax, YMax ),
 %                  between(XMin, XMax, 1, X),
@@ -245,7 +214,7 @@ shade_init(X, Y) :- world( XMin, YMin, XMax, YMax ),
 
 /** agent feels a breeze <=> the neighbour cells of the start position
  *  contain a pit */
-breezy_init(1, 1) :- pit(1, 2); pit(2, 1).
+%breezy_init(1, 1) :- pit(1, 2); pit(2, 1).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  SMELLY
@@ -254,7 +223,7 @@ breezy_init(1, 1) :- pit(1, 2); pit(2, 1).
 
 /** agent smells a stench <=> there is the wumpus in the  neighbour cells
  * of the start position */ 
-smelly_init(1, 1) :- wumpus(1, 2); wumpus(2, 1).
+%smelly_init(1, 1) :- wumpus(1, 2); wumpus(2, 1).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  DIRECTIONS
@@ -290,15 +259,15 @@ get_domain_wumpus(X, Y, W, P, WI, S) :-
 get_shades_wumpus(SH) :-
         findall([X, Y], shade_init(X,Y), SH).
 
-/** start the list of breezes memorised by the agent.
- *  empty if there is no pit besides the start position */
-get_breezy_wumpus(B) :-
-        findall([X, Y], breezy_init(X,Y), B).
-
-/** start the list of stenches memorised by the agent.
- *  empty if there is no wumpus beside the start position */
-get_smelly_wumpus(S) :-
-        findall([X, Y], smelly_init(X,Y), S).
+%/** start the list of breezes memorised by the agent.
+% *  empty if there is no pit besides the start position */
+%get_breezy_wumpus(B) :-
+%        findall([X, Y], breezy_init(X,Y), B).
+%
+%/** start the list of stenches memorised by the agent.
+% *  empty if there is no wumpus beside the start position */
+%get_smelly_wumpus(S) :-
+%        findall([X, Y], smelly_init(X,Y), S).
 
 /** compiles a list of all legal positions in the maze */
 get_all_positions(PLIST) :-
@@ -456,6 +425,14 @@ exog_prim_fluent( epf_gold_reachable ).
 exog_fluent_getValue( epf_gold_reachable, V, _S) :- !,
       getval( wm_gold_reachable, V).
 
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  agent's belief to hit the wumpus when shooting now %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_sure_to_hit ).
+exog_fluent_getValue( epf_sure_to_hit, V, _S) :- !,
+      getval( wm_sure_to_hit, V).
+
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %%  breeze sensing       %%
 %% %%%%%%%%%%%%%%%%%%%%% %%
@@ -498,14 +475,14 @@ exog_prim_fluent( epf_cells_know_no_pit ).
 exog_fluent_getValue( epf_cells_know_no_pit, V, _S ) :- !,
       getval( wm_cells_know_no_pit, V ).
 
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-%%  list of cells that are       %%
-%%  known to contain the wumpus  %%
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  degenerated list of cell that is  %%
+%%  known to contain the wumpus       %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
-%exog_prim_fluent( epf_cells_know_wumpus ).
-%exog_fluent_getValue( epf_cells_know_wumpus, V, _S ) :- !,
-%      getval( wm_cells_know_wumpus, V ).
+exog_prim_fluent( epf_known_wumpus_pos ).
+exog_fluent_getValue( epf_known_wumpus_pos, V, _S ) :- !,
+      getval( wm_known_wumpus_pos, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  list of cells that are       %%
@@ -683,7 +660,7 @@ causes_val(go_forward, epf_cells_visited, ECVn,
                             X is Xp1 + 1,
                             Y = Yp1,
                             not member([X,Y], ECVp1),
-                            append(ECVp1, [[X,Y]], ECVn)
+                            ECVn = [ECVp1 | [X,Y]]
                           ]),
                       and([ epf_agent_pos = [Xp2,Yp2],
                             is_pos(Xp2,Yp2),
@@ -694,7 +671,7 @@ causes_val(go_forward, epf_cells_visited, ECVn,
                             X = Xp2,
                             Y is Yp2 - 1,
                             not member([X,Y], ECVp2),
-                            append(ECVp2, [[X,Y]], ECVn)
+                            ECVn = [ECVp2 | [X,Y]]
                           ]),
                       and([ epf_agent_pos = [Xp3,Yp3],
                             is_pos(Xp3,Yp3),
@@ -705,7 +682,7 @@ causes_val(go_forward, epf_cells_visited, ECVn,
                             X is Xp3 - 1,
                             Y = Yp3,
                             not member([X,Y], ECVp3),
-                            append(ECVp3, [[X,Y]], ECVn)
+                            ECVn = [ECVp3 | [X,Y]]
                           ]),
                       and([ epf_agent_pos = [Xp4,Yp4],
                             is_pos(Xp4,Yp4),
@@ -716,7 +693,7 @@ causes_val(go_forward, epf_cells_visited, ECVn,
                             X = Xp4,
                             Y is Yp4 + 1,
                             not member([X,Y], ECVp4),
-                            append(ECVp4, [[X,Y]], ECVn)
+                            ECVn = [ECVp4 | [X,Y]]
                           ])
                     ])
           ).
@@ -1041,7 +1018,10 @@ causes_val(turn_left, epf_num_facedShades, V,
 
 /** shoot */
 prim_action(shoot).
-poss(shoot, epf_agent_arrow=true).
+%poss(shoot, epf_agent_arrow=true).
+/** only allow agent to shoot if it can be sure to hit the wumpus */
+poss(shoot, and([ epf_agent_arrow = true,
+                  epf_sure_to_hit = true ])).
 /** agent only has *one* arrow */
 causes_val(shoot, epf_agent_arrow, A, A=false ).
 causes_val(shoot, epf_wumpus_alive, WA,
@@ -1121,14 +1101,6 @@ poss(noop, true ).
  *  The Seed allows for reproducibility of configurations. */
 prim_action(distribute_pits(_Seed)).
 poss( distribute_pits(_Seed), true ).
-
-/** Re-compute the position of breezes. */
-prim_action(distribute_breezes).
-poss( distribute_breezes, true ).
-
-/** Re-compute the position of stenches. */
-prim_action(distribute_stenches).
-poss( distribute_stenches, true ).
 
 /** Randomly place the wumpus.
  *  The Seed allows reproducibility of placement. */

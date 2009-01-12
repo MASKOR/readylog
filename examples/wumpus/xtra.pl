@@ -37,32 +37,39 @@ exec_ask4outcome :- true.
 %%  this is where we hold real values
 %%  of exogenous fluents hidden for the agent
 
-/* list of visited cells */
-:- setval( real_cells_visited, [ [1,1] ] ).
+/* list of visited cells
+ * default value
+ * overwritten randomly via place_agent(Seed)*/
+:- setval( real_cells_visited, [[1,1]] ).
 
 /* list of unvisited cells */
-:- setval( real_cells_shaded, [ [] ] ).
+:- setval( real_cells_shaded, [ ] ).
 
-/* number of unexplored cells currently lying in front of the agent */
-/* should be initialised dynamically! */
+/* number of unexplored cells currently lying in front of the agent
+ * default value
+ * overwritten randomly via place_agent(Seed)*/
 :- setval( real_num_facedShades, 3 ).
 
 /* list of (sensed) breezy cells */
-:- setval( real_cells_breezy, [ [] ] ).
+:- setval( real_cells_breezy, [ ] ).
 
 /* list of (sensed) smelly cells */
-:- setval( real_cells_smelly, [ [] ] ).
+:- setval( real_cells_smelly, [ ] ).
 
 /* list of cells that are known to contain a pit */
 %:- setval( real_cells_know_pit, [ ] ).
 
-/* list of cells that are known to contain no pit */
+/* list of cells that are known to contain no pit
+ * default value
+ * overwritten randomly via place_agent(Seed)*/
 :- setval( real_cells_know_no_pit, [[1,1]] ).
 
-/* list of cells that are known to contain the wumpus */
-%:- setval( real_cells_know_wumpus, [ ] ).
+/* degenerated list of the cell that is known to contain the wumpus */
+:- setval( real_known_wumpus_pos, [ ] ).
 
-/* list of cells that are known to contain no wumpus */
+/* list of cells that are known to contain no wumpus
+ * default value
+ * overwritten randomly via place_agent(Seed)*/
 :- setval( real_cells_know_no_wumpus, [[1,1]] ).
 
 /* real position of our agent
@@ -95,13 +102,18 @@ exec_ask4outcome :- true.
 /* can the agent reach the gold safely */
 :- setval( real_gold_reachable, "T" ).
 
+/* if the agent shoots now, does it know it will
+ * hit the wumpus */
+:- setval( real_sure_to_hit, "T" ).
+
 /* starting position
  * default value
  * overwritten randomly via place_agent(Seed)*/
 :- setval( real_start_pos, [1,1] ).
 
-/* distance to closest cell that can be explored safely */
-/* should be initialised dynamically! */
+/* distance to closest cell that can be explored safely
+ * default value
+ * initialised to maximum Manhattan distance in exogf_Update */
 :- setval( real_distance_to_closest_safe_cell, 8 ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -172,212 +184,130 @@ xTra(exogf_Update, _H) :- !,
 
         getval( real_agent_pos, V_AGENT_POS ), 
 	setval( wm_agent_pos, V_AGENT_POS ),
+%	printColor( yellow, " V_AGENT_POS = %w \n", [V_AGENT_POS]), 
         
         getval( real_agent_direction, V_AGENT_DIRECTION ),
-	%printColor( yellow, " V_AGENT_DIRECTION = %w \n", [V_AGENT_DIRECTION]), 
-        ( V_AGENT_DIRECTION = "east" -> setval( wm_agent_direction, east )
-                                        ;
-                                        true ),
-        ( V_AGENT_DIRECTION = "south" -> setval( wm_agent_direction, south )
-                                         ;
-                                         true ),
-        ( V_AGENT_DIRECTION = "west" -> setval( wm_agent_direction, west )
-                                        ;
-                                        true ),
-        ( V_AGENT_DIRECTION = "north" -> setval( wm_agent_direction, north )
-                                         ;
-                                         true ),
+%	printColor( yellow, " V_AGENT_DIRECTION = %w \n", [V_AGENT_DIRECTION]), 
+        ( V_AGENT_DIRECTION = "east" ->
+                setval( wm_agent_direction, east )
+        ;
+                true
+        ),
+        ( V_AGENT_DIRECTION = "south" ->
+                setval( wm_agent_direction, south )
+        ;
+                true
+        ),
+        ( V_AGENT_DIRECTION = "west" ->
+                setval( wm_agent_direction, west )
+        ;
+                true
+        ),
+        ( V_AGENT_DIRECTION = "north" ->
+                setval( wm_agent_direction, north )
+        ;
+                true
+        ),
         
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
         %%  count the number of unexplored cells lying in front of the agent      %%
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-        getval( real_num_facedShades, RNFS ),
-        setval( wm_num_facedShades, RNFS ),
 
-%        setval( shade_count_east, 0),
-%        setval( shade_count_south, 0),
-%        setval( shade_count_west, 0),
-%        setval( shade_count_north, 0),
-%
-%        setval( wm_num_facedShades, 0 ), /** default value */
-%        ( foreach( [ShadeX, ShadeY], V_CELLS_SHA ) do
-%          ( ( getval( real_agent_direction, V_AGENT_DIR ),
-%              V_AGENT_DIR = east,
-%              getval( real_agent_pos, [CurrX, CurrY] ), 
-%              CurrY = ShadeY, /** same row */
-%              ShadeX > CurrX  /** shade in front */
-%            ) -> incval(shade_count_east),
-%                 getval(shade_count_east, SHADE_COUNT_EAST),
-%%                 printColor( blue, " [%w,%w] is lying in front of agent \n", [ShadeX, ShadeY]),        
-%%                 printColor( blue, " increased shade_count is: %w \n", [SHADE_COUNT_EAST]),        
-%                 setval( wm_num_facedShades, SHADE_COUNT_EAST )
-%                 ;
-%                 true
-%          ),
-%          ( ( getval( real_agent_direction, V_AGENT_DIR ),
-%              V_AGENT_DIR = south,
-%              getval( real_agent_pos, [CurrX, CurrY] ), 
-%              CurrX = ShadeX, /** same column */
-%              ShadeY < CurrY  /** shade in front */
-%            ) -> incval(shade_count_south),
-%                 getval(shade_count_south, SHADE_COUNT_SOUTH),
-%%                 printColor( blue, " [%w,%w] is lying in front of agent \n", [ShadeX, ShadeY]),        
-%%                 printColor( blue, " increased shade_count is: %w \n", [SHADE_COUNT_SOUTH]),        
-%                 setval( wm_num_facedShades, SHADE_COUNT_SOUTH )
-%                 ;
-%                 true
-%          ),
-%          ( ( getval( real_agent_direction, V_AGENT_DIR ),
-%              V_AGENT_DIR = west,
-%              getval( real_agent_pos, [CurrX, CurrY] ), 
-%              CurrY = ShadeY, /** same row */
-%              ShadeX < CurrX  /** shade in front */
-%            ) -> incval(shade_count_west),
-%                 getval(shade_count_west, SHADE_COUNT_WEST),
-%%                 printColor( blue, " [%w,%w] is lying in front of agent \n", [ShadeX, ShadeY]),        
-%%                 printColor( blue, " increased shade_count is: %w \n", [SHADE_COUNT_WEST]),        
-%                 setval( wm_num_facedShades, SHADE_COUNT_WEST )
-%                 ;
-%                 true
-%          ),
-%          ( ( getval( real_agent_direction, V_AGENT_DIR ),
-%              V_AGENT_DIR = north,
-%              getval( real_agent_pos, [CurrX, CurrY] ), 
-%              CurrX = ShadeX, /** same column */
-%              ShadeY > CurrY  /** shade in front */
-%            ) -> incval(shade_count_north),
-%                 getval(shade_count_north, SHADE_COUNT_NORTH),
-%%                 printColor( blue, " [%w,%w] is lying in front of agent \n", [ShadeX, ShadeY]),        
-%%                 printColor( blue, " increased shade_count is: %w \n", [SHADE_COUNT_NORTH]),        
-%                 setval( wm_num_facedShades, SHADE_COUNT_NORTH )
-%                 ;
-%                 true
-%          )
-%        ),
-%%        getval( wm_num_facedShades, V_CELLS_FSHA ), 
-%        printColor( red, " Currently I'm facing %w shaded cells\n", [V_CELLS_FSHA]),        
+        count_faced_shades(V_AGENT_POS, V_AGENT_DIRECTION, FACED_SHADES),
+        setval( real_num_facedShades, FACED_SHADES), 
+        setval( wm_num_facedShades, FACED_SHADES),                    
+
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+        %%  logging breezes and stenches  %%
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
         V_AGENT_POS = [CurrX, CurrY],
         
         getval( real_cells_breezy, V_CELLS_BRE ),
         printColor( blue, " Memorised breeze at: %w \n", [V_CELLS_BRE]),        
-        /** If there is a breeze at the current position, and it's not memorised yet, do so! */
+        /** If there is a breeze at the current position,
+         *  and it's not memorised yet, memorise it! */
         ( breeze(CurrX, CurrY) ->
-%                              printColor( blue, " Sensing a breeze at %w \n", [V_AGENT_POS]),
-                              ( not member([CurrX, CurrY], V_CELLS_BRE ) -> append( V_CELLS_BRE, [[CurrX, CurrY]], V_CELLS_BRE_NEW ),
-                                                                            setval( real_cells_breezy, V_CELLS_BRE_NEW ),
-                                                                            setval( wm_cells_breezy, V_CELLS_BRE_NEW )
-                                                                            ;
-                                                                            true
-                              )
-                              ;
-                              true
+%                printColor( blue, " Sensing a breeze at %w \n", [V_AGENT_POS]),
+                ( nonmember([CurrX, CurrY], V_CELLS_BRE ) ->
+                        V_CELLS_BRE_NEW = [V_CELLS_BRE | [CurrX, CurrY]],
+                        setval( real_cells_breezy, V_CELLS_BRE_NEW ),
+                        setval( wm_cells_breezy, V_CELLS_BRE_NEW )
+                ;
+                        setval( wm_cells_breezy, V_CELLS_BRE )
+                )
+        ;
+                setval( wm_cells_breezy, V_CELLS_BRE )
         ),
         
         getval( real_cells_smelly, V_CELLS_SME ),
         printColor( green, " Memorised stench at: %w \n", [V_CELLS_SME]),        
-        /** If there is a stench at the current position, and it's not memorised yet, do so! */
+        /** If there is a stench at the current position,
+         *  and it's not memorised yet, memorise it! */
         ( stench(CurrX, CurrY) ->
-%                              printColor( green, " Sensing a stench at %w \n", [V_AGENT_POS]),
-                              ( not member([CurrX, CurrY], V_CELLS_SME ) -> append( V_CELLS_SME, [[CurrX, CurrY]], V_CELLS_SME_NEW ),
-                                                                            setval( real_cells_smelly, V_CELLS_SME_NEW ),
-                                                                            setval( wm_cells_smelly, V_CELLS_SME_NEW )
-                                                                            ;
-                                                                            true
-                              )
-                              ;
-                              true
+%                printColor( green, " Sensing a stench at %w \n", [V_AGENT_POS]),
+                ( nonmember([CurrX, CurrY], V_CELLS_SME ) ->
+                        V_CELLS_SME_NEW = [V_CELLS_SME | [CurrX, CurrY]],
+                        setval( real_cells_smelly, V_CELLS_SME_NEW ),
+                        setval( wm_cells_smelly, V_CELLS_SME_NEW )
+                ;
+                        setval( wm_cells_smelly, V_CELLS_SME )
+                )
+        ;
+                setval( wm_cells_smelly, V_CELLS_SME )
         ),
 
-        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-        %%  Diagnostic rules to infer the position of pits(not yet)/no pits  %%
-        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-%%        getval( real_cells_know_no_pit, V_CELLS_K_N_P ),
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+        %%  Diagnostic rules to infer the position of pits(not implemented yet)/no pits  %%
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
         % cells that have been visited and are free of breezes, have no pits as neighbours
         get_all_positions( V_CELLS_POS ),
         % printColor( red, " All positions: %w \n", [V_CELLS_POS]),
-        %V_CELLS_K_N_P_NEW = V_CELLS_K_N_P,
-        getval( real_cells_know_no_pit, V_CELLS_K_N_P_NEW ),
-        setval( real_cells_know_no_pit, V_CELLS_K_N_P_NEW),
-        setval( wm_cells_know_no_pit, V_CELLS_K_N_P_NEW ),
 
-        ( foreach( [NotPitX, NotPitY], V_CELLS_POS ) do
-          ( ( getval( real_cells_breezy, V_CELLS_BRE ),
-%              printColor( red, " *****  V_CELLS_BRE: %w \n", [V_CELLS_BRE]),
-              not member([NotPitX, NotPitY], V_CELLS_BRE),
-              getval( real_cells_visited, V_CELLS_VIS ),
-              member([NotPitX, NotPitY], V_CELLS_VIS),
-%               printColor( red, " *****  not member([NotPitX, NotPitY], V_CELLS_BRE): %w \n", [not member([NotPitX, NotPitY], V_CELLS_BRE)]),
-              East is NotPitX+1,
-              South is NotPitY-1,
-              West is NotPitX-1,
-              North is NotPitY+1,
-              NeighbourRight = [East, NotPitY],
-              NeighbourLower = [NotPitX, South],
-              NeighbourLeft = [West, NotPitY],
-              NeighbourUpper = [NotPitX, North] )            
-            ->
-%        printColor( red, " **** found candidates \n", []),
-%        getval( real_cells_know_no_pit, V_CELLS_K_N_P ),
-        get_all_positions( V_CELLS_POS ),
-            ( ( member(NeighbourRight, V_CELLS_POS),
-%                printColor( red, " *****  NeighbourRight: %w \n", [NeighbourRight]),
-%                printColor( red, " *****  V_CELLS_POS: %w \n", [V_CELLS_POS]),
-                getval( real_cells_know_no_pit, V_CELLS_K_N_P_RIGHT ),
-%                printColor( red, " *****  V_CELLS_K_N_P_RIGHT: %w \n", [V_CELLS_K_N_P_RIGHT]),
-                not member(NeighbourRight, V_CELLS_K_N_P_RIGHT) )
-              -> append( V_CELLS_K_N_P_RIGHT, [NeighbourRight], V_CELLS_K_N_P_NEW_RIGHT),%; true ),
-%                 printColor(green, " ***** appending %w \n",[NeighbourRight]),
-%                 printColor(green, " ***** V_CELLS_K_N_P_NEW_RIGHT: %w \n",[V_CELLS_K_N_P_NEW_RIGHT]),
-                 setval( real_cells_know_no_pit, V_CELLS_K_N_P_NEW_RIGHT ),
-                 setval( wm_cells_know_no_pit, V_CELLS_K_N_P_NEW_RIGHT )
-%                     getval( real_cells_know_no_pit, V_CELLS_K_N_P_TEST ),
-%                     printColor(blue, " ***** V_CELLS_K_N_P: %w \n",[V_CELLS_K_N_P_TEST])
-                 ;
-                 true ),
-            ( ( member(NeighbourLower, V_CELLS_POS),
-%                printColor( red, " *****  NeighbourLower: %w \n", [NeighbourLower]),
-%                printColor( red, " *****  V_CELLS_POS: %w \n", [V_CELLS_POS]),
-                getval( real_cells_know_no_pit, V_CELLS_K_N_P_LOWER ),
-%                printColor( red, " *****  V_CELLS_K_N_P_LOWER: %w \n", [V_CELLS_K_N_P_LOWER]),
-                not member(NeighbourLower, V_CELLS_K_N_P_LOWER) )
-              -> append( V_CELLS_K_N_P_LOWER, [NeighbourLower], V_CELLS_K_N_P_NEW_LOWER),
-%                 printColor(green, " ***** appending %w \n",[NeighbourLower]),
-%                 printColor(green, " ***** V_CELLS_K_N_P_NEW_LOWER: %w \n",[V_CELLS_K_N_P_NEW_LOWER]),
-                 setval( real_cells_know_no_pit, V_CELLS_K_N_P_NEW_LOWER ),
-                 setval( wm_cells_know_no_pit, V_CELLS_K_N_P_NEW_LOWER )
-                 ;
-                 true ),
-            ( ( member(NeighbourLeft, V_CELLS_POS), 
-%                printColor( red, " *****  NeighbourLeft: %w \n", [NeighbourLeft]),
-%                printColor( red, " *****  V_CELLS_POS: %w \n", [V_CELLS_POS]),
-                getval( real_cells_know_no_pit, V_CELLS_K_N_P_LEFT ),
-%                printColor( red, " *****  V_CELLS_K_N_P_LEFT: %w \n", [V_CELLS_K_N_P_LEFT]),
-                member(NeighbourLeft, V_CELLS_POS),
-                not member(NeighbourLeft, V_CELLS_K_N_P_LEFT) )
-              ->  append( V_CELLS_K_N_P_LEFT, [NeighbourLeft], V_CELLS_K_N_P_NEW_LEFT),
-%                 printColor(green, " ***** appending %w \n",[NeighbourLeft]),
-%                 printColor(green, " ***** V_CELLS_K_N_P_NEW_LEFT: %w \n",[V_CELLS_K_N_P_NEW_LEFT]),
-                 setval( real_cells_know_no_pit, V_CELLS_K_N_P_NEW_LEFT ),
-                 setval( wm_cells_know_no_pit, V_CELLS_K_N_P_NEW_LEFT )
+        getval( real_cells_know_no_pit, V_CELLS_K_N_P1 ),
+        setval( wm_cells_know_no_pit, V_CELLS_K_N_P1 ),
+
+        getval( real_cells_breezy, V_CELLS_BRE1 ),
+%        printColor( red, " *****  V_CELLS_BRE1: %w \n", [V_CELLS_BRE1]),
+        getval( real_cells_visited, V_CELLS_VIS1 ),
+%        printColor( red, " *****  V_CELLS_VIS1: %w \n", [V_CELLS_VIS1]),
+
+        ( foreach( PossPitPos, V_CELLS_POS ),
+        param(V_CELLS_BRE1, V_CELLS_VIS1, V_CELLS_K_N_P1)
+        do
+              ( ( nonmember( PossPitPos, V_CELLS_BRE1 ),
+                     member( PossPitPos, V_CELLS_VIS1 ) ) ->
+                        get_cross_cells( PossPitPos, CrossListP ),
+                        ( foreach( PitPos, CrossListP ),
+                          param(V_CELLS_K_N_P1)
+                          do
+                          ( nonmember( PitPos, V_CELLS_K_N_P1 ) ->
+                                  V_CELLS_K_N_P1_NEW = [PitPos | V_CELLS_K_N_P1],
+                                  setval( real_cells_know_no_pit, V_CELLS_K_N_P1_NEW ),
+                                  setval( wm_cells_know_no_pit, V_CELLS_K_N_P1_NEW )
+                          ;
+                                  true
+                          )
+                        )
+              ;
+                        true
+              )
+        ), %% end foreach
+        /** check if there is a breeze at the current cell */
+        ( member( V_AGENT_POS, V_CELLS_BRE1 ) ->
+                getval( real_cells_know_no_pit, V_CELLS_K_N_P2 ),
+                ( nonmember( V_AGENT_POS, V_CELLS_K_N_P2 ) ->
+                        V_CELLS_K_N_P2_NEW = [V_AGENT_POS | V_CELLS_K_N_P2],
+                        setval( real_cells_know_no_pit, V_CELLS_K_N_P2_NEW ),
+                        setval( wm_cells_know_no_pit, V_CELLS_K_N_P2_NEW )
                 ;
-                true ),
-            ( ( member(NeighbourUpper, V_CELLS_POS),
-%                printColor( red, " *****  NeighbourUpper: %w \n", [NeighbourUpper]),
-%                printColor( red, " *****  V_CELLS_POS: %w \n", [V_CELLS_POS]),
-                getval( real_cells_know_no_pit, V_CELLS_K_N_P_UPPER ),
-%                printColor( red, " *****  V_CELLS_K_N_P_UPPER: %w \n", [V_CELLS_K_N_P_UPPER]),
-                 not member(NeighbourUpper, V_CELLS_K_N_P_UPPER) )
-              -> append( V_CELLS_K_N_P_UPPER, [NeighbourUpper], V_CELLS_K_N_P_NEW_UPPER),
-%                 printColor(green, " ***** appending %w \n",[NeighbourUpper]),
-%                 printColor(green, " ***** V_CELLS_K_N_P_NEW_UPPER: %w \n",[V_CELLS_K_N_P_NEW_UPPER]),
-                 setval( real_cells_know_no_pit, V_CELLS_K_N_P_NEW_UPPER ),
-                 setval( wm_cells_know_no_pit, V_CELLS_K_N_P_NEW_UPPER )
-                 ;
-                 true )
-            ;
-            true )
-         ), %% end foreach( [NotPitX, NotPitY], V_CELLS_POS )
+                        true
+                )
+        ;
+                true
+        ),
+
         getval( real_cells_know_no_pit, V_CELLS_K_N_P_TEST),
         printColor( red, " I know that here are *no* pits: %w \n", [V_CELLS_K_N_P_TEST]),
 
@@ -385,79 +315,65 @@ xTra(exogf_Update, _H) :- !,
         %setval( wm_cells_know_pit, V_CELLS_K_P ),
         
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-        %%  Diagnostic rules to infer the position of the wumpus(not yet)/no wumpus  %%
+        %%  Diagnostic rules to infer the position of the wumpus/no wumpus           %%
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-%%        getval( real_cells_know_no_wumpus, V_CELLS_K_N_W ),
-        % cells that have been visited and are free of stench, have no wumpus as neighbour
-        get_all_positions( V_CELLS_POS ),
-        % printColor( red, " All positions: %w \n", [V_CELLS_POS]),
-        getval( real_cells_know_no_wumpus, V_CELLS_K_N_W_NEW ),
-        setval( real_cells_know_no_wumpus, V_CELLS_K_N_W_NEW),
-        setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W_NEW ),
+
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%  First find out, where there is no wumpus:
+        % Cells that have been visited and are free of stench, have no wumpus as neighbour.
+        % Note that real_cells_smelly only contains visited cells. 
+        getval( real_cells_know_no_wumpus, V_CELLS_K_N_W1 ),
+        setval( real_cells_know_no_wumpus, V_CELLS_K_N_W1),
+        setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W1 ),
+        getval( real_cells_smelly, V_CELLS_SME1 ),
 
         getval( real_wumpus_alive, V_WUMPUS_ALIVE ),
-        ( V_WUMPUS_ALIVE = "T" -> setval( wm_wumpus_alive, true )
-                                  ;
-                                  setval( wm_wumpus_alive, false ) ),
-
+        ( V_WUMPUS_ALIVE = "T" ->
+                setval( wm_wumpus_alive, true )
+        ;
+                setval( wm_wumpus_alive, false )
+        ),
         ( ( V_WUMPUS_ALIVE = "T" ) ->
 
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%  If the wumpus is still alive do the following:
-        ( foreach( [NotWumpusX, NotWumpusY], V_CELLS_POS ) do
-          ( ( getval( real_cells_smelly, V_CELLS_SME ),
-              not member([NotWumpusX, NotWumpusY], V_CELLS_SME),
-              getval( real_cells_visited, V_CELLS_VIS ),
-              member([NotWumpusX, NotWumpusY], V_CELLS_VIS),
-              East is NotWumpusX+1,
-              South is NotWumpusY-1,
-              West is NotWumpusX-1,
-              North is NotWumpusY+1,
-              NeighbourRight = [East, NotWumpusY],
-              NeighbourLower = [NotWumpusX, South],
-              NeighbourLeft = [West, NotWumpusY],
-              NeighbourUpper = [NotWumpusX, North] )            
-            ->
-        get_all_positions( V_CELLS_POS ),
-            ( ( member(NeighbourRight, V_CELLS_POS),
-                getval( real_cells_know_no_wumpus, V_CELLS_K_N_W_RIGHT ),
-                not member(NeighbourRight, V_CELLS_K_N_W_RIGHT) )
-              -> append( V_CELLS_K_N_W_RIGHT, [NeighbourRight], V_CELLS_K_N_W_NEW_RIGHT),
-                 setval( real_cells_know_no_wumpus, V_CELLS_K_N_W_NEW_RIGHT ),
-                 setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W_NEW_RIGHT )
-                 ;
-                 true ),
-            ( ( member(NeighbourLower, V_CELLS_POS),
-                getval( real_cells_know_no_wumpus, V_CELLS_K_N_W_LOWER ),
-                not member(NeighbourLower, V_CELLS_K_N_W_LOWER) )
-              -> append( V_CELLS_K_N_W_LOWER, [NeighbourLower], V_CELLS_K_N_W_NEW_LOWER),
-                 setval( real_cells_know_no_wumpus, V_CELLS_K_N_W_NEW_LOWER ),
-                 setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W_NEW_LOWER )
-                 ;
-                 true ),
-            ( ( member(NeighbourLeft, V_CELLS_POS), 
-                getval( real_cells_know_no_wumpus, V_CELLS_K_N_W_LEFT ),
-                member(NeighbourLeft, V_CELLS_POS),
-                not member(NeighbourLeft, V_CELLS_K_N_W_LEFT) )
-              ->  append( V_CELLS_K_N_W_LEFT, [NeighbourLeft], V_CELLS_K_N_W_NEW_LEFT),
-                 setval( real_cells_know_no_wumpus, V_CELLS_K_N_W_NEW_LEFT ),
-                 setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W_NEW_LEFT )
+        ( foreach( PossWumpusPos, V_CELLS_POS ),
+        param(V_CELLS_SME1, V_CELLS_VIS1, V_CELLS_K_N_W1)
+        do
+                ( ( nonmember( PossWumpusPos, V_CELLS_SME1 ),
+                       member( PossWumpusPos, V_CELLS_VIS1 ) ) ->
+                          get_cross_cells( PossWumpusPos, CrossListW ),
+                          ( foreach( WumpusPos, CrossListW ),
+                            param(V_CELLS_K_N_W1)
+                            do
+                            ( nonmember( WumpusPos, V_CELLS_K_N_W1 ) ->
+                                    V_CELLS_K_N_W1_NEW = [WumpusPos | V_CELLS_K_N_W1],
+                                    setval( real_cells_know_no_wumpus, V_CELLS_K_N_W1_NEW ),
+                                    setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W1_NEW )
+                            ;
+                                    true
+                            )
+                          )
                 ;
-                true ),
-            ( ( member(NeighbourUpper, V_CELLS_POS),
-                getval( real_cells_know_no_wumpus, V_CELLS_K_N_W_UPPER ),
-                 not member(NeighbourUpper, V_CELLS_K_N_W_UPPER) )
-              -> append( V_CELLS_K_N_W_UPPER, [NeighbourUpper], V_CELLS_K_N_W_NEW_UPPER),
-                 setval( real_cells_know_no_wumpus, V_CELLS_K_N_W_NEW_UPPER ),
-                 setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W_NEW_UPPER )
-                 ;
-                 true )
-            ;
-            true )
-        ) %% end foreach ( [NotWumpusX, NotWumpusY], V_CELLS_POS )
+                          true
+                )
+        ), %% end foreach
+        /** check if there is a stench at the current cell */
+        ( member( V_AGENT_POS, V_CELLS_SME1 ) ->
+                getval( real_cells_know_no_wumpus, V_CELLS_K_N_W2 ),
+                ( nonmember( V_AGENT_POS, V_CELLS_K_N_W2 ) ->
+                        V_CELLS_K_N_W2_NEW = [V_AGENT_POS | V_CELLS_K_N_W2],
+                        setval( real_cells_know_no_wumpus, V_CELLS_K_N_W2_NEW ),
+                        setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W2_NEW )
+                ;
+                        true
+                )
+        ;
+                true
+        )
 
-        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %%  Else if the wumpus is dead already do this instead:
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%  Else, if the wumpus is dead already, do this instead:
         ;
         printColor( red, " I think the Wumpus is dead \n", []),
         setval( real_cells_know_no_wumpus, V_CELLS_POS ), %% V_CELLS_POS contains all valid positions
@@ -468,19 +384,15 @@ xTra(exogf_Update, _H) :- !,
         getval( real_cells_know_no_wumpus, V_CELLS_K_N_W_TEST),
         printColor( red, " I know that here is *no* wumpus: %w \n", [V_CELLS_K_N_W_TEST]),
 
-        %getval( real_cells_know_wumpus, V_CELLS_K_W ),
-        %setval( wm_cells_know_wumpus, V_CELLS_K_W ),
-
         getval( real_agent_arrow, V_AGENT_ARROW ),
-        ( V_AGENT_ARROW = "T" ->  setval( wm_agent_arrow, true)
-                                  ;
-                                  setval( wm_agent_arrow, false)  ),
+        ( V_AGENT_ARROW = "T" ->
+                 setval( wm_agent_arrow, true)
+        ;
+                 setval( wm_agent_arrow, false)
+        ),
 
         getval( real_wumpus_pos, V_WUMPUS_POS ),
         setval( wm_wumpus_pos, V_WUMPUS_POS ),
-
-        %getval( real_wumpus_alive, V_WUMPUS_ALIVE ), %% done above
-        %setval( wm_wumpus_alive, V_WUMPUS_ALIVE ),   %% done above
 
         getval( real_gold_pos, V_GOLD_POS ),
         setval( wm_gold_pos, V_GOLD_POS ),
@@ -490,7 +402,7 @@ xTra(exogf_Update, _H) :- !,
 
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
         %%  Diagnostic rules to deduce whether the agent can reach the gold safely  %%
-        %%  according what he has learned about the environment                     %%
+        %%  according what it has learned about the environment                     %%
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
         /** The "margin" are those cells that are shaded (unknown) and at the same time 
@@ -522,8 +434,8 @@ xTra(exogf_Update, _H) :- !,
                 MARGIN),
 %         printColor(blue, " ***** MARGIN:: %w \n",[MARGIN]),
 
-        /** As the agent has an aversion against risk he should give up searching for the gold <=>
-         *  he doesn't know any safe cell to explore in the margin <=>
+        /** As the agent has an aversion against risk it should give up searching for the gold <=>
+         *  it doesn't know any safe cell to explore in the margin <=>
          *  there is no cell that's in the lists real_cells_know_no_wumpus && real_cells_know_no_pit.
          *  ( not really sure about the "<=>"... what if there's information of more than one neighbour
          *  of the margin cell? ).
@@ -544,15 +456,92 @@ xTra(exogf_Update, _H) :- !,
                                 ;
                                 setval( wm_gold_reachable, "T" )
         ),
+        
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+        %%  Diagnostic rules to deduce if the agent will hit the wumpus if shooting now  %%
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+        /** There are two main cases where the agent knows, where the wumpus is located:
+         *
+         *  1) It knows there is a stench in both horizontal or vertical neighbour cells:
+         *      _____    _____
+         *     |_|_|_|  |_|S|_|
+         *     |S|W|S|  |_|W|_|
+         *     |_|_|_|  |_|S|_|
+         *
+         *  2) It knows that there is a stench in two "diagonal" neighbour cells, but also
+         *     that there is no wumpus (N) at one common neighbour cell:
+         *      _____    _____    _____    _____
+         *     |_|_|_|  |N|S|_|  |_|S|N|  |_|_|_|
+         *     |S|W|_|  |S|W|_|  |_|W|S|  |_|W|S|
+         *     |N|S|_|  |_|_|_|  |_|_|_|  |_|S|N|
+         *
+         *  Additionally, the agent could infer the location of the wumpus once enough
+         *  cells of the maze have been explored, by recognising the cross pattern of
+         *  the stenches and the wumpus. As this case is rather messy and error-prone,
+         *  and as in this case the stench cells are safe to be explored (and thus the
+         *  first two cases reachable), we do not treat it here.
+         */
+
+         setval( wm_sure_to_hit, "F" ),
+         setval( wm_known_wumpus_pos, [] ),
+         getval( real_known_wumpus_pos, KNOWN_WUMPUS_POS ),
+         world( XMin, YMin, XMax, YMax ),
+         ( V_AGENT_DIRECTION="east" ->
+                 findall([XEast, CurrY], between(CurrX, XMax, 1, XEast), ArrowCells)
+         ;
+                 true
+         ),
+         ( V_AGENT_DIRECTION="south" ->
+                 findall([CurrX, YSouth], between(YMin, CurrY, 1, YSouth), ArrowCells)
+         ;
+                 true
+         ),
+         ( V_AGENT_DIRECTION="west" ->
+                 findall([XWest, CurrY], between(XMin, CurrX, 1, XWest), ArrowCells)
+         ;
+                 true
+         ),
+         ( V_AGENT_DIRECTION="north" ->
+                 findall([CurrX, YNorth], between(CurrY, YMax, 1, YNorth), ArrowCells)
+         ;
+                 true
+         ),
+         ( length(KNOWN_WUMPUS_POS, 0) ->
+                 /** Position of Wumpus not known yet */
+                 deduce_wumpus( ArrowCells, V_CELLS_K_N_W_TEST, V_CELLS_SME,
+                                WumpusFound, DeducedPos ),
+                 ( WumpusFound ->
+                         setval( wm_sure_to_hit, "T" ),
+                         setval( real_known_wumpus_pos, DeducedPos ),
+                         setval( wm_known_wumpus_pos, DeducedPos )
+                 ;
+                         setval( wm_sure_to_hit, "F" )
+                 )
+         ;
+                 /** Position of Wumpus already know */
+                 ( subset( KNOWN_WUMPUS_POS, ArrowCells ) ->
+                         setval( wm_sure_to_hit, "T" )
+                 ;
+                         setval( wm_sure_to_hit, "F" )
+                 )
+         ),
+
+         getval( wm_known_wumpus_pos, KNOWN_W_POS_TEST ),
+         ( length(KNOWN_W_POS_TEST, 0) -> 
+                printColor( red, " I don't know yet where the wumpus is.\n", [])
+         ;
+                printColor( red, " I deduced that the wumpus must be at: %w \n", [KNOWN_W_POS_TEST])
+         ),
 
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
         %%  compute the Manhattan distance from the agent to the closest  %%
         %%  cell that is safe to be explored                              %%
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
-        /** value should be set dynamically depending on the size of the grid world */
-        setval( real_distance_to_closest_safe_cell, 8 ),
-        setval( wm_distance_to_closest_safe_cell, 8 ),
+        LargestDist is (XMax * YMax),
+        setval( real_distance_to_closest_safe_cell, LargestDist ),
+        setval( wm_distance_to_closest_safe_cell, LargestDist ),
 %        Candidate is V_MANHATTAN,
 %        printColor( green, " Candidate before: %w \n", [Candidate]),
         ( foreach([X,Y], SAFE) do
@@ -595,169 +584,7 @@ xTra(go_forward,_H) :-
         getval( real_agent_arrow, A),
         printf(" has arrow: %w \n", [A]),
         execdelay,
-        ( D="east" -> Xn is X+1,
-                      Yn is Y,
-                      setval( real_agent_pos, [Xn,Yn] ),
-                      ( getval(real_carry_gold,true) -> setval( real_gold_pos, [Xn,Yn] ); true ),
-                      printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [Xn, Yn, "east", A]),
-                      draw_wumpus_hunter(Xn, Yn, "east", A),
-                      draw_action("R", X, Y),
-                      getval(real_cells_visited, RCV_east),
-                      ( not member([Xn,Yn], RCV_east) -> append(RCV_east, [[Xn,Yn]], RCVN_east),
-                                                         setval(real_cells_visited, RCVN_east),
-                                                         setval(wm_cells_visited, RCVN_east)
-                                                         ;
-                                                         true ),
-%                      getval(real_cells_visited, RCVC_east),
-%                      printf(" the following cells have been visited: %w \n", [RCVC_east]),
-                      getval(real_cells_shaded, RCS_east),
-                      ( member([Xn,Yn], RCS_east) -> delete([Xn,Yn], RCS_east, RCSN_east),
-                                                     setval(real_cells_shaded, RCSN_east),
-                                                     setval(wm_cells_shaded, RCSN_east)
-                                                     ;
-                                                     true ),
-                      getval(real_cells_shaded, RCSC_east),
-%                      printf(" the following cells are shaded: %w \n", [RCSC_east]),                    
-                      update_shades(RCSC_east),
-%%                       /** count faced shades */
-%                       printColor(blue, " counting faced shades... \n",[]),
-%%                       getval( real_cells_shaded, CS_EAST ),
-%                       printColor(blue, " real_cells_shaded: %w \n",[CS_EAST]),
-                       world( XMin, YMin, XMax, YMax ),
-                              findall([Xs, Y],
-                                      ( XEast is X+1,
-                                        between(XEast, XMax, 1, Xs),
-                                        is_pos(Xs,Y),
-                                        getval(real_cells_visited, RCV_facing_east),
-                                        not member([Xs, Y], RCV_facing_east)
-                                      ),
-                                      SHADES_EAST),
-%                       printColor(blue, " SHADES_EAST: %w \n",[SHADES_EAST]),
-                       length(SHADES_EAST, V_EAST),
-                       setval( real_num_facedShades, V_EAST), 
-                       setval( wm_num_facedShades, V_EAST)                    
-                       ;
-                       true ),
-        ( D="south" -> Xn is X,
-                       Yn is Y-1,
-                       setval( real_agent_pos, [Xn,Yn] ),
-                       ( getval(real_carry_gold,true) -> setval( real_gold_pos, [Xn,Yn] ); true ),
-                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [Xn, Yn, "south", A]),
-                       draw_wumpus_hunter(Xn, Yn, "south", A),
-                       draw_action("D", X, Y),
-                       getval(real_cells_visited, RCV_south),
-                       ( not member([Xn,Yn], RCV_south) -> append(RCV_south, [[Xn,Yn]], RCVN_south),
-                                                           setval(real_cells_visited, RCVN_south),
-                                                           setval(wm_cells_visited, RCVN_south)
-                                                           ;
-                                                           true ),
-%                       getval(real_cells_visited, RCVC_south),
-%                       printf(" the following cells have been visited: %w \n", [RCVC_south]),
-                       getval(real_cells_shaded, RCS_south),
-                       ( member([Xn,Yn], RCS_south) -> delete([Xn,Yn], RCS_south,  RCSN_south),
-                                                       setval(real_cells_shaded, RCSN_south),
-                                                       setval(wm_cells_shaded, RCSN_south)
-                                                       ;
-                                                       true ),
-                       getval(real_cells_shaded, RCSC_south),
-%                       printf(" the following cells are shaded: %w \n", [RCSC_south]),                    
-                       update_shades(RCSC_south),
-%%                       /** count faced shades */
-%%                       getval( real_cells_shaded, CS_SOUTH ),
-                       world( XMin, YMin, XMax, YMax ),
-                              findall([X, Ys],
-                                      ( YSouth is Y-1,
-                                        between(YMin, YSouth, 1, Ys),
-                                        is_pos(X,Ys),
-                                        getval(real_cells_visited, RCV_facing_south),
-                                        not member([X, Ys], RCV_facing_south)
-                                      ),
-                                      SHADES_SOUTH),
-                       length(SHADES_SOUTH, V_SOUTH),
-                       setval( real_num_facedShades, V_SOUTH), 
-                       setval( wm_num_facedShades, V_SOUTH)                    
-                       ;
-                       true ),
-        ( D="west" -> Xn is X-1,
-                      Yn is Y,
-                      setval( real_agent_pos, [Xn,Yn] ),
-                      ( getval(real_carry_gold,true) -> setval( real_gold_pos, [Xn,Yn] ); true ),
-                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [Xn, Yn, "west", A]),
-                      draw_wumpus_hunter(Xn, Yn, "west", A),
-                      draw_action("L", X, Y),
-                      getval(real_cells_visited, RCV_west),
-                      ( not member([Xn,Yn], RCV_west) -> append(RCV_west, [[Xn,Yn]], RCVN_west),
-                                                         setval(real_cells_visited, RCVN_west),
-                                                         setval(wm_cells_visited, RCVN_west)
-                                                         ;
-                                                         true ),
-%                      getval(real_cells_visited, RCVC_west),
-%                      printf(" the following cells have been visited: %w \n", [RCVC_west]),
-                      getval(real_cells_shaded, RCS_west),
-                      ( member([Xn,Yn], RCS_west) -> delete([Xn,Yn], RCS_west, RCSN_west),
-                                                     setval(real_cells_shaded, RCSN_west),
-                                                     setval(wm_cells_shaded, RCSN_west)
-                                                     ;
-                                                     true ),
-                      getval(real_cells_shaded, RCSC_west),
-%                      printf(" the following cells are shaded: %w \n", [RCSC_west]),                    
-                      update_shades(RCSC_west),
-%%                      /** count faced shades */
-%%                      getval( real_cells_shaded, CS_WEST ),
-                      world( XMin, YMin, XMax, YMax ),
-                             findall([Xs, Y],
-                                     ( XWest is X-1,
-                                       between(XMin, XWest, 1, Xs),
-                                       is_pos(Xs,Y),
-                                       getval(real_cells_visited, RCV_facing_west),
-                                       not member([Xs, Y], RCV_facing_west)
-                                     ),
-                                     SHADES_WEST),
-                      length(SHADES_WEST, V_WEST),
-                      setval( real_num_facedShades, V_WEST), 
-                      setval( wm_num_facedShades, V_WEST)                    
-                      ;
-                      true ),
-        ( D="north" -> Xn is X,
-                       Yn is Y+1,
-                       setval( real_agent_pos, [Xn,Yn] ),
-                       ( getval(real_carry_gold,true) -> setval( real_gold_pos, [Xn,Yn] ); true ),
-                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [Xn, Yn, "north", A]),
-                       draw_wumpus_hunter(Xn, Yn, "north", A),
-                       draw_action("U", X, Y),
-                       getval(real_cells_visited, RCV_north),
-                       ( not member([Xn,Yn], RCV_north) -> append(RCV_north, [[Xn,Yn]], RCVN_north),
-                                                           setval(real_cells_visited, RCVN_north),
-                                                           setval(wm_cells_visited, RCVN_north)
-                                                           ;
-                                                           true ),
-%                       getval(real_cells_visited, RCVC_north),
-%                       printf(" the following cells have been visited: %w \n", [RCVC_north]),
-                       getval(real_cells_shaded, RCS_north),
-                       ( member([Xn,Yn], RCS_north) ->  delete([Xn,Yn], RCS_north, RCSN_north),
-                                                        setval(real_cells_shaded, RCSN_north),
-                                                        setval(wm_cells_shaded, RCSN_north)
-                                                        ;
-                                                        true ),
-                       getval(real_cells_shaded, RCSC_north),
-%                       printf(" the following cells are shaded: %w \n", [RCSC_north]),                    
-                       update_shades(RCSC_north),
-%%                       /** count faced shades */
-%%                       getval( real_cells_shaded, CS_WEST ),
-                       world( XMin, YMin, XMax, YMax ),
-                              findall([X, Ys],
-                                      ( YNorth is Y+1,
-                                        between(YNorth, YMax, 1, Ys),
-                                        is_pos(X,Ys),
-                                        getval(real_cells_visited, RCV_facing_north),
-                                        not member([X, Ys], RCV_facing_north)
-                                      ),
-                                      SHADES_NORTH),
-                       length(SHADES_NORTH, V_NORTH),
-                       setval( real_num_facedShades, V_NORTH), 
-                       setval( wm_num_facedShades, V_NORTH)                    
-                       ;
-                       true ).
+        go_forward_aux([X,Y], D, A).
         
 xTra(turn_left,_H) :-
         printColor( pink, " xTra: EXEC 'turn_left'", []),
@@ -768,91 +595,7 @@ xTra(turn_left,_H) :-
         getval( real_agent_arrow, A),
         printf(" has arrow: %w \n", [A]),
         execdelay,
-%        process_xtra_events,
-        ( D="east" -> setval(real_agent_direction, "north"),
-                      setval(wm_agent_direction, north),
-                      printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "north", A]),
-                      draw_wumpus_hunter(X, Y, "north", A),
-                      draw_action("1", X, Y),
-%%                      /** count faced shades */
-%%                      getval( real_cells_shaded, CS_NORTH ),
-                      world( XMin, YMin, XMax, YMax ),
-                             findall([X, Ys],
-                                     ( YNorth is Y+1,
-                                       between(YNorth, YMax, 1, Ys),
-                                       is_pos(X,Ys),
-                                       getval(real_cells_visited, RCV_north),
-                                       not member([X, Ys], RCV_north)
-                                     ),
-                                     SHADES_NORTH),
-                      length(SHADES_NORTH, V_NORTH),
-                      setval( real_num_facedShades, V_NORTH), 
-                      setval( wm_num_facedShades, V_NORTH)                    
-                      ;
-                      true ),
-        ( D="south" -> setval(real_agent_direction, "east"),
-                       setval(wm_agent_direction, east),
-                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "east", A]),
-                       draw_wumpus_hunter(X, Y, "east", A),
-                       draw_action("1", X, Y),
-%%                       /** count faced shades */
-%%                       getval( real_cells_shaded, CS_EAST ),
-                       world( XMin, YMin, XMax, YMax ),
-                              findall([Xs, Y],
-                                      ( XEast is X+1,
-                                        between(XEast, XMax, 1, Xs),
-                                        is_pos(Xs,Y),
-                                        getval(real_cells_visited, RCV_east),
-                                        not member([Xs, Y], RCV_east)
-                                      ),
-                                      SHADES_EAST),
-                       length(SHADES_EAST, V_EAST),
-                       setval( real_num_facedShades, V_EAST), 
-                       setval( wm_num_facedShades, V_EAST)                    
-                       ;
-                       true ),
-        ( D="west" -> setval(real_agent_direction, "south"),
-                      setval(wm_agent_direction, south),
-                      printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "south", A]),
-                      draw_wumpus_hunter(X, Y, "south", A),
-                      draw_action("1", X, Y),
-%%                      /** count faced shades */
-%%                      getval( real_cells_shaded, CS_SOUTH ),
-                      world( XMin, YMin, XMax, YMax ),
-                             findall([X, Ys],
-                                     ( YSouth is Y-1,
-                                       between(YMin, YSouth, 1, Ys),
-                                       is_pos(X,Ys),
-                                       getval(real_cells_visited, RCV_south),
-                                       not member([X, Ys], RCV_south)
-                                     ),
-                                     SHADES_SOUTH),
-                      length(SHADES_SOUTH, V_SOUTH),
-                      setval( real_num_facedShades, V_SOUTH), 
-                      setval( wm_num_facedShades, V_SOUTH)                    
-                      ;
-                      true ),
-        ( D="north" -> setval(real_agent_direction, "west"),
-                       setval(wm_agent_direction, west),
-                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "west", A]),
-                       draw_wumpus_hunter(X, Y, "west", A),
-                       draw_action("1", X, Y),
-%%                       /** count faced shades */
-%%                       getval( real_cells_shaded, CS_WEST ),
-                       world( XMin, YMin, XMax, YMax ),
-                              findall([Xs, Y],
-                                      ( XWest is X-1,
-                                        between(XMin, XWest, 1, Xs),
-                                        is_pos(Xs,Y),
-                                        getval(real_cells_visited, RCV_west),
-                                        not member([Xs, Y], RCV_west)
-                                      ),
-                                      SHADES_WEST),
-                       length(SHADES_WEST, V_WEST),
-                       setval( real_num_facedShades, V_WEST), 
-                       setval( wm_num_facedShades, V_WEST)                    
-                       ;
-                       true ).
+        turn_aux(left, [X,Y], D, A).
         
 xTra(turn_right,_H) :-
         printColor( pink, " xTra: EXEC 'turn_left'", []),
@@ -863,174 +606,17 @@ xTra(turn_right,_H) :-
         getval( real_agent_arrow, A),
         printf(" has arrow: %w \n", [A]),
         execdelay,
-        ( D="east" -> setval(real_agent_direction, "south"),
-                      setval(wm_agent_direction, south),
-                      printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "south",A]),
-                      draw_wumpus_hunter(X, Y, "south",A),
-                      draw_action("2", X, Y),
-%%                      /** count faced shades */
-%%                      getval( real_cells_shaded, CS_SOUTH ),
-                      world( XMin, YMin, XMax, YMax ),
-                             findall([X, Ys],
-                                     ( YSouth is Y-1,
-                                       between(YMin, YSouth, 1, Ys),
-                                       is_pos(X,Ys),
-                                       getval(real_cells_visited, RCV_south),
-                                       not member([X, Ys], RCV_south)
-                                     ),
-                                     SHADES_SOUTH),
-                      length(SHADES_SOUTH, V_SOUTH),
-                      setval( real_num_facedShades, V_SOUTH), 
-                      setval( wm_num_facedShades, V_SOUTH)                    
-                      ;
-                      true ),
-        ( D="south" -> setval(real_agent_direction, "west"),
-                       setval(wm_agent_direction, west),
-                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "west", A]),
-                       draw_wumpus_hunter(X, Y, "west", A),
-                       draw_action("2", X, Y),
-%%                       /** count faced shades */
-%%                       getval( real_cells_shaded, CS_WEST ),
-                       world( XMin, YMin, XMax, YMax ),
-                              findall([Xs, Y],
-                                      ( XWest is X-1,
-                                        between(XMin, XWest, 1, Xs),
-                                        is_pos(Xs,Y),
-                                        getval(real_cells_visited, RCV_west),
-                                        not member([Xs, Y], RCV_west)
-                                      ),
-                                      SHADES_WEST),
-                       length(SHADES_WEST, V_WEST),
-                       setval( real_num_facedShades, V_WEST), 
-                       setval( wm_num_facedShades, V_WEST)                    
-                       ;
-                       true ),
-        ( D="west" -> setval(real_agent_direction, "north"),
-                      setval(wm_agent_direction, north),
-                      printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "north", A]),
-                      draw_wumpus_hunter(X, Y, "north", A),
-                      draw_action("2", X, Y),
-%%                      /** count faced shades */
-%%                      getval( real_cells_shaded, CS_NORTH ),
-                      world( XMin, YMin, XMax, YMax ),
-                             findall([X, Ys],
-                                     ( YNorth is Y+1,
-                                       between(YNorth, YMax, 1, Ys),
-                                       is_pos(X,Ys),
-                                       getval(real_cells_visited, RCV_north),
-                                       not member([X, Ys], RCV_north)
-                                     ),
-                                     SHADES_NORTH),
-                      length(SHADES_NORTH, V_NORTH),
-                      setval( real_num_facedShades, V_NORTH), 
-                      setval( wm_num_facedShades, V_NORTH)                    
-                      ;
-                      true ),
-        ( D="north" -> setval(real_agent_direction, "east"),
-                       setval(wm_agent_direction, east),
-                       printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, "east", A]),
-                       draw_wumpus_hunter(X, Y, "east", A),
-                       draw_action("2", X, Y),
-%%                       /** count faced shades */
-%%                       getval( real_cells_shaded, CS_EAST ),
-                       world( XMin, YMin, XMax, YMax ),
-                              findall([Xs, Y],
-                                      ( XEast is X+1,
-                                        between(XEast, XMax, 1, Xs),
-                                        is_pos(Xs,Y),
-                                        getval(real_cells_visited, RCV_east),
-                                        not member([Xs, Y], RCV_east)
-                                      ),
-                                      SHADES_EAST),
-                       length(SHADES_EAST, V_EAST),
-                       setval( real_num_facedShades, V_EAST), 
-                       setval( wm_num_facedShades, V_EAST)                    
-                       ;
-                       true ).
+        turn_aux(right, [X,Y], D, A).
 
 xTra(shoot,_H) :-
         printColor( pink, " xTra: EXEC 'shoot'", []),
         setval(real_agent_arrow, "F"),
         setval(wm_agent_arrow, false),
-        world( XMin, YMin, XMax, YMax ),
         getval( real_agent_pos, [X,Y]),
         getval( real_agent_direction, D),
-%%        getval( real_wumpus_pos, [WX, WY]),
         /** animation of flying arrow: */
         execdelay,
-        ( D="east" ->  findall(XA_east, between(X, XMax, 1, XA_east), XLIST_east),
-                       ( foreach( XA_east, XLIST_east ) do
-                         getval( real_agent_pos, [_X_east,Y_east]),
-                         getval( real_wumpus_pos, [WX_east, WY_east]),
-                         is_pos(XA_east,Y_east),
-                         draw_arrow(XA_east, Y_east, "east"),
-                         execdelay, /** window refresh hides arrow :( */
-                         ( [WX_east, WY_east] = [XA_east,Y_east] -> setval(real_wumpus_alive, "F"),
-                                                                    setval(wm_wumpus_alive, false),
-                                                                    printf(" Wumpus was killed \n",[]),
-                                                                    getval(real_wumpus_alive, A_east),
-                                                                    draw_wumpus(XA_east,Y_east,A_east)
-                                                                    ;
-                                                                    true 
-                         )
-                       )
-                       ;
-                       true ),
-        ( D="south" -> findall(YA_south, between(YMin, Y, 1, YA_south), YLIST_south),
-                       ( foreach( YA_south, YLIST_south ) do
-                         getval( real_agent_pos, [X_south, _Y_south]),
-                         getval( real_wumpus_pos, [WX_south, WY_south]),
-                         is_pos(X_south, YA_south),
-                         draw_arrow(X_south, YA_south, "south"),
-                         execdelay,
-                         ( [WX_south, WY_south] = [X_south, YA_south] -> setval(real_wumpus_alive, "F"),
-                                                                         setval(wm_wumpus_alive, false),
-                                                                         printf(" Wumpus was killed \n",[]),
-                                                                         getval(real_wumpus_alive, A_south),
-                                                                         draw_wumpus(X_south, YA_south, A_south)
-                                                                         ;
-                                                                         true
-                         )
-                       )
-                       ;
-                       true ),
-        ( D="west" ->  findall(XA_west, between(XMin, X, 1, XA_west), XLIST_west),
-                       ( foreach( XA_west, XLIST_west ) do
-                         getval( real_agent_pos, [_X_west,Y_west]),
-                         getval( real_wumpus_pos, [WX_west, WY_west]),
-                         is_pos(XA_west,Y_west),
-                         draw_arrow(XA_west, Y_west, "west"),
-                         execdelay, % window refresh hides arrow :(
-                         ( [WX_west, WY_west] = [XA_west,Y_west] -> setval(real_wumpus_alive, "F"),
-                                                                    setval(wm_wumpus_alive, false),
-                                                                    printf(" Wumpus was killed \n",[]),
-                                                                    getval(real_wumpus_alive, A_west),
-                                                                    draw_wumpus(XA_west,Y_west,A_west)
-                                                                    ;
-                                                                    true 
-                         )
-                       )
-                       ;
-                       true ),
-        ( D="north" -> findall(YA_north, between(Y, YMax, 1, YA_north), YLIST_north),
-                       ( foreach( YA_north, YLIST_north) do
-                         getval( real_agent_pos, [X_north, _Y_north]),
-                         getval( real_wumpus_pos, [WX_north, WY_north]),
-                         is_pos(X_north, YA_north),
-                         draw_arrow(X_north, YA_north, "north"),
-                         execdelay,
-                         ( [WX_north, WY_north] = [X_north, YA_north] -> setval(real_wumpus_alive, "F"),
-                                                                         setval(wm_wumpus_alive, false),
-                                                                         printf(" Wumpus was killed \n",[]),
-                                                                         getval(real_wumpus_alive, A_north),
-                                                                         draw_wumpus(X_north, YA_north, A_north)
-                                                                         ;
-                                                                         true
-                         )
-                       )
-                       ;
-                       true ).
-          
+        shoot_aux([X,Y], D).
 
 xTra(rest,_H)  :- 
 	printColor( pink, " xTra: EXEC 'rest'", []), 
@@ -1077,150 +663,29 @@ xTra(distribute_pits(Seed), _H) :- !,
         findall( [X,Y],
                  pit(X,Y),
                  PitList ),
-        print_list(PitList),
+%        print_list(PitList),
         printf("update_pits...", []),
         update_pits(PitList),
         printf(" successful.\n", []),
-        redraw.
-
-/** Re-compute the position of breezes. */
-xTra(distribute_breezes, _H) :- !,
-%        /** update_breezes_aux implemented
-%         *  in wumpus.readylog */
-%        update_breezes_aux,
-        printf("Retracting all breezes.\n", []),
-        retract_all(breeze(_,_)),
-        findall( [X,Y],
-                 ( world( XMin, YMin, XMax, YMax ),
-                   between(XMin, XMax, 1, X),
-                   between(YMin, YMax, 1, Y),
-                   not is_pit(X,Y),
-                   /** horizontal and vertical neighbour cells of
-                    *  pits are breezy */
-                   XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
-                   ( is_pit(XW, Y);
-                     is_pit(X, YS);
-                     is_pit(XE, Y);
-                     is_pit(X, YN)
-                   )
-                 ),
-                 BreezeList
-               ),
-%        print_list(BreezeList),
-        setval( real_cells_breezy, BreezeList ),
-        ( foreach([X,Y], BreezeList) do
-              printf("Asserting breeze(%w, %w).\n", [X,Y]),
-              assert(breeze(X,Y))
-        ),
-        printf("update_breezes...", []),
-        update_breezes(BreezeList),
-        printf(" successful.\n", []),
-        redraw.
-
-/** Re-compute the position of stenches. */
-xTra(distribute_stenches, _H) :- !,
-        printf("Retracting all stenches.\n", []),
-        retract_all(stench(_,_)),
-        findall( [X,Y],
-                 ( world( XMin, YMin, XMax, YMax ),
-                   between(XMin, XMax, 1, X),
-                   between(YMin, YMax, 1, Y),
-                   not is_pit(X,Y),
-                   /** horizontal and vertical neighbour cells of
-                    *  pits are breezy */
-                   XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
-                   ( is_wumpus(XW, Y);
-                     is_wumpus(X, YS);
-                     is_wumpus(XE, Y);
-                     is_wumpus(X, YN)
-                   )
-                 ),
-                 StenchList
-               ),
-%        print_list(StenchList),
-        setval( real_cells_smelly, StenchList ),
-        ( foreach([X,Y], StenchList) do
-              printf("Asserting stench(%w, %w).\n", [X,Y]),
-              assert(stench(X,Y))
-        ),
-        printf("update_stenches...", []),
-        update_stenches(StenchList),
-        printf(" successful.\n", []),
+        distribute_breezes,
         redraw.
 
 /** Randomly place the wumpus.
  *  The Seed allows for reproducibility of placement. */
 xTra(place_wumpus(Seed), _H) :- !,
-        world( XMin, YMin, XMax, YMax),
-        SeedTmp1 is (Seed * 23), 
-        mod( SeedTmp1, 2147483647, NewSeed1),
-        random_number(NewSeed1, XMin, XMax, PosX),
-        SeedTmp2 is (NewSeed1 * 23), 
-        mod( SeedTmp2, 2147483647, NewSeed2),
-        random_number(NewSeed2, YMin, YMax, PosY),
-        printf("Trying to put wumpus to [%w, %w]\n", [PosX, PosY]),
-        ( pit(PosX, PosY) ->
-              /** There's a pit already, try again */
-              place_wumpus(NewSeed2)
-        ;
-              printf("Placing wumpus at [%w,%w].\n", [PosX,PosY]),
-              setval( real_wumpus_pos, [PosX, PosY] )
-        ),
+        place_wumpus_aux(Seed),
         redraw.
 
 /** Randomly place the agent (and the start/exit cell).
  *  The Seed allows for reproducibility of placement. */
 xTra(place_agent(Seed), _H) :- !,
-        world( XMin, YMin, XMax, YMax),
-        SeedTmp1 is (Seed * 23), 
-        mod( SeedTmp1, 2147483647, NewSeed1),
-        random_number(NewSeed1, XMin, XMax, PosX),
-        SeedTmp2 is (NewSeed1 * 23), 
-        mod( SeedTmp2, 2147483647, NewSeed2),
-        random_number(NewSeed2, YMin, YMax, PosY),
-        printf("Trying to put agent to [%w, %w]\n", [PosX, PosY]),
-        getval( real_wumpus_pos, [WumpusX, WumpusY] ),
-        ( ( pit(PosX, PosY); [WumpusX, WumpusY] = [PosX, PosY] ) ->
-              /** There's a pit or the wumpus already, try again */
-              place_agent(NewSeed2)
-        ;
-              printf("Placing agent at [%w,%w].\n", [PosX,PosY]),
-              setval( real_agent_pos, [PosX, PosY] ),
-              setval( real_start_pos, [PosX, PosY] ),
-              /** agent has seen the starting cell */
-              findall( [X,Y],
-                       ( world( XMin, YMin, XMax, YMax ),
-                         between(XMin, XMax, 1, X),
-                         between(YMin, YMax, 1, Y),
-                         is_pos(X,Y),
-                         [X,Y] \== [PosX, PosY]
-                       ),
-                       ShadeList ),
-              print_list(ShadeList),
-              setval(real_cells_shaded, ShadeList),
-              update_shades(ShadeList)
-        ),
+        place_agent_aux(Seed),
         redraw.
 
 /** Randomly place the gold.
  *  The Seed allows for reproducibility of placement. */
 xTra(place_gold(Seed), _H) :- !,
-        world( XMin, YMin, XMax, YMax),
-        SeedTmp1 is (Seed * 23), 
-        mod( SeedTmp1, 2147483647, NewSeed1),
-        random_number(NewSeed1, XMin, XMax, PosX),
-        SeedTmp2 is (NewSeed1 * 23), 
-        mod( SeedTmp2, 2147483647, NewSeed2),
-        random_number(NewSeed2, YMin, YMax, PosY),
-        printf("Trying to put gold to [%w, %w]\n", [PosX, PosY]),
-        getval( real_agent_pos, [AgentX, AgentY] ),
-        ( ( pit(PosX, PosY); [AgentX, AgentY] = [PosX, PosY] ) ->
-              /** There's a pit or the agent already, try again */
-              place_gold(NewSeed2)
-        ;
-              printf("Placing gold at [%w,%w].\n", [PosX,PosY]),
-              setval( real_gold_pos, [PosX, PosY] )
-        ),
+        place_gold_aux(Seed),
         redraw.
 
 xTra(reset_visited,_H) :- 
@@ -1285,6 +750,499 @@ translateActionToKey( Key, Action ) :- !,
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  HELPER FUNCTIONS                                   %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+go_forward_aux([X,Y], D, A) :- !,        
+        ( D="east" -> Action = "R",
+                      Xn is X+1,
+                      Yn is Y
+        ;
+          true
+        ),
+        ( D="south" -> Action = "D",
+                      Xn is X,
+                      Yn is Y-1
+        ;
+          true
+        ),
+        ( D="west" -> Action = "L",
+                      Xn is X-1,
+                      Yn is Y
+        ;
+          true
+        ),
+        ( D="north" -> Action = "U",
+                      Xn is X,
+                      Yn is Y+1
+        ;
+          true
+        ),
+        setval( real_agent_pos, [Xn,Yn] ),
+        ( getval(real_carry_gold,true) ->
+                setval( real_gold_pos, [Xn,Yn] )
+        ;
+          true
+        ),
+%        printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [Xn, Yn, D, A]),
+        draw_wumpus_hunter(Xn, Yn, D, A),
+        draw_action(Action, X, Y),
+        getval(real_cells_visited, RCV),
+        ( nonmember([Xn,Yn], RCV) -> RCVN = [RCV | [Xn, Yn]],
+                                     setval(real_cells_visited, RCVN),
+                                     setval(wm_cells_visited, RCVN)
+        ;
+                                     true
+        ),
+%        getval(real_cells_visited, RCVC_east),
+%        printf(" the following cells have been visited: %w \n", [RCVC_east]),
+        getval(real_cells_shaded, RCS),
+        ( member([Xn,Yn], RCS) -> delete([Xn,Yn], RCS, RCSN),
+                                  setval(real_cells_shaded, RCSN),
+                                  setval(wm_cells_shaded, RCSN)
+        ;
+                                  true
+        ),
+        getval(real_cells_shaded, RCSC),
+%        printf(" the following cells are shaded: %w \n", [RCSC_east]),                    
+        update_shades(RCSC),
+        count_faced_shades([X,Y], D, NumShaded),
+        setval( real_num_facedShades, NumShaded), 
+        setval( wm_num_facedShades, NumShaded). 
+
+turn_aux( Side, [X,Y], D, A ) :- !,
+        ( D="east" ->
+                ( Side = left ->
+                        NewD = north,
+                        Action = "1"
+                ;
+                        NewD = south,
+                        Action = "2"
+                )
+        ;
+                true
+        ),
+        ( D="south" ->
+                ( Side = left ->
+                        NewD = east,
+                        Action = "1"
+                ;
+                        NewD = west,
+                        Action = "2"
+                )
+        ;
+                true
+        ),
+        ( D="west" ->
+                ( Side = left ->
+                        NewD = south,
+                        Action = "1"
+                ;
+                        NewD = north,
+                        Action = "2"
+                )
+        ;
+                true
+        ),
+        ( D="north" ->
+                ( Side = left ->
+                        NewD = west,
+                        Action = "1"
+                ;
+                        NewD = east,
+                        Action = "2"
+                )
+        ;
+                true
+        ),
+        term_string(NewD, NewDS),
+        setval(real_agent_direction, NewDS),
+        setval(wm_agent_direction, NewD),
+%        printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [X, Y, NewDS, A]),
+        draw_wumpus_hunter(X, Y, NewDS, A),
+        draw_action(Action, X, Y),
+        count_faced_shades([X,Y], NewD, NumShaded),
+        setval( real_num_facedShades, NumShaded), 
+        setval( wm_num_facedShades, NumShaded). 
+        
+shoot_aux( [X,Y], D ) :- !,
+        world( XMin, YMin, XMax, YMax ),
+        ( D="east" ->
+                findall(CellEast, between(X, XMax, 1, CellEast), Cells)
+        ;
+                true
+        ),
+        ( D="south" ->
+                findall(CellSouth, between(YMin, Y, 1, CellSouth), Cells)
+        ;
+                true
+        ),
+        ( D="west" ->
+                findall(CellWest, between(XMin, X, 1, CellWest), Cells)
+        ;
+                true
+        ),
+        ( D="north" ->
+                findall(CellNorth, between(Y, YMax, 1, CellNorth), Cells)
+        ;
+                true
+        ),
+        getval( real_wumpus_pos, [WumpusX, WumpusY]),
+        ( foreach( [CellX, CellY], Cells ),
+          param(D, WumpusX, WumpusY)
+          do
+                  is_pos(CellX, CellY),
+                  draw_arrow(CellX, CellY, D),
+                  execdelay, /** window refresh hides arrow :( */
+                  ( [WumpusX, WumpusY] = [CellX, CellY] ->
+                          setval(real_wumpus_alive, "F"),
+                          setval(wm_wumpus_alive, false),
+                          printf(" Wumpus was killed \n",[]),
+                          draw_wumpus(WumpusX, WumpusY, "F")
+                  ;
+                          true 
+                  )
+        ).
+
+/** Distribute pits randomly, until NumberOfPits is 0. */
+distribute_pits_aux(0, _Seed) :- !.
+
+distribute_pits_aux(NumberOfPits, Seed) :-
+        world( XMin, YMin, XMax, YMax ),
+        SeedTmp1 is (Seed * 23), 
+        mod( SeedTmp1, 2147483647, NewSeed1),
+        random_number(NewSeed1, XMin, XMax, XRand),
+        SeedTmp2 is (NewSeed1 * 23), 
+        mod( SeedTmp2, 2147483647, NewSeed2),
+        random_number(NewSeed2, YMin, YMax, YRand),
+        ( pit(XRand, YRand) ->
+              /** Pit already exists. Try again. */
+              distribute_pits_aux(NumberOfPits, NewSeed2)
+        ;
+              printf("assert(pit(%w, %w))\n", [XRand, YRand]),
+              assert(pit(XRand, YRand)),
+              ( pit(XRand, YRand) ->
+                 printf("Pit has successfully been asserted.\n", [])
+              ;
+                 true
+              ),
+              NewNumberOfPits is (NumberOfPits - 1),
+              distribute_pits_aux(NewNumberOfPits, NewSeed2)
+        ).
+
+place_wumpus_aux( Seed ) :- !,        
+        world( XMin, YMin, XMax, YMax),
+        SeedTmp1 is (Seed * 23), 
+        mod( SeedTmp1, 2147483647, NewSeed1),
+        random_number(NewSeed1, XMin, XMax, PosX),
+        SeedTmp2 is (NewSeed1 * 23), 
+        mod( SeedTmp2, 2147483647, NewSeed2),
+        random_number(NewSeed2, YMin, YMax, PosY),
+        printf("Trying to put wumpus to [%w, %w]\n", [PosX, PosY]),
+        ( pit(PosX, PosY) ->
+              /** There's a pit already, try again */
+              place_wumpus_aux(NewSeed2)
+        ;
+              printf("Placing wumpus at [%w,%w].\n", [PosX,PosY]),
+              setval( real_wumpus_pos, [PosX, PosY] )%,
+%              setval( wm_wumpus_pos, [PosX, PosY] )
+        ),
+        distribute_stenches.
+        
+place_agent_aux( Seed ) :- !,
+        world( XMin, YMin, XMax, YMax),
+        SeedTmp1 is (Seed * 23), 
+        mod( SeedTmp1, 2147483647, NewSeed1),
+        random_number(NewSeed1, XMin, XMax, PosX),
+        SeedTmp2 is (NewSeed1 * 23), 
+        mod( SeedTmp2, 2147483647, NewSeed2),
+        random_number(NewSeed2, YMin, YMax, PosY),
+        printf("Trying to put agent to [%w, %w]\n", [PosX, PosY]),
+        /** Spin agent around randomly */
+        SeedTmp3 is (NewSeed2 * 23), 
+        mod( SeedTmp3, 2147483647, NewSeed3),
+        random_number(NewSeed3, 1, 4, DirTmp),
+        ( DirTmp = 1 ->
+           Dir = "east"
+        ;
+           true
+        ),
+        ( DirTmp = 2 ->
+           Dir = "south"
+        ;
+           true
+        ),
+        ( DirTmp = 3 ->
+           Dir = "west"
+        ;
+           true
+        ),
+        ( DirTmp = 4 ->
+           Dir = "north"
+        ;
+           true
+        ),
+        setval( real_agent_dir, Dir ),
+%        setval( wm_agent_dir, Dir ),
+        getval( real_wumpus_pos, [WumpusX, WumpusY] ),
+        ( ( pit(PosX, PosY); [WumpusX, WumpusY] = [PosX, PosY] ) ->
+              /** There's a pit or the wumpus already, try again */
+              place_agent_aux(NewSeed2)
+        ;
+              printf("Placing agent at [%w,%w].\n", [PosX,PosY]),
+              setval( real_agent_pos, [PosX, PosY] ),
+%              setval( wm_agent_pos, [PosX, PosY] ),
+              setval( real_start_pos, [PosX, PosY] ),
+%              setval( wm_start_pos, [PosX, PosY] ),
+              setval( real_cells_know_no_pit, [[PosX, PosY]] ),
+%              setval( wm_cells_know_no_pit, [[PosX, PosY]] ),
+              setval( real_cells_know_no_wumpus, [[PosX, PosY]] ),
+%              setval( wm_cells_know_no_wumpus, [[PosX, PosY]] ),
+              /** agent has seen the starting cell */
+              setval( real_cells_visited, [[PosX, PosY]] ),
+%              setval( wm_cells_visited, [[PosX, PosY]] ),
+              world( XMin, YMin, XMax, YMax ),
+              findall( [X,Y],
+                       ( between(XMin, XMax, 1, X),
+                         between(YMin, YMax, 1, Y),
+                         is_pos(X,Y),
+                         [X,Y] \== [PosX, PosY]
+                       ),
+                       ShadeList ),
+%              print_list(ShadeList),
+              setval(real_cells_shaded, ShadeList),
+%              setval(wm_cells_shaded, ShadeList),
+              update_shades(ShadeList),
+              /** compute how many shades cells are initially lying
+               *  in front of the agent */
+              count_faced_shades( [PosX, PosY], Dir, NumShaded ),
+              setval( real_num_facedShades, NumShaded )%,
+        ).
+
+place_gold_aux(Seed) :- !,
+        world( XMin, YMin, XMax, YMax),
+        SeedTmp1 is (Seed * 23), 
+        mod( SeedTmp1, 2147483647, NewSeed1),
+        random_number(NewSeed1, XMin, XMax, PosX),
+        SeedTmp2 is (NewSeed1 * 23), 
+        mod( SeedTmp2, 2147483647, NewSeed2),
+        random_number(NewSeed2, YMin, YMax, PosY),
+        printf("Trying to put gold to [%w, %w]\n", [PosX, PosY]),
+        getval( real_agent_pos, [AgentX, AgentY] ),
+        ( ( pit(PosX, PosY); [AgentX, AgentY] = [PosX, PosY] ) ->
+              /** There's a pit or the agent already, try again */
+              place_gold_aux(NewSeed2)
+        ;
+              printf("Placing gold at [%w,%w].\n", [PosX,PosY]),
+              setval( real_gold_pos, [PosX, PosY] )%,
+%              setval( wm_gold_pos, [PosX, PosY] )
+        ).
+
+/** Re-compute the position of breezes. */
+distribute_breezes :-
+        printf("Retracting all breezes.\n", []),
+        retract_all(breeze(_,_)),
+        findall( [X,Y],
+                 ( world( XMin, YMin, XMax, YMax ),
+                   between(XMin, XMax, 1, X),
+                   between(YMin, YMax, 1, Y),
+                   not is_pit(X,Y),
+                   /** horizontal and vertical neighbour cells of
+                    *  pits are breezy */
+                   XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
+                   ( is_pit(XW, Y);
+                     is_pit(X, YS);
+                     is_pit(XE, Y);
+                     is_pit(X, YN)
+                   )
+                 ),
+                 BreezeList
+               ),
+%        print_list(BreezeList),
+%        /* real_cells_breezy is only the list of *memorised* breezes */
+%        setval( real_cells_breezy, BreezeList ),
+%        setval( wm_cells_breezy, BreezeList ),
+        ( foreach([X,Y], BreezeList) do
+              printf("Asserting breeze(%w, %w).\n", [X,Y]),
+              assert(breeze(X,Y))
+        ),
+        printf("update_breezes...", []),
+        update_breezes(BreezeList),
+        printf(" successful.\n", []).
+
+/** Re-compute the position of stenches. */
+distribute_stenches :-
+        printf("Retracting all stenches.\n", []),
+        retract_all(stench(_,_)),
+        findall( [X,Y],
+                 ( world( XMin, YMin, XMax, YMax ),
+                   between(XMin, XMax, 1, X),
+                   between(YMin, YMax, 1, Y),
+                   not is_pit(X,Y),
+                   /** horizontal and vertical neighbour cells of
+                    *  pits are breezy */
+                   XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
+                   ( is_wumpus(XW, Y);
+                     is_wumpus(X, YS);
+                     is_wumpus(XE, Y);
+                     is_wumpus(X, YN)
+                   )
+                 ),
+                 StenchList
+               ),
+%        print_list(StenchList),
+%        /* real_cells_smelly is only the list of *memorised* stenches */
+%        setval( real_cells_smelly, StenchList ),
+%        setval( wm_cells_smelly, StenchList ),
+        ( foreach([X,Y], StenchList) do
+              printf("Asserting stench(%w, %w).\n", [X,Y]),
+              assert(stench(X,Y))
+        ),
+        printf("update_stenches...", []),
+        update_stenches(StenchList),
+        printf(" successful.\n", []).
+
+get_cross_cells( Pos, CrossList ) :-
+              Pos = [X, Y],              
+              XWest is (X - 1),
+              XEast is (X + 1),
+              findall( [CrossX, Y],
+                       ( between( XWest, XEast, 1, CrossX ),
+                         is_pos(CrossX, Y)
+                       ),
+                       CrossListV ),
+%              printf("CrossListV %w.\n", [CrossListV]),
+              YSouth is (Y - 1),
+              YNorth is (Y + 1),
+              findall( [X, CrossY],
+                       ( between( YSouth, YNorth, 1, CrossY ),
+                         is_pos(X, CrossY)
+                       ),
+                       CrossListH ),
+%              printf("CrossListH %w.\n", [CrossListH]),
+              /** remove double entry of middle cell */
+              delete(Pos, CrossListH, CrossListHTmp),
+              append(CrossListV, CrossListHTmp, CrossList).
+
+% Compute the number of faced shaded cells from position Pos into
+% direction D
+count_faced_shades( Pos, D, Number ) :-
+        /** count faced shades */
+        Pos = [X, Y],
+%        printColor(blue, " counting faced shades... \n",[]),
+%        getval( real_cells_shaded, CS ),
+%        printColor(blue, " real_cells_shaded: %w \n",[CS]),
+        world( XMin, YMin, XMax, YMax ),
+        getval(real_cells_visited, RCV),
+        ( D = "east" ->
+                 findall([Xs, Y],
+                         ( XEast is X+1,
+                           between(XEast, XMax, 1, Xs),
+                           is_pos(Xs,Y),
+                           nonmember([Xs, Y], RCV)
+                         ),
+                         Shades)
+        ;
+                 true
+        ),
+        ( D = "south" ->
+                 findall([X, Ys],
+                         ( YSouth is Y-1,
+                           between(YMin, YSouth, 1, Ys),
+                           is_pos(X,Ys),
+                           nonmember([X, Ys], RCV)
+                         ),
+                         Shades)
+        ;
+                 true
+        ),
+        ( D = "west" ->
+                 findall([Xs, Y],
+                         ( XWest is X-1,
+                           between(XMin, XWest, 1, Xs),
+                           is_pos(Xs,Y),
+                           nonmember([Xs, Y], RCV)
+                         ),
+                         Shades)
+        ;
+                 true
+        ),
+        ( D = "north" ->
+                 findall([X, Ys],
+                         ( YNorth is Y+1,
+                           between(YNorth, YMax, 1, Ys),
+                           is_pos(X,Ys),
+                           nonmember([X, Ys], RCV)
+                         ),
+                         Shades)
+        ;
+                 true
+        ),
+        ( (D \= "east", D \= "south", D \= "west", D \= "north") ->
+                 printColor(blue, " ERROR in count_faced_shades: Argument",[]),
+                 printColor(blue, " D = %w is illegal!\n",[D]),
+                 Shades = []
+        ;
+          true
+        ),
+%        printColor(blue, " Shades: %w \n",[Shades]),
+        length(Shades, Number),
+        printColor(blue, " Seeing %w faced shades. \n",[Number]).
+
+% Find out if agent can be sure that wumpus is located in
+% one of the cells of the list
+deduce_wumpus( [], _KnowNoWumpus, _KnowSmell, Result, ResultPos ) :- !,
+        Result = false,
+        ResultPos = [].
+
+deduce_wumpus( Cells, KnowNoWumpus, KnowSmell, Result, ResultPos ) :-
+        ( foreach( Cell, Cells ), param(KnowNoWumpus, KnowSmell, Result, ResultPos)
+          do
+             Cell = [X, Y],
+%             printf( "checking cell [%w, %w]...\n", [X, Y] ),
+             XEast is (X+1),
+             XWest is (X-1),
+             YNorth is (Y+1),
+             YSouth is (Y-1),
+             CellEast = [XEast, Y],
+             CellSouth = [X, YSouth],
+             CellWest = [XWest, Y],
+             CellNorth = [X, YNorth],
+             /** Case 1) */
+             /** TODO: What if neighbours lie outside of maze? */
+             ( ( ( member(CellWest, KnowSmell),
+                   member(CellEast, KnowSmell) );
+                 ( member(CellNorth, KnowSmell),
+                   member(CellSouth, KnowSmell) ) ) ->
+                         printColor(red, "CASE 1) wumpus found at: %w!\n", [ResultPos] ),
+                         Result = true,
+                         ResultPos = Cell
+             ;
+                /** Case 2) */
+                CellSouthEast = [XEast, YSouth],
+                CellSouthWest = [XWest, YSouth],
+                CellNorthWest = [XWest, YNorth],
+                CellNorthEast = [XEast, YNorth],
+                ( ( ( member(CellSouth, KnowSmell),
+                      member(CellWest, KnowSmell),
+                      member(CellSouthWest, KnowNoWumpus) );
+                    ( member(CellWest, KnowSmell),
+                      member(CellNorth, KnowSmell),
+                      member(CellNorthWest, KnowNoWumpus) );
+                    ( member(CellNorth, KnowSmell),
+                      member(CellEast, KnowSmell),
+                      member(CellNorthEast, KnowNoWumpus) );
+                    ( member(CellEast, KnowSmell),
+                      member(CellSouth, KnowSmell),
+                      member(CellSouthEast, KnowNoWumpus) ) ) -> 
+                            printColor(red, "CASE 2) wumpus found at: %w!\n", [ResultPos] ),
+                            Result = true,
+                            ResultPos = Cell
+                ;
+%                  printf( "WUMPUS NOT FOUND!\n", [] ),
+                  Result = false,
+                  ResultPos = []
+                )
+             )
+        ).
 
 % Return the current Eclipse Time. Kind'o'a timestamp.
 %   Parameter 1: Returns current time.

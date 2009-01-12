@@ -51,28 +51,28 @@ fix_couts( [cout(V) | RestProgram], Fixed, Stream ) :- !,
 %        printf( Stream, "\nEncountered cout(V).\n", [] ),
         fix_couts( RestProgram, FixedRest, Stream ),
         term_string( V, VString ),
-        append( [cout(VString)], FixedRest, Fixed ).
+        Fixed = [ cout(VString) | FixedRest ].
 
 fix_couts( [cout(F, V) | RestProgram], Fixed, Stream ) :- !,
 %        printf( Stream, "\nEncountered cout(F, V).\n", [] ),
         fix_couts( RestProgram, FixedRest, Stream ),
 %        term_string( V, VString ),
         term_string( F, FString ),
-        append( [cout(FString, V)], FixedRest, Fixed ).
+        Fixed = [ cout(FString, V) | FixedRest ].
 
 fix_couts( [cout(Color, F, V) | RestProgram], Fixed, Stream ) :- !,
 %        printf( Stream, "\nEncountered cout(Color, F, V).\n", [] ),
         fix_couts( RestProgram, FixedRest, Stream ),
 %        term_string( V, VString ),
         term_string( F, FString ),
-        append( [cout(Color, FString, V)], FixedRest, Fixed ).
+        Fixed = [ cout(Color, FString, V) | FixedRest ].
 
 fix_couts( [if(Cond, Sigma1, Sigma2) | RestProgram], Fixed, Stream ) :- !,
 %        printf( Stream, "\nEncountered if.\n", [] ),
         fix_couts( Sigma1, FixedSigma1, Stream ),
         fix_couts( Sigma2, FixedSigma2, Stream ),
         fix_couts( RestProgram, FixedRest, Stream ),
-        append( [if(Cond, FixedSigma1, FixedSigma2)], FixedRest, Fixed ).
+        Fixed = [ if(Cond, FixedSigma1, FixedSigma2) | FixedRest ].
 
 fix_couts( [if(Cond, Sigma) | RestProgram], Fixed, Stream ) :-
         fix_couts( [if(Cond, Sigma, []) | RestProgram], Fixed, Stream ).
@@ -83,9 +83,9 @@ fix_couts( [while(Cond, Sigma) | RestProgram], Fixed, Stream ) :- !,
 %        printf( Stream, "FixedSigma: %w\n", [FixedSigma] ),
         fix_couts( RestProgram, FixedRest, Stream ),
 %        printf( Stream, "FixedRest: %w\n", [FixedRest] ),
-        append( [while(Cond, FixedSigma)], FixedRest, FixedTmp ),
+        Fixed = [ while(Cond, FixedSigma) | FixedRest ].
 %        printf( Stream, "FixedTmp: %w\n", [FixedTmp] ),
-        Fixed = FixedTmp.
+%        Fixed = FixedTmp.
 
 fix_couts( Program, Fixed, Stream ) :-
         not(is_list(Program)),
@@ -398,7 +398,7 @@ expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program, Star_Program, Strea
                                   Star_Program = []
          ;
                                   /** Else keep appending Alpha */
-                                  append(Program, Alpha, P_w_Alpha),
+                                  P_w_Alpha = [ Program | Alpha ],
                                   /** Conversion from comma to semicolon necessary to
                                    *  mark consecutive actions. */
                                   list_to_string(P_w_Alpha, P_w_AlphaS),
@@ -406,7 +406,7 @@ expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program, Star_Program, Strea
                                   string_to_list( P_w_AlphaFinalS, P_w_AlphaFinal ),
 %                                  printf(Stream, "Program with Alpha: %w\n", [P_w_AlphaFinal]),
 
-                                  append(P_w_Alpha, Omega_Prime, P_w_Alpha_Omega),
+                                  P_w_Alpha_Omega = [ P_w_Alpha | Omega_Prime ],
                                   /** Conversion from comma to semicolon necessary to
                                    *  mark consecutive actions. */
                                   list_to_string(P_w_Alpha_Omega, P_w_Alpha_OmegaS),

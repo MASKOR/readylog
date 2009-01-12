@@ -70,7 +70,8 @@
 
 
 /* dennis's test stuff */
-dp :- toggle_iplearn, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
+%dp :- toggle_iplearn, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
+dp :- toggle_iplearn, vis_wumpus, initialise_shades, icp( find_gold ).
 dpdebug :- toggle_dtdebug, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
 dp_novis :- initialise_wumpus_lists, icp( find_gold ).
 
@@ -85,13 +86,15 @@ initialise_wumpus_lists :- initialise_shades, initialise_breezy, initialise_smel
 initialise_shades :- get_shades_wumpus(SH),
                      setval( real_cells_shaded, SH ).
 
-/** initialise breezy cells */
-initialise_breezy :- get_breezy_wumpus(B),
-                     setval( real_cells_breezy, B ).
+% Done by the agent
+%/** initialise breezy cells */
+%initialise_breezy :- get_breezy_wumpus(B),
+%                     setval( real_cells_breezy, B ).
 
-/** initialise smelly cells */
-initialise_smelly :- get_smelly_wumpus(S),
-                     setval( real_cells_smelly, S ).
+% Done by the agent
+%/** initialise smelly cells */
+%initialise_smelly :- get_smelly_wumpus(S),
+%                     setval( real_cells_smelly, S ).
 
 /** startup visualization 
  *  and draw initial stuff

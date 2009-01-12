@@ -86,24 +86,24 @@ process_proc( [if(Cond, Sigma1, Sigma2) | RestProgram], Processed, Stream ) :- !
         process_proc( RestProgram, ProcessedRest, Stream ),
         ( ( ground( ProcessedSigma1 ), ground( ProcessedSigma2 ) ) ->
              /** both subprograms are nondeterministic */
-             append( [if(Cond, ProcessedSigma1, ProcessedSigma2)],
-                     ProcessedRest, Processed)
+             Processed = [ if(Cond, ProcessedSigma1, ProcessedSigma2) |
+                           ProcessedRest ]
         ;
              /** not both subprograms are nondeterministic */
              ( ground( ProcessedSigma1 ) ->
                   /** only Sigma1 is nondeterministic */
-                  append( [if(Cond, ProcessedSigma1, Sigma2)],
-                          ProcessedRest, Processed)
+                  Processed = [ if(Cond, ProcessedSigma1, Sigma2) |
+                                ProcessedRest ]
              ;
                   /** Sigma1 is deterministic */
                   ( ground( ProcessedSigma2 ) ->
                        /** only Sigma2 is nondeterministic */
-                       append( [if(Cond, Sigma1, ProcessedSigma2)],
-                                ProcessedRest, Processed)
+                       Processed = [ if(Cond, Sigma1, ProcessedSigma2) |
+                                     ProcessedRest ]
                   ;
                        /** both subprograms are deterministic */
-                       append( [if(Cond, Sigma1, Sigma2)],
-                                ProcessedRest, Processed)
+                       Processed = [ if(Cond, Sigma1, Sigma2) |
+                                     ProcessedRest ]
                   )
              )
         ).
@@ -125,7 +125,7 @@ process_proc( [while(Cond, Sigma) | RestProgram], Processed, Stream ) :- !,
 %             printf( Stream, "\n*~*~SIGMA_END*~*\n", [] ),
              
              process_proc( RestProgram, ProcessedRest, Stream ),
-             append( [while(Cond, ProcessedSigma)], ProcessedRest, Processed)
+             Processed = [ while(Cond, ProcessedSigma) | ProcessedRest ]
 
 %             /** The while comes before any other nondeterministic
 %              *  statement. Thus, we already transform it,
@@ -254,7 +254,7 @@ process_proc( [while(Cond, Sigma) | RestProgram], Processed, Stream ) :- !,
         ;
               /** While contains no solve context. */
              process_proc( RestProgram, ProcessedRest, Stream ),
-             append( [while(Cond, Sigma)], ProcessedRest, Processed)
+             Processed = [ while(Cond, Sigma) | ProcessedRest ]
         ).
 
 process_proc( [solve(Prog, Horizon, RewardFunction) | RestProgram],
@@ -279,7 +279,7 @@ process_proc( [Term | RestProgram], Processed, Stream ) :- !,
 %        printf( Stream, "\n******* Encountered Term: %w. ******\n", [Term] ),
 %        printf( Stream, "\n******* Rest_Program: %w. ******\n", [RestProgram] ),
         process_proc( RestProgram, ProcessedRest, Stream ),
-        append( [Term], ProcessedRest, Processed ).
+        Processed = [ Term | ProcessedRest ].
 %        printf( Stream, "\n******* Processed: %w. ******\n", [Processed] ).
 
 
@@ -317,7 +317,6 @@ process_proc( [Term | RestProgram], Processed, Stream ) :- !,
 %            ;
 %                true
 %         ),
-%         append
 
 process_proc_aux( ProcName, ProcBody, Stream ) :-        
         printf(Stream, "ipl_proc( %w, ", [ProcName]),
@@ -440,7 +439,7 @@ apply_rho( [solve(Prog, Horizon, RewardFunction)], Program,
 apply_rho( [{P_List} | Omega], Program, Rho_Program, Stream ) :- !,
         /** Rho had already been applied to this program before. Thus,
          *  do not change anything. */
-        append(Program, [{P_List} | Omega], Rho_Program).
+        Rho_Program = [ Program | [{P_List} | Omega] ].
 
 apply_rho( [pickBest(F, Domain, Delta) | Omega], Program, Rho_Program, Stream ) :- !,
         findall( Delta_New,
@@ -450,10 +449,10 @@ apply_rho( [pickBest(F, Domain, Delta) | Omega], Program, Rho_Program, Stream ) 
                  Instantiated_Progs ),
 %        printf( Stream, "Instantiated_Progs: %w.", [Instantiated_Progs]),
         list_to_string(Instantiated_Progs, Instantiated_Progs_String),
-        append(Program, [{Instantiated_Progs_String}], Program_New),
+        Program_New = [ Program | {Instantiated_Progs_String} ],
         /** end recursion to make sure that only the first nondeterministic
          *  statement is replaced */
-        append(Program_New, Omega, Rho_Program).
+        Rho_Program = [ Program_New, Omega ].
                
 apply_rho( [star(Alpha) | Omega], Program, Rho_Program, Stream ) :- !,
         /** we delay the listing of the programs [], Alpha, Alpha^2,...
@@ -464,14 +463,14 @@ apply_rho( [star(Alpha) | Omega], Program, Rho_Program, Stream ) :- !,
          *  integrated into the choice set.
          */
         list_to_string([star(Alpha)], Star_String),
-        append(Program, [{Star_String}], Program_New),
+        Program_New = [ Program | {Star_String} ],
         /** end recursion to make sure that only the first nondeterministic
          *  statement is replaced */
         /** As we end the application of rho here, and the next operator
          *  apply_tau_prime_H is first matched with the star string in
          *  the nondeterministic set, we do not need to remember Omega
          *  now. */
-        append(Program_New, Omega, Rho_Program).
+        Rho_Program = [ Program_New | Omega ].
 
 apply_rho( [if(Cond, Sigma1, Sigma2) | Omega], Program, Rho_Program, Stream ) :- !,
         is_deterministic( Sigma1, Result1, Stream ),
@@ -480,7 +479,7 @@ apply_rho( [if(Cond, Sigma1, Sigma2) | Omega], Program, Rho_Program, Stream ) :-
 %        printf( Stream, "Sigma2 is deterministic is %w.\n", [Result2] ),
         ( (Result1 = true, Result2 = true) ->
                            /** Skip if statement. */
-                           append(Program, [if(Cond, Sigma1, Sigma2)], Program_New),
+                           Program_New = [ Program | if(Cond, Sigma1, Sigma2) ],
                            apply_rho( Omega, Program_New, Rho_Program_Tmp, 
                                       Stream ),
                            Rho_Program = Rho_Program_Tmp
@@ -493,16 +492,15 @@ apply_rho( [if(Cond, Sigma1, Sigma2) | Omega], Program, Rho_Program, Stream ) :-
                             *  recursively. */
                            ( (Result1 = true) ->
                                     apply_rho( Sigma2, [], Rho_Program_Sigma2, Stream),
-                                    append(Program, [if(Cond, Sigma1, Rho_Program_Sigma2)],
-                                           Program_New),
+                                    Program_New = [ Program | if(Cond, Sigma1, Rho_Program_Sigma2) ],
                                     apply_rho( Omega, Program_New, Rho_Program_Tmp,
                                                Stream ),
                                     Rho_Program = Rho_Program_Tmp
                            ;
                                     ( (Result2 = true) ->
                                              apply_rho( Sigma1, [], Rho_Program_Sigma1, Stream),
-                                             append(Program, [if(Cond, Rho_Program_Sigma1, Sigma2)],
-                                                    Program_New),
+                                             Program_New = [ Program |
+                                                             if(Cond, Rho_Program_Sigma1, Sigma2) ],
                                                     apply_rho( Omega, Program_New, Rho_Program_Tmp,
                                                                Stream ),
                                              Rho_Program = Rho_Program_Tmp
@@ -511,9 +509,8 @@ apply_rho( [if(Cond, Sigma1, Sigma2) | Omega], Program, Rho_Program, Stream ) :-
 %                                             printf( Stream, "Both Sigma1 and Sigma2 are nondeterministic.\n", [] ),
                                              apply_rho( Sigma1, [], Rho_Program_Sigma1, Stream),
                                              apply_rho( Sigma2, [], Rho_Program_Sigma2, Stream),
-                                             append(Program, [if(Cond, Rho_Program_Sigma1,
-                                                                       Rho_Program_Sigma2)],
-                                                    Program_New),
+                                             Program_New = [ Program |
+                                                             if(Cond, Rho_Program_Sigma1, Rho_Program_Sigma2) ],
                                                     apply_rho( Omega, Program_New, Rho_Program_Tmp,
                                                                Stream ),
                                              Rho_Program = Rho_Program_Tmp
@@ -527,7 +524,7 @@ apply_rho( [if(Cond, Sigma) | Omega], Program, Rho_Program, Stream ) :-
 apply_rho( [while(Cond, Sigma) | Omega], Program, Rho_Program, Stream ) :- !,
         is_deterministic( Sigma, Result, Stream ),
         ( Result = true -> /** Skip while. */
-                           append(Program, [while(Cond, Sigma)], Program_New),
+                           Program_New = [ Program | while(Cond, Sigma) ],
                            apply_rho( Omega, Program_New, Rho_Program_Tmp, 
                                       Stream ),
                            Rho_Program = Rho_Program_Tmp
@@ -538,8 +535,7 @@ apply_rho( [while(Cond, Sigma) | Omega], Program, Rho_Program, Stream ) :- !,
                             *  be independent of a possible solve in Omega. That
                             *  is why me may apply rho recursively. */
                            apply_rho( Sigma, [], Rho_Program_Sigma, Stream),
-                           append(Program, [while(Cond, Rho_Program_Sigma)],
-                                  Program_New),
+                           Program_New = [ Program | while(Cond, Rho_Program_Sigma) ],
                            apply_rho( Omega, Program_New, Rho_Program_Tmp,
                                       Stream ),
                            Rho_Program = Rho_Program_Tmp
@@ -549,15 +545,15 @@ apply_rho( [nondet(ProgList) | Omega], Program, Rho_Program, Stream ) :- !,
 %        printf(Stream, "ProgList: %w.\n", [ProgList]),
         list_to_string(ProgList, ReducedString),
 %        printf(Stream, "ReducedString: %w.\n", [ReducedString]),
-        append(Program, [{ReducedString}], Program_New),
+        Program_New = [ Program | {ReducedString} ],
         /** end recursion to make sure that only the first nondet
           * is replaced */
-        append(Program_New, Omega, Rho_Program).
+        Rho_Program = [ Program_New | Omega ].
 %        apply_rho( Omega, Program_New, Rho_Program, Stream ).
 
 apply_rho( [Term | Omega], Program, Rho_Program, Stream ) :- !,
 %        printf(Stream, "Program: %w\n", [Program]),
-        append(Program, [Term], Program_New),
+        Program_New = [ Program | Term ],
 %        printf(Stream, "Appending: [%w]\n", [Term]),        
 %        printf(Stream, "Program_New: %w\n", [Program_New]),
 %        printf(Stream, "Omega: %w\n", [Omega]),
@@ -727,7 +723,7 @@ apply_tau_prime_H( [{P_List} | []], _Horizon, Program,
          *  Now substitute them back. */
         replace_string(Tmp3, "__COMMA__", ",", P_List_Clean, Stream),
         /** TODO: sort P_List */
-        append(Program, [nondet(P_List_Clean)], Program_New),
+        Program_New = [ Program | nondet(P_List_Clean) ],
         Tau_Prime_H_Program = Program_New.
 
 /** Conditional */
@@ -753,7 +749,7 @@ apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2}, {P_String_Joined} ),
         /** TODO: sort P_String_Joined */
-        append(Program, [nondet(P_String_Joined)], Program_New),
+        Program_New = [ Program | nondet(P_String_Joined) ],
         Tau_Prime_H_Program = Program_New.
 
 apply_tau_prime_H( [{P_List} | [if(Cond, Sigma) | Omega_Prime]],
@@ -791,7 +787,7 @@ apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
          list_to_string( Omega_Prime, Omega_PrimeS ),
          concat_string( [NegCondTestS, ";", Omega_PrimeS], Tmp1S ),
          string_to_list( Tmp1S, Tmp2 ),
-         append( Tmp2, Star_Program, Star_Program_Tmp ),
+         Star_Program_Tmp = [ Tmp2 | Star_Program ],
          /** Integrate the complete rest program into the nondeterministic set. */
          integrate( {P_List}, Star_Program_Tmp, {P_List_New}, Stream ),
 
@@ -904,8 +900,9 @@ apply_tau_prime_H( [if(Cond, Sigma1, Sigma2) | Omega], Horizon, Program,
         apply_tau_prime_H( Sigma2, Horizon, [], Tau_Prime_H_Program_Sigma2, Stream ),
         apply_tau_prime_H( Omega, Horizon, Program,
                            Tau_Prime_H_Program_Omega, Stream ),
-        append([if(Cond, Tau_Prime_H_Program_Sigma1, Tau_Prime_H_Program_Sigma2)],
-               Tau_Prime_H_Program_Omega, Tau_Prime_H_Program).
+        Tau_Prime_H_Program = [ [if(Cond, Tau_Prime_H_Program_Sigma1,
+                                          Tau_Prime_H_Program_Sigma2)] |
+                                Tau_Prime_H_Program_Omega ].
 
 /** Ignore (but store) everything before the first nondet,
  *  that means, ignore everything not starting with a
@@ -920,7 +917,7 @@ apply_tau_prime_H( [Alpha | Omega], Horizon, Program,
 %                       Tau_Prime_H_Program, Stream]),
         apply_tau_prime_H( Omega, Horizon, Program,
                            Tau_Prime_H_Program_Nondet, Stream ),
-        append([Alpha], Tau_Prime_H_Program_Nondet, Tau_Prime_H_Program).
+        Tau_Prime_H_Program = [ Alpha | Tau_Prime_H_Program_Nondet ].
 
 
          
@@ -1075,7 +1072,7 @@ apply_tau(solve([?(Term) | Omega], Horizon, RewardFunction), Tau_Program, Stream
 %        printf(Stream, "test action encountered\n", []),
         /** Note that the test action does not consume horizon. */
         apply_tau(solve(Omega, Horizon, RewardFunction), Tau_Program_Tmp, Stream),
-        append( [?(Term)], Tau_Program_Tmp, Tau_Program ).
+        Tau_Program = [ ?(Term) | Tau_Program_Tmp ].
 
 /** If the solve program contains a call to a proc, we have to follow that trail, and
  *  recursively make sure that the proc is purely deterministic before pulling it out.
@@ -1096,7 +1093,7 @@ apply_tau(solve([ProcName | Omega], Horizon, RewardFunction), Tau_Program, Strea
                            apply_tau(solve(Omega, Horizon_New, RewardFunction),
                                      Tau_Program_Tmp, Stream),
                            ( Horizon > 0 ->
-                                     append( [ProcName], Tau_Program_Tmp, Tau_Program )
+                                     Tau_Program = [ ProcName | Tau_Program_Tmp ]
                            ;
                                      Tau_Program = Tau_Program_Tmp
                            )
@@ -1115,8 +1112,7 @@ apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program, Stream ) 
         apply_tau(solve(Omega, Horizon_New, RewardFunction), Tau_Program_Tmp, Stream),
 %        printf(Stream, "apply_tau(solve(Omega, %w, RewardFunction), Tau_Program_Tmp, Stream) ***SUCCEEDED***\n", [Horizon_New]),
         ( Horizon > 0 ->
-%              printf(Stream, "append( [%w], %w, Tau_Program )\n", [Term, Tau_Program_Tmp]),
-              append( [Term], Tau_Program_Tmp, Tau_Program )
+              Tau_Program = [ Term | Tau_Program_Tmp ]
         ;
 %              printf(Stream, "This should never happen, because of CUT above!\n", []),
               Tau_Program = Tau_Program_Tmp

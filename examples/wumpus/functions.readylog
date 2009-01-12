@@ -74,10 +74,13 @@ function( reward_search_gold, Reward,
                      RewardFoundGold = 100,
                      RewardFoundGold = 0
                    ),
-                lif( epf_agent_arrow = true,
-                     RewardSavedArrow = 20,
-                     RewardSavedArrow = (-20)
-                   ),
+              % reward for saving arrow only makes sense
+              % when we test if killing the wumpus opens
+              % up new possibilities to reach the gold or not
+%                lif( epf_agent_arrow = true,
+%                     RewardSavedArrow = 20,
+%                     RewardSavedArrow = (-20)
+%                   ),
                 RewardExploration = ( (epf_distance_to_closest_safe_cell * (-1)) +
                                       ( epf_num_visited * 20) +
                                       /** reward for turning into an direction that's
@@ -86,7 +89,7 @@ function( reward_search_gold, Reward,
                 Reward = (
                           RewardKillWumpus +
                           RewardFoundGold +
-                          RewardSavedArrow +
+%                          RewardSavedArrow +
                           RewardExploration
                          )
               ])
