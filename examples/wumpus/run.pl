@@ -71,7 +71,12 @@
 
 /* dennis's test stuff */
 %dp :- toggle_iplearn, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
-dp :- toggle_iplearn, vis_wumpus, initialise_shades, icp( find_gold ).
+dp :- toggle_iplearn,
+      vis_wumpus,
+      initialise_shades,
+      icp( find_gold(6) ),
+      icp( find_gold(3) ).
+      
 dpdebug :- toggle_dtdebug, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
 dp_novis :- initialise_wumpus_lists, icp( find_gold ).
 

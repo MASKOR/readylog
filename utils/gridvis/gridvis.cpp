@@ -658,23 +658,23 @@ int p_DrawWumpusHunter()
     cerr << "failed to unify arg 3 in p_DrawWumpusHunter " << endl;
     return EC_fail;
   }  
-  char * A;
-  if( ec_A.is_string( &A ) != EC_succeed ) {
+  long A;
+  if( ec_A.is_long( &A ) != EC_succeed ) {
     cerr << "failed to unify arg 4 in p_DrawWumpusHunter " << endl;
     return EC_fail;
   }
   
-  // string to bool conversion
-  switch(A[0]) {
-  case 'T' : // has arrow
-    draw_wumpus_hunter(X, Y, D, true);
-    break;
-  case 'F' : // doesn't have arrow
-    draw_wumpus_hunter(X, Y, D, false);
-    break;
-  }
+//  // string to bool conversion
+//  switch(A[0]) {
+//  case 'T' : // has arrow
+//    draw_wumpus_hunter(X, Y, D, A);
+//    break;
+//  case 'F' : // doesn't have arrow
+//    draw_wumpus_hunter(X, Y, D, false);
+//    break;
+//  }
 
- // draw_wumpus_hunter(X, Y, D, A);
+  draw_wumpus_hunter(X, Y, D, A);
 
   return EC_succeed;
 }
@@ -700,23 +700,23 @@ int p_DrawWumpus()
     cerr << "failed to unify arg 2 in p_DrawWumpus " << endl;
     return EC_fail;
   }
-  char * A;
-  if( ec_A.is_string( &A ) != EC_succeed ) {
+  long A;
+  if( ec_A.is_long( &A ) != EC_succeed ) {
     cerr << "failed to unify arg 3 in p_DrawWumpus " << endl;
     return EC_fail;
   }
   
-  // string to bool conversion
-  switch(A[0]) {
-  case 'T' : // has arrow
-    draw_wumpus(X, Y, true);
-    break;
-  case 'F' : // doesn't have arrow
-    draw_wumpus(X, Y, false);
-    break;
-  }
+//  // string to bool conversion
+//  switch(A[0]) {
+//  case 'T' : // has arrow
+//    draw_wumpus(X, Y, true);
+//    break;
+//  case 'F' : // doesn't have arrow
+//    draw_wumpus(X, Y, false);
+//    break;
+//  }
 
-//  draw_wumpus(X, Y);
+  draw_wumpus(X, Y, A);
 
   return EC_succeed;
 }

@@ -118,7 +118,7 @@ exogenous_update :- !,
 /** how often should exog_update be called.
  */
 %param_cycletime(0.2). % original
-param_cycletime(2).
+param_cycletime(0.4).
 
 /** set up alarm timer and corresponding interrupt handler.
  *  used for frequent worldmodel updates even if not used!

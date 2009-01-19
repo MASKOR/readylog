@@ -439,6 +439,8 @@ apply_rho( [solve(Prog, Horizon, RewardFunction)], Program,
 apply_rho( [{P_List} | Omega], Program, Rho_Program, Stream ) :- !,
         /** Rho had already been applied to this program before. Thus,
          *  do not change anything. */
+        /** TODO: Check if this is correct, or if append has to be used.
+         *  Also appears in other places! */
         Rho_Program = [ Program | [{P_List} | Omega] ].
 
 apply_rho( [pickBest(F, Domain, Delta) | Omega], Program, Rho_Program, Stream ) :- !,

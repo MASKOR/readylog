@@ -82,29 +82,46 @@ get_all_fluent_names(Result) :-
 
 /** Compute an ordered set of all fluent values. */
 get_all_fluent_values(S, Result) :-
+        printf(stdout, "Querying all fluent values... ", []),
+        cputime(TQueryBegin),
         get_all_fluent_names(Fluents),
-        findall( ValXNoComma,
-                 ( member(X, Fluents),
+        findall( ValFStringNoComma,
+                 ( member(F, Fluents),
                    /** check if fluent is instantiated */
-%%                   ( ground(X) ->
-                   ( (ground(X), has_val(X, ValTmpX, S)) ->
-%                          subf(X, ValX, S)
-                          has_val(X, ValX, S),
-                          /** replace commas, as C4.5 forbids them in
-                           *  attribute values */
-                          term_string(ValX, ValXString),
-                          replace_string(ValXString, ",", "COMMA",
-                                         ValXStringNoComma, stdout),
-                          string_to_list(ValXStringNoComma, ValXNoComma)
-                   ;
-                          printf(stdout, "*** Warning: *** ", []),
-                          printf(stdout, "Fluent %w is not instantiated. ", [X]),
-                          printf(stdout, "Fluent is ignored.\n", [])
-                   )%,
-                   /** ignore uninstantiated fluents */
-%                   ground(X)
+                   ( ( ( ground(F) /** TODO: Find out why useAbstraction messes up subf/hasval */
+                       , F \= useAbstraction )  ->
+                         ( exog_fluent(F) ->
+%                             printf(stdout, "Fluent %w is an exogenous fluent...\n", [F]),
+                             exog_fluent_getValue(F, ValF, S)%,
+%                             printf(stdout, "and has value %w.\n", [ValF])
+                         ;
+%                             printf(stdout, "Fluent %w is *NOT* an exogenous fluent...\n", [F]),
+                             subf(F, ValF, S)%,
+%                             printf(stdout, "and has value %w.\n", [ValF])
+                         ),
+                         /** replace commas, as C4.5 forbids them in
+                          *  attribute values.
+                          *  Note, that, in general, ValF is a list! */
+                         term_string(ValF, ValFString),
+                         replace_string(ValFString, ",", "COMMA",
+                                        ValFStringTmp, stdout),
+                         /** replace ", as they are part of the fluent value
+                          *  and otherwise would be interpreted as string identifier
+                          *  by Prolog during later conversion. */
+                         replace_string(ValFStringTmp, "\"", "QUOTATION",
+                                        ValFStringNoComma, stdout)
+                     ;
+                         printf(stdout, "*** Warning: *** ", []),
+                         printf(stdout, "Fluent %w is not instantiated. ", [F]),
+                         printf(stdout, "Fluent is ignored.\n", [])
+                     )
+                   )
                  ),
-                 Result ).
+                 Result ),%.
+%        print_list(Result),
+        cputime(TQueryEnd),
+        TQueryDiff is TQueryEnd - TQueryBegin,
+        printf(stdout, "with success in %w sec.\n", [TQueryDiff]).
 %        Fluents = [First | Rest],
 %        subf(First, ValFirst, H),
 %        Result = [ValFirst].
@@ -141,7 +158,7 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy, S ) :-
                 term_string(Policy, PolicyString),
                 printf(stdout, "PolicyString: %w.\n", [PolicyString]),
                 /** replace commas in policy, as C4.5 forbids them in class names */
-                replace_string(PolicyString, ",", "COMMA",
+                replace_string(PolicyString, ",", "\\,",
                                PolicyStringNoComma, stdout),
                 ( substring(NameStreamString, PolicyString, _Pos) ->
                                 printf(stdout, "Policy already declared.\n", []),
@@ -171,7 +188,7 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy, S ) :-
                 open(FileData, append, DataStream),
                 get_all_fluent_values(S, FluentValues),
                 /** remove outer brackets [] */
-                list_to_string(FluentValues, FluentValuesString),
+                fluent_values_to_string(FluentValues, FluentValuesString),
                 printf(DataStream, "%w, %w\n", [FluentValuesString, PolicyStringNoComma]),
                 close(DataStream)
         ;
@@ -201,7 +218,7 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy, S ) :-
                          printf(NameStream, "\n", []),
                          /** replace commas, as C4.5 forbids them in class names */
                          term_string(Policy, PolicyString),
-                         replace_string(PolicyString, ",", "COMMA", PolicyStringNoComma, stdout),
+                         replace_string(PolicyString, ",", "\\,", PolicyStringNoComma, stdout),
                          printf(NameStream, "%w", [PolicyStringNoComma]),
                          printf(NameStream, ".|append policies here|", []),
                          printf(NameStream, "\n", []),
@@ -253,7 +270,8 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy, S ) :-
 
                          get_all_fluent_values(S, FluentValues),
                          /** remove outer brackets [] */
-                         list_to_string(FluentValues, FluentValuesString),
+                         fluent_values_to_string(FluentValues, FluentValuesString),
+
                          length(FluentNames, FluentNo),
                          length(FluentValues, ValueNo),
                          printf(stdout, "%w Fluents, %w Fluent Values\n", [FluentNo, ValueNo]),

@@ -92,15 +92,14 @@ function( adl(E,L), V,
 %%  FIND AND GET GOLD                                                 %%
 %% ================================================================== %%
 
-proc( find_gold,
+proc( find_gold(Seed),
       [
-         cout(" === STARTING FIND_GOLD === \n"),
-         
+         cout(" === INITIALISING DUNGEON === \n"),
+
          %% initialise random configuration
-         distribute_pits(14322),
-         place_wumpus(224341),
-         place_agent(15232),
-         place_gold(2344),
+         initialise_dungeon(Seed),
+
+         cout(" === STARTING FIND_GOLD === \n"),
          
          exogf_Update,
          
@@ -108,8 +107,10 @@ proc( find_gold,
          ?( epf_agent_pos = [HomeX,HomeY] ),
          ?( epf_gold_pos = [XG, YG] ),
          search_gold,
-         if( epf_gold_reachable = "F",
-             [ cout(" === CANNOT REACH GOLD SAFELY... GOING HOME === "),
+         if( epf_gold_reachable = false,
+             [ cout(" === CANNOT REACH GOLD SAFELY... GOING HOME === \n"),
+               /** TODO: how about keeping to the safe track already found
+                *  instead of exploration? */
                reset_visited,
                while( epf_agent_pos \= [HomeX,HomeY] ,
                       [go_home( HomeX,HomeY ),
@@ -119,7 +120,7 @@ proc( find_gold,
              ],
              [ %% else
                cout( green, " *** found gold at %w,%w *** \n", [XG,YG] ),
-               goto_gold( XG, YG ),
+%               goto_gold( XG, YG ),
                grab_gold,
                reset_visited,
                while( (epf_carry_gold=true, epf_agent_pos \= [HomeX,HomeY]),
@@ -132,14 +133,14 @@ proc( find_gold,
       ]
     ).
 
-%proc( search_gold( XG, YG ),
 proc( search_gold,
       [
          cout(" --- search gold --- \n"),
          exogf_Update,
-         while( (epf_sense_gold = false, epf_gold_reachable = "T" ),
+         while( (epf_sense_gold = false, epf_gold_reachable = true ),
                 [
-                   %exogf_Update,
+                   % exogf_Update,
+                   cout(red, " --- epf_gold_reachable = %w --- \n", [epf_gold_reachable]),
                    solve( [ if( (epf_wumpus_alive = true, epf_agent_arrow = true),
                                 [ nondet( [ go_forward,
                                             turn_left,
@@ -153,7 +154,7 @@ proc( search_gold,
                                           ] )
                                  ]
                                )
-                          ], 4, reward_search_gold ),
+                          ], 8, reward_search_gold ),
                    exogf_Update
                 ]
               ),
@@ -164,31 +165,31 @@ proc( search_gold,
       ]
     ).
 
-proc( goto_gold(X,Y) ,
-      [
-         cout( yellow, " --- goto gold --- \n", [] ),
-         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
-      ]
-    ).
+%proc( goto_gold(X,Y) ,
+%      [
+%         cout( yellow, " --- goto gold --- \n", [] ),
+%         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
+%      ]
+%    ).
 
 proc( grab_gold,
       [
-         cout(" --- grab gold --- \n"),
+         cout( yellow, " --- grab gold --- \n", []),
          pickup_gold,
-         cout(" --- gold successfully picked up --- \n")
+         cout( yellow, " --- gold successfully picked up --- \n", [])
       ]
     ).
 
 proc( carry_gold(X,Y),
       [
-         cout(" --- bringing gold home --- \n"),
+         cout( yellow, " --- bringing gold home --- \n", []),
          solve( goto(X,Y), 5, reward_heuristic(X,Y) )
       ]
     ).
 
 proc( go_home(X,Y),
       [
-         cout(" --- going home --- \n"),
+         cout( yellow, " --- going home --- \n", []),
          solve( goto(X,Y), 5, reward_heuristic(X,Y) )
       ]
     ).
@@ -196,6 +197,14 @@ proc( go_home(X,Y),
 %% ================================================================== %%
 %%  TESTING PROCEDURES                                                %%
 %% ================================================================== %%
+
+proc( train,
+      [
+         exogf_Update,
+         ?( epf_sense_gold = V ),
+         cout(V)
+      ]
+    ).
 
 proc( testg,
       [

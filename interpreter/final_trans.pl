@@ -294,7 +294,8 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
         % <DP was here>
         (
           iplearn -> write_learning_instance(solve(Prog, Horizon, RewardFunction),
-                                             Policy, S)
+                                             Policy, S),
+                     printf("Learning instance written successfully.\n", [])
         ;
                      true
         ),

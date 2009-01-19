@@ -366,6 +366,26 @@ exog_prim_fluent( epf_agent_direction ).
 exog_fluent_getValue( epf_agent_direction, V, _S ) :- !,
       getval( wm_agent_direction, V ).
 
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  direction that the agent     %%
+%%  had been facing in just      %%
+%%  before his most recent move  %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_previous_direction ).
+exog_fluent_getValue( epf_previous_direction, V, _S ) :- !,
+      getval( wm_previous_direction, V ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  tells whether the agent has turned to the  %%
+%%  same direction he was facing just before.  %%
+%%  indicates direct turning in circles        %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_turning_back_again ).
+exog_fluent_getValue( epf_turning_back_again, V, _S ) :- !,
+      getval( wm_turning_back_again, V ).
+
 %% %%%%%%%%%%%%%%%%%%%%%% %%
 %%  is the arrow still    %%
 %%  available?            %%
@@ -445,6 +465,15 @@ exog_fluent_getValue(epf_sense_breeze, V, _S) :- !,
       getval( real_agent_pos, [X,Y]),
       ( breeze(X,Y) -> V = true; V = false ).
 
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  list of cells that are     %%
+%%  known to contain a breeze  %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_cells_breezy ).
+exog_fluent_getValue( epf_cells_breezy, V, _S ) :- !,
+      getval( wm_cells_breezy, V ).
+
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %%  stench sensing       %%
 %% %%%%%%%%%%%%%%%%%%%%% %%
@@ -456,6 +485,15 @@ exog_prim_fluent( epf_sense_stench ).
 exog_fluent_getValue(epf_sense_stench, V, _S) :- !,
       getval( real_agent_pos, [X,Y]),
       ( stench(X,Y) -> V = true; V = false ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  list of cells that are     %%
+%%  known to contain a stench  %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_cells_smelly ).
+exog_fluent_getValue( epf_cells_smelly, V, _S ) :- !,
+      getval( wm_cells_smelly, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  list of cells that are     %%
@@ -492,6 +530,15 @@ exog_fluent_getValue( epf_known_wumpus_pos, V, _S ) :- !,
 exog_prim_fluent( epf_cells_know_no_wumpus ).
 exog_fluent_getValue( epf_cells_know_no_wumpus, V, _S ) :- !,
       getval( wm_cells_know_no_wumpus, V ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  list of cells that are known  %%
+%%  to be safe for exploration    %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_cells_safe ).
+exog_fluent_getValue( epf_cells_safe, V, _S ) :- !,
+      getval( wm_cells_safe, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  Manhattan distance to the    %%
@@ -530,548 +577,370 @@ exog_fluent_getValue( epf_distance_to_closest_safe_cell, V, _S ) :- !,
 %% %%%%%%%%%%%%%%%%%%%%% %%
 
 /** go forward */
-prim_action(go_forward).
-poss(go_forward,
-           or([ and([ epf_agent_pos = [Xp1,Yp1],
-                      is_pos(Xp1,Yp1),
-                      epf_wumpus_alive = WA1,
-           
-                      /** agent has deduced that the cells in the list RCKNP(RealCellsKnowNoPit)
-                       *  do not contain a pit
-                       */
-                      epf_cells_know_no_pit = RCKNP1,
+prim_action( go_forward ).
 
-                      /** agent has deduced that the wumpus is not in the cells in the list
-                       * RCKNW(RealCellsKnowNoWumpus)
-                       */
-                      epf_cells_know_no_wumpus = RCKNW1,
+poss( go_forward,
+        and([ epf_agent_pos = [Xp, Yp],
+              is_pos(Xp, Yp),
+              epf_wumpus_alive = WA,
+              
+              /** agent has deduced that the cells in the list RCKNP(RealCellsKnowNoPit)
+               *  do not contain a pit
+               */
+              epf_cells_know_no_pit = NoPits,
 
-                      epf_agent_direction = D1,
-                      D1 = east,
-                      XEast is Xp1 + 1,
-                      is_pos(XEast,Yp1),
-                      not is_wall(Xp1,Yp1,XEast,Yp1),
-                      %not is_pit(XEast,Yp1),      /** would be absolute knowledge */
-                      member([XEast,Yp1], RCKNP1), /** agent knows that there is no pit in the neighbour cell to the east */
-                      %not is_wumpus(XEast,Yp1)    /** would be absolute knowledge */
-                      or([ member([XEast,Yp1], RCKNW1), /** either wumpus is know not to be in the cell... */
-                           WA1 = false             /** ... or wumpus is dead */
-                         ])
-                    ]),
-                and([ epf_agent_pos = [Xp2,Yp2],
-                      is_pos(Xp2,Yp2),
-                      epf_wumpus_alive = WA2,
-           
-                      epf_cells_know_no_pit = RCKNP2,
+              /** agent has deduced that the wumpus is not in the cells in the list
+               * RCKNW(RealCellsKnowNoWumpus)
+               */
+              epf_cells_know_no_wumpus = NoWumpus,
+              
+              epf_cells_visited = Visited,
+              epf_agent_direction = Dir,
 
-                      epf_cells_know_no_wumpus = RCKNW2,
-                      
-                      epf_agent_direction = D2,
-                      D2 = south,
-                      YSouth is Yp2 - 1,
-                      is_pos(Xp2,YSouth),
-                      not is_wall(Xp2,Yp2,Xp2,YSouth),
-                      member([Xp2,YSouth], RCKNP2),
-                      or([ member([Xp2,YSouth], RCKNW2),
-                           WA2 = false
-                         ])
-                    ]),
-                and([ epf_agent_pos = [Xp3,Yp3],
-                      is_pos(Xp3,Yp3),
-                      epf_wumpus_alive = WA3,
-           
-                      epf_cells_know_no_pit = RCKNP3,
-
-                      epf_cells_know_no_wumpus = RCKNW3,
-                      
-                      epf_agent_direction = D3,
-                      D3 = west,
-                      XWest is Xp3 - 1,
-                      is_pos(XWest,Yp3),
-                      not is_wall(Xp3,Yp3,XWest,Yp3),
-                      member([XWest,Yp3], RCKNP3),
-                      or([ member([XWest,Yp3], RCKNW3),
-                           WA3 = false
-                         ])
-                    ]),
-                and([ epf_agent_pos = [Xp4,Yp4],
-                      is_pos(Xp4,Yp4),
-                      epf_wumpus_alive = WA4,
-           
-                      epf_cells_know_no_pit = RCKNP4,
-
-                      epf_cells_know_no_wumpus = RCKNW4,
-                      
-                      epf_agent_direction = D4,
-                      D4 = north,
-                      YNorth is Yp4 + 1,
-                      is_pos(Xp4,YNorth),
-                      not is_wall(Xp4,Yp4,Xp4,YNorth),
-                      member([Xp4,YNorth], RCKNP4),
-                      or([ member([Xp4,YNorth], RCKNW4),
-                           WA4 = false
-                         ])
-                    ])
-               ])
+              or([ and([ Dir = east,
+                         XEast is Xp + 1,
+                         f_allowed_to_go(Xp, Yp, XEast, Yp, NoPits, NoWumpus, WA, Visited)
+                      ]),
+                   and([ Dir = south,
+                         YSouth is Yp - 1,
+                         f_allowed_to_go(Xp, Yp, Xp, YSouth, NoPits, NoWumpus, WA, Visited)
+                      ]),
+                   and([ Dir = west,
+                         XWest is Xp - 1,
+                         f_allowed_to_go(Xp, Yp, XWest, Yp, NoPits, NoWumpus, WA, Visited)
+                      ]),
+                   and([ Dir = north,
+                         YNorth is Yp + 1,
+                         f_allowed_to_go(Xp, Yp, Xp, YNorth, NoPits, NoWumpus, WA, Visited)
+                      ])
+                ])
+           ])
       ).
-causes_val(go_forward, epf_agent_pos, L,
-                 or([ and([ epf_agent_pos = [Xp1,Yp1],
-                            is_pos(Xp1,Yp1),
-                            epf_agent_direction = D1,
-                            is_direction(D1),
-                            D1 = east,
-                            XEast is Xp1 + 1,
-                            L=[XEast,Yp1]
-                          ]),
-                      and([ epf_agent_pos = [Xp2,Yp2],
-                            is_pos(Xp2,Yp2),
-                            epf_agent_direction = D2,
-                            is_direction(D2),
-                            D2 = south,
-                            YSouth is Yp2 - 1,
-                            L=[Xp2,YSouth]
-                          ]),
-                      and([ epf_agent_pos = [Xp3,Yp3],
-                            is_pos(Xp3,Yp3),
-                            epf_agent_direction = D3,
-                            is_direction(D3),
-                            D3 = west,
-                            XWest is Xp3 - 1,
-                            L=[XWest,Yp3]
-                          ]),
-                      and([ epf_agent_pos = [Xp4,Yp4],
-                            is_pos(Xp4,Yp4),
-                            epf_agent_direction = D4,
-                            is_direction(D4),
-                            D4 = north,
-                            YNorth is Yp4 + 1,
-                            L=[Xp4,YNorth]
-                          ])
+                      
+/** Decide, if agent may go from [Xp, Yp] to [Xn, Yn] */   
+function( f_allowed_to_go(Xp, Yp, Xn, Yn, NoPits, NoWumpus, WA, Visited), V,
+        lif( and([ is_pos(Xn, Yn),
+                   not is_wall(Xp, Yp, Xn, Yn),
+                   % not is_pit(Xn, Yp),            /** would be absolute knowledge */
+                   member([Xn, Yn], NoPits),        /** agent knows that there is no pit
+                                                     *  in the neighbour cell to the east */
+                   % not is_wumpus(Xn, Yn)          /** would be absolute knowledge */
+                   or([ member([Xn, Yn], NoWumpus), /** either wumpus is know not to be in the cell... */
+                        WA = false,                 /** ... or wumpus is dead */
+                        member([Xn, Yn], Visited)   /** ... or the cell had been visited before */
                      ])
-           ).
-/** QUESTION: Do I really have to change epf_cells_visited here, or wm_cells_visited? */
-causes_val(go_forward, epf_cells_visited, ECVn,
-                 or([ and([ epf_agent_pos = [Xp1,Yp1],
-                            is_pos(Xp1,Yp1),
-                            epf_agent_direction = D1,
-                            is_direction(D1),
-                            epf_cells_visited = ECVp1,
-                            D1 = east,
-                            X is Xp1 + 1,
-                            Y = Yp1,
-                            not member([X,Y], ECVp1),
-                            ECVn = [ECVp1 | [X,Y]]
-                          ]),
-                      and([ epf_agent_pos = [Xp2,Yp2],
-                            is_pos(Xp2,Yp2),
-                            epf_agent_direction = D2,
-                            is_direction(D2),
-                            epf_cells_visited = ECVp2,
-                            D2 = south,
-                            X = Xp2,
-                            Y is Yp2 - 1,
-                            not member([X,Y], ECVp2),
-                            ECVn = [ECVp2 | [X,Y]]
-                          ]),
-                      and([ epf_agent_pos = [Xp3,Yp3],
-                            is_pos(Xp3,Yp3),
-                            epf_agent_direction = D3,
-                            is_direction(D3),
-                            epf_cells_visited = ECVp3,
-                            D3 = west,
-                            X is Xp3 - 1,
-                            Y = Yp3,
-                            not member([X,Y], ECVp3),
-                            ECVn = [ECVp3 | [X,Y]]
-                          ]),
-                      and([ epf_agent_pos = [Xp4,Yp4],
-                            is_pos(Xp4,Yp4),
-                            epf_agent_direction = D4,
-                            is_direction(D4),
-                            epf_cells_visited = ECVp4,
-                            D4 = north,
-                            X = Xp4,
-                            Y is Yp4 + 1,
-                            not member([X,Y], ECVp4),
-                            ECVn = [ECVp4 | [X,Y]]
-                          ])
-                    ])
+                ]),
+             V = true,
+             V = false )
+        ).
+
+causes_val( go_forward, epf_agent_pos, L,
+        and([ epf_agent_pos = [Xp, Yp],
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              or([ and([ Dir = east,
+                         XEast is Xp + 1,
+                         L = [XEast, Yp]
+                      ]),
+                   and([ Dir = south,
+                         YSouth is Yp - 1,
+                         L = [Xp, YSouth]
+                      ]),
+                   and([ Dir = west,
+                         XWest is Xp - 1,
+                         L = [XWest,Yp]
+                      ]),
+                   and([ Dir = north,
+                         YNorth is Yp + 1,
+                         L = [Xp, YNorth]
+                      ])
+                ])
+           ])
           ).
+
+/** QUESTION: Do I really have to change epf_cells_visited here, or wm_cells_visited? */
+causes_val( go_forward, epf_cells_visited, CellsVisitedNew,
+        and([ epf_agent_pos = [Xp, Yp],
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_visited = CellsVisitedCurr,
+              or([ and([ Dir = east,
+                         Xn is Xp + 1,
+                         nonmember([Xn, Yp], CellsVisitedCurr),
+                         CellsVisitedNew = [[Xn, Yp] | CellsVisitedCurr]
+                      ]),
+                   and([ Dir = south,
+                         Yn is Yp - 1,
+                         nonmember([Xp, Yn], CellsVisitedCurr),
+                         CellsVisitedNew = [[Xp, Yn] | CellsVisitedCurr]
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp - 1,
+                         nonmember([Xn, Yp], CellsVisitedCurr),
+                         CellsVisitedNew = [[Xn, Yp] | CellsVisitedCurr]
+                      ]),
+                   and([ Dir = north,
+                         Yn is Yp + 1,
+                         nonmember([Xp, Yn], CellsVisitedCurr),
+                         CellsVisitedNew = [[Xp, Yn] | CellsVisitedCurr]
+                      ])
+                ])
+           ])
+        ).
+
+causes_val( go_forward, epf_num_facedShades, V,
+        and([ epf_agent_pos = [Xc, Yc],
+              is_pos(Xc, Yc),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              term_string(Dir, DirString),
+              count_faced_shades([Xc, Yc], DirString, V)
+           ])
+        ).
+
+causes_val( go_forward, epf_distance_to_closest_safe_cell, D,
+        and([ epf_agent_pos = [Xp, Yp],
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_safe = CellsSafe,
+              or([ and([ Dir = east,
+                         Xn is Xp + 1,
+                         compute_distance_to_closest_safe_cell(Xn, Yp, CellsSafe, D)
+                      ]),
+                   and([ Dir = south,
+                         Yn is Yp - 1,
+                         compute_distance_to_closest_safe_cell(Xp, Yn, CellsSafe, D)
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp - 1,
+                         compute_distance_to_closest_safe_cell(Xn, Yp, CellsSafe, D)
+                      ]),
+                   and([ Dir = north,
+                         Yn is Yp + 1,
+                         compute_distance_to_closest_safe_cell(Xp, Yn, CellsSafe, D)
+                      ])
+                ])
+           ])
+        ).
+
+causes_val( go_forward, epf_turning_back_again, V,
+            V = false).
+
+causes_val( go_forward, epf_previous_direction, V,
+            V = 'N/A').
+
+causes_val( go_forward, epf_sure_to_hit, V,
+        and([ epf_agent_pos = [Xc, Yc],
+              is_pos(Xc, Yc),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_know_no_wumpus = CellsKnowNoWumpus,
+              epf_cells_smelly = CellsSmelly,
+              epf_known_wumpus_pos = KnownWumpusPos,
+              determine_sure_to_hit(Xc, Yc, Dir, CellsKnowNoWumpus,
+                                    CellsSmelly, KnownWumpusPos, Vtmp, _WumpusPos),
+              V = Vtmp
+           ])
+        ).
+
 /** epf_visited(X,Y) is changed indirectly via the extension of the wm_cells_visited list */
-%causes_val(go_forward, visited(X,Y), true,
-%           and([ pos = [Xp,Yp],
-%                 direction = D,
-%                 is_direction(D),
-%                 or([ and([ D = "e",
-%                            X is Xp + 1,
-%                            Y = Yp
-%                          ]),
-%                      and([ D = "s",
-%                            X = Xp,
-%                            Y is Yp - 1
-%                          ]),
-%                      and([ D = "w",
-%                            X is Xp - 1,
-%                            Y = Yp
-%                          ]),
-%                      and([ D = "n",
-%                            X = Xp,
-%                            Y is Yp + 1
-%                          ])
-%                     ])
-%                 ])
-%           ).
 /** epf_num_visited is changed indirectly via the extension of the wm_cells_visited list */
-%causes_val(go_forward, num_visited, V,
-%           and([ pos = [Xp,Yp],
-%                 direction = D,
-%                 is_direction(D),
-%                 or([ and([ D = "e",
-%                            X is Xp + 1,
-%                            Y = Yp,
-%                            lif( visited(X,Y), V = num_visited, V is num_visited + 1 )
-%                          ]),
-%                      and([ D = "s",
-%                            X = Xp,
-%                            Y is Yp - 1,
-%                            lif( visited(X,Y), V = num_visited, V is num_visited + 1 )
-%                          ]),
-%                      and([ D = "w",
-%                            X is Xp - 1,
-%                            Y = Yp,
-%                            lif( visited(X,Y), V = num_visited, V is num_visited + 1 )
-%                          ]),
-%                      and([ D = "n",
-%                            X = Xp,
-%                            Y is Yp + 1,
-%                            lif( visited(X,Y), V = num_visited, V is num_visited + 1 )
-%                          ])
-%                     ])
-%                 ])
-%           ).
-causes_val(go_forward, epf_num_facedShades, V,
-                 or([ and([ epf_agent_direction = D1,
-                            is_direction(D1),
-                            D1 = east,
-                            epf_agent_pos = [Xc1,Yc1],
-                            is_pos(Xc1,Yc1),
-                            epf_cells_shaded = CS_EAST,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xs, Yc1],
-                                    ( XcEast is Xc1 + 1,
-                                      between(XcEast, XMax, 1, Xs),
-                                      is_pos(Xs,Yc1),
-                                      member([Xs, Yc1], CS_EAST)
-                                    ),
-                                    SHADES_EAST),
-                            length(SHADES_EAST, V)
-                          ]),
-                      and([ epf_agent_direction = D2,
-                            is_direction(D2),
-                            D2 = south,
-                            epf_agent_pos = [Xc2,Yc2],
-                            is_pos(Xc2,Yc2),
-                            epf_cells_shaded = CS_SOUTH,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xc2, Ys],
-                                    ( YcSouth is Yc2 - 1,
-                                      between(YMin, YcSouth, 1, Ys),
-                                      is_pos(Xc2,Ys),
-                                      member([Xc2, Ys], CS_SOUTH)
-                                    ),
-                                    SHADES_SOUTH),
-                            length(SHADES_SOUTH, V)
-                          ]),
-                      and([ epf_agent_direction = D3,
-                            is_direction(D3),
-                            D3 = west,
-                            epf_agent_pos = [Xc3,Yc3],
-                            is_pos(Xc3,Yc3),
-                            epf_cells_shaded = CS_WEST,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xs, Yc3],
-                                    ( XcWest is Xc3 - 1,
-                                      between(XMin, XcWest, 1, Xs),
-                                      is_pos(Xs,Yc3),
-                                      member([Xs, Yc3], CS_WEST)
-                                    ),
-                                    SHADES_WEST),
-                            length(SHADES_WEST, V)
-                          ]),
-                      and([ epf_agent_direction = D4,
-                            is_direction(D4),
-                            D4 = north,
-                            epf_agent_pos = [Xc4,Yc4],
-                            is_pos(Xc4,Yc4),
-                            epf_cells_shaded = CS_NORTH,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xc4, Ys],
-                                    ( YcNorth is Yc4 + 1,
-                                      between(YcNorth, YMax, 1, Ys),
-                                      is_pos(Xc4,Ys),
-                                      member([Xc4, Ys], CS_NORTH)
-                                    ),
-                                    SHADES_NORTH),
-                            length(SHADES_NORTH, V)
-                          ])
-                     ])
-           ).
+
 
 /** turn right.
  *  According to the specification in Russel/Norvig the agent cannot strafe,
  *  but has to first turn and then walk forward.
  *  This obviously leads to more complex policies. */
-prim_action(turn_right).
-poss(turn_right, true).
-causes_val(turn_right, epf_agent_direction, D,
-                  or([ and([ epf_agent_direction = Dp1,
-                             is_direction(Dp1),
-                             Dp1 = east,
-                             D = south
-                           ]),
-                       and([ epf_agent_direction = Dp2,
-                             is_direction(Dp2),
-                             Dp2 = south,
-                             D = west
-                           ]),
-                       and([ epf_agent_direction = Dp3,
-                             is_direction(Dp3),
-                             Dp3 = west,
-                             D = north
-                           ]),
-                       and([ epf_agent_direction = Dp4,
-                             is_direction(Dp4),
-                             Dp4 = north,
-                             D = east
-                           ])
+prim_action( turn_right ).
+
+poss( turn_right, true ).
+
+causes_val( turn_right, epf_agent_direction, D,
+        and([ epf_agent_direction = Dir,
+              is_direction(Dir),
+              or([ and([ Dir = east,
+                         D = south
+                      ]),
+                   and([ Dir = south,
+                         D = west
+                      ]),
+                   and([ Dir = west,
+                         D = north
+                      ]),
+                   and([ Dir = north,
+                         D = east
                       ])
-           ).
-causes_val(turn_right, epf_num_facedShades, V,
-                 or([ and([ epf_agent_direction = Dp1,
-                            is_direction(Dp1),
-                            Dp1 = east,
-                            epf_agent_pos = [Xc1,Yc1],
-                            is_pos(Xc1,Yc1),
-                            /** after turn facing south */
-                            epf_cells_shaded = CS_SOUTH,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xc1, Ys],
-                                    ( YcSouth is Yc1 - 1,
-                                      between(YMin, YcSouth, 1, Ys),
-                                      is_pos(Xc1,Ys),
-                                      member([Xc1, Ys], CS_SOUTH)
-                                    ),
-                                    SHADES_SOUTH),
-                            length(SHADES_SOUTH, V)
-                          ]),
-                      and([ epf_agent_direction = Dp2,
-                            is_direction(Dp2),
-                            Dp2 = south,
-                            epf_agent_pos = [Xc2,Yc2],
-                            is_pos(Xc2,Yc2),
-                            /** after turn facing west */
-                            epf_cells_shaded = CS_WEST,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xs, Yc2],
-                                    ( XcWest is Xc2 - 1,
-                                      between(XMin, XcWest, 1, Xs),
-                                      is_pos(Xs,Yc2),
-                                      member([Xs, Yc2], CS_WEST)
-                                    ),
-                                    SHADES_WEST),
-                            length(SHADES_WEST, V)
-                          ]),
-                      and([ epf_agent_direction = Dp3,
-                            is_direction(Dp3),
-                            Dp3 = west,
-                            epf_agent_pos = [Xc3,Yc3],
-                            is_pos(Xc3,Yc3),
-                            /** after turn facing north*/
-                            epf_cells_shaded = CS_NORTH,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xc3, Ys],
-                                    ( YcNorth is Yc3 + 1,
-                                      between(YcNorth, YMax, 1, Ys),
-                                      is_pos(Xc3,Ys),
-                                      member([Xc3, Ys], CS_NORTH)
-                                    ),
-                                    SHADES_NORTH),
-                            length(SHADES_NORTH, V)
-                          ]),
-                      and([ epf_agent_direction = Dp4,
-                            is_direction(Dp4),
-                            Dp4 = north,
-                            epf_agent_pos = [Xc4,Yc4],
-                            is_pos(Xc4,Yc4),
-                            /** after turn facing east */
-                            epf_cells_shaded = CS_EAST,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xs, Yc4],
-                                    ( XcEast is Xc4 + 1,
-                                      between(XcEast, XMax, 1, Xs),
-                                      is_pos(Xs,Yc4),
-                                      member([Xs, Yc4], CS_EAST)
-                                    ),
-                                    SHADES_EAST),
-                            length(SHADES_EAST, V)
-                          ])
-                     ])
-           ).
+                ])
+           ])
+        ).
+
+causes_val( turn_right, epf_num_facedShades, V,
+        and([ epf_agent_pos = [Xc, Yc],
+              is_pos(Xc, Yc),
+              epf_agent_direction = DirCurr,
+              is_direction(DirCurr),
+              or([ and([ DirCurr = east, 
+                         /** after turn facing south */
+                         count_faced_shades([Xc, Yc], south, V)
+                      ]),
+                   and([ DirCurr = south, 
+                         /** after turn facing west */
+                         count_faced_shades([Xc, Yc], west, V)
+                      ]),
+                   and([ DirCurr = west, 
+                         /** after turn facing north */
+                         count_faced_shades([Xc, Yc], north, V)
+                      ]),
+                   and([ DirCurr = north, 
+                         /** after turn facing east */
+                         count_faced_shades([Xc, Yc], east, V)
+                      ])
+                ])
+           ])
+        ).
+
+/** predicates to recognise an immediate backturn */
+/** backturn_right( +CurrentDir, +PreviousDir ). */
+backturn_right( east, "south" ).
+backturn_right( south, "west" ).
+backturn_right( west, "north" ).
+backturn_right( north, "east" ).
+
+causes_val( turn_right, epf_turning_back_again, V,
+        and([ epf_agent_direction = DCurr,
+              epf_previous_direction = DPrev,
+              lif( backturn_right(DCurr, DPrev),
+                   V = true,
+                   V = false )
+           ])
+        ).
+causes_val( turn_right, epf_previous_direction, V,
+        V = epf_agent_direction).
+
 
 /** turn left */
-prim_action(turn_left).
-poss(turn_left, true).
-causes_val(turn_left, epf_agent_direction, D,
-                  or([ and([ epf_agent_direction = Dp1,
-                             is_direction(Dp1),
-                             Dp1 = east,
-                             D = north
-                           ]),
-                       and([ epf_agent_direction = Dp2,
-                             is_direction(Dp2),
-                             Dp2 = south,
-                             D = east
-                           ]),
-                       and([ epf_agent_direction = Dp3,
-                             is_direction(Dp3),
-                             Dp3 = west,
-                             D = south
-                           ]),
-                       and([ epf_agent_direction = Dp4,
-                             is_direction(Dp4),
-                             Dp4 = north,
-                             D = west
-                           ])
+prim_action( turn_left ).
+
+poss( turn_left, true ).
+
+causes_val( turn_left, epf_agent_direction, D,
+        and([ epf_agent_direction = Dir,
+              is_direction(Dir),
+              or([ and([ Dir = east,
+                         D = north
+                      ]),
+                   and([ Dir = south,
+                         D = east
+                      ]),
+                   and([ Dir = west,
+                         D = south
+                      ]),
+                   and([ Dir = north,
+                         D = west
                       ])
-           ).
-causes_val(turn_left, epf_num_facedShades, V,
-                 or([ and([ epf_agent_direction = Dp1,
-                            is_direction(Dp1),
-                            Dp1 = east,
-                            epf_agent_pos = [Xc1,Yc1],
-                            is_pos(Xc1,Yc1),
-                            /** after turn facing north */
-                            epf_cells_shaded = CS_NORTH,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xc1, Ys],
-                                    ( YcNorth is Yc1 + 1,
-                                      between(YcNorth, YMax, 1, Ys),
-                                      is_pos(Xc1,Ys),
-                                      member([Xc1, Ys], CS_NORTH)
-                                    ),
-                                    SHADES_NORTH),
-                            length(SHADES_NORTH, V)
-                          ]),
-                      and([ epf_agent_direction = Dp2,
-                            is_direction(Dp2),
-                            Dp2 = south,
-                            epf_agent_pos = [Xc2,Yc2],
-                            is_pos(Xc2,Yc2),
-                            /** after turn facing east */
-                            epf_cells_shaded = CS_EAST,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xs, Yc2],
-                                    ( XcEast is Xc2 + 1,
-                                      between(XcEast, XMax, 1, Xs),
-                                      is_pos(Xs,Yc2),
-                                      member([Xs, Yc2], CS_EAST)
-                                    ),
-                                    SHADES_EAST),
-                            length(SHADES_EAST, V)
-                          ]),
-                      and([ epf_agent_direction = Dp3,
-                            is_direction(Dp3),
-                            Dp3 = west,
-                            epf_agent_pos = [Xc3,Yc3],
-                            is_pos(Xc3,Yc3),
-                            /** after turn facing south */
-                            epf_cells_shaded = CS_SOUTH,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xc3, Ys],
-                                    ( YcSouth is Yc3 - 1,
-                                      between(YMin, YcSouth, 1, Ys),
-                                      is_pos(Xc3,Ys),
-                                      member([Xc3, Ys], CS_SOUTH)
-                                    ),
-                                    SHADES_SOUTH),
-                            length(SHADES_SOUTH, V)
-                          ]),
-                      and([ epf_agent_direction = Dp4,
-                            is_direction(Dp4),
-                            Dp4 = north,
-                            epf_agent_pos = [Xc4,Yc4],
-                            is_pos(Xc4,Yc4),
-                            /** after turn facing west */
-                            epf_cells_shaded = CS_WEST,
-                            world( XMin, YMin, XMax, YMax ),
-                            findall([Xs, Yc4],
-                                    ( XcWest is Xc4 - 1,
-                                      between(XMin, XcWest, 1, Xs),
-                                      is_pos(Xs,Yc4),
-                                      member([Xs, Yc4], CS_WEST)
-                                    ),
-                                    SHADES_WEST),
-                            length(SHADES_WEST, V)
-                          ])
-                     ])
-           ).
+                ])
+           ])
+        ).
+
+causes_val( turn_left, epf_num_facedShades, V,
+        and([ epf_agent_pos = [Xc, Yc],
+              is_pos(Xc, Yc),
+              epf_agent_direction = DirCurr,
+              is_direction(DirCurr),
+              or([ and([ DirCurr = east, 
+                         /** after turn facing north */
+                         count_faced_shades([Xc, Yc], north, V)
+                      ]),
+                   and([ DirCurr = south, 
+                         /** after turn facing east */
+                         count_faced_shades([Xc, Yc], east, V)
+                      ]),
+                   and([ DirCurr = west, 
+                         /** after turn facing south */
+                         count_faced_shades([Xc, Yc], south, V)
+                      ]),
+                   and([ DirCurr = north, 
+                         /** after turn facing west */
+                         count_faced_shades([Xc, Yc], west, V)
+                      ])
+                ])
+           ])
+        ).
+
+/** predicates to recognise an immediate backturn */
+/** backturn_left( +CurrentDir, +PreviousDir ). */
+backturn_left( east, "north" ).
+backturn_left( south, "east" ).
+backturn_left( west, "south" ).
+backturn_left( north, "west" ).
+
+causes_val( turn_left, epf_turning_back_again, V,
+        and([ DCurr = epf_agent_direction,
+              DPrev = epf_previous_direction,
+              lif( backturn_left(DCurr,DPrev),
+                   V = true,
+                   V = false )
+           ])
+        ).
+
+causes_val( turn_left, epf_previous_direction, V,
+        V = epf_agent_direction).
+
 
 /** shoot */
-prim_action(shoot).
-%poss(shoot, epf_agent_arrow=true).
+prim_action( shoot ).
+
 /** only allow agent to shoot if it can be sure to hit the wumpus */
-poss(shoot, and([ epf_agent_arrow = true,
-                  epf_sure_to_hit = true ])).
+poss( shoot, and([ epf_agent_arrow = true,
+                   epf_sure_to_hit = true ])).
+
 /** agent only has *one* arrow */
-causes_val(shoot, epf_agent_arrow, A, A=false ).
-causes_val(shoot, epf_wumpus_alive, WA,
-               or([ and([ epf_agent_direction = D1,
-                          is_direction(D1),
-                          D1 = east,
-                          epf_agent_pos=[X1,Y1],
-                          is_pos(X1,Y1),
-                          epf_wumpus_pos = [XW1, YW1],
-                          YW1 = Y1,  % agent and wumpus in same row
-                          XW1 > X1,  % wumpus is in front
-                          WA = false % wumpus dies
-                        ]),
-                    and([ epf_agent_direction = D2,
-                          is_direction(D2),
-                          D2 = south,
-                          epf_agent_pos=[X2,Y2],
-                          is_pos(X2,Y2),
-                          epf_wumpus_pos = [XW2, YW2],
-                          XW2 = X2,
-                          YW2 < Y2,
-                          WA = false
-                        ]),
-                    and([ epf_agent_direction = D3,
-                          is_direction(D3),
-                          D3 = west,
-                          epf_agent_pos=[X3,Y3],
-                          is_pos(X3,Y3),
-                          epf_wumpus_pos = [XW3, YW3],
-                          YW3 = Y3,
-                          XW3 < X3,
-                          WA = false
-                        ]),
-                    and([ epf_agent_direction = D4,
-                          is_direction(D4),
-                          D4 = north,
-                          epf_agent_pos=[X4,Y4],
-                          is_pos(X4,Y4),
-                          epf_wumpus_pos = [XW4, YW4],
-                          XW4 = X4,
-                          YW4 > Y4,
-                          WA = false
-                        ]),
-                     WA = true /** wumpus missed (necessary?) */
-                   ])
-).
+causes_val( shoot, epf_agent_arrow, A,
+        A = false ).
+
+causes_val( shoot, epf_wumpus_alive, WA,
+        WA = false ). % as otherwise shoot is not possible
+%              epf_agent_pos = [XA, YA],
+%              is_pos(XA, YA),
+%              epf_agent_direction = Dir,
+%              is_direction(Dir),
+%              epf_wumpus_pos = [XW, YW],
+%              or([ and([ Dir = east,
+%                         YW = YA,    % agent and wumpus in same row
+%                         XW > XA,    % wumpus is in front
+%                         WA = false  % wumpus dies
+%                      ]),
+%                   and([ Dir = south,
+%                         XW = XA,
+%                         YW < YA,
+%                         WA = false
+%                      ]),
+%                   and([ Dir = west,
+%                         YW = YA,
+%                         XW < XA,
+%                         WA = false
+%                      ]),
+%                   and([ Dir = north,
+%                         XW = XA,
+%                         YW > YA,
+%                         WA = false
+%                      ])
+%                ])
+%           ])
+%        ).
+
+causes_val( shoot, epf_cells_know_no_wumpus, CellsNoWumpus,
+        % as Wumpus dies if shoot is possible
+        get_all_positions( CellsAll ),
+        CellsNoWumpus = CellsAll
+        ).
 
 /** do not move */
-prim_action(rest).
-poss(rest, 
+prim_action( rest ).
+poss( rest, 
      and([ epf_agent_pos = [X,Y], is_pos(X,Y) ]) 
     ).
 
@@ -1085,7 +954,7 @@ poss( pickup_gold,
             is_pos(X,Y),
             getval( real_gold_pos, [XG,YG] ),
             X =:= XG, Y =:= YG,
-            not epf_carry_gold
+            epf_carry_gold = false
           ]) 
     ).
 causes_val( pickup_gold, epf_carry_gold, V, V = true ).
@@ -1097,26 +966,11 @@ causes_val( pickup_gold, epf_carry_gold, V, V = true ).
 prim_action(noop).
 poss(noop, true ).
 
-/** Randomly distribute 1 to 3 pits in the world.
+/** Randomly initialise the dungeon.
  *  The Seed allows for reproducibility of configurations. */
-prim_action(distribute_pits(_Seed)).
-poss( distribute_pits(_Seed), true ).
+prim_action(initialise_dungeon(_Seed)).
+poss( initialise_dungeon(_Seed), true ).
 
-/** Randomly place the wumpus.
- *  The Seed allows reproducibility of placement. */
-prim_action(place_wumpus(_Seed)).
-poss( place_wumpus(_Seed), true ).
-
-/** Randomly place the agent (and the start/exit cell).
- *  The Seed allows reproducibility of placement. */
-prim_action(place_agent(_Seed)).
-poss( place_agent(_Seed), true ).
-
-/** Randomly place the gold.
- *  The Seed allows reproducibility of placement. */
-prim_action(place_gold(_Seed)).
-poss( place_gold(_Seed), true ).
- 
 prim_action(reset_visited).
 poss( reset_visited, true ).
 causes_val( reset_visited, visited(_,_), V, V = false ).

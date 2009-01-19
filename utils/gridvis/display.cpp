@@ -251,7 +251,7 @@ draw_agent( int X, int Y)
 }
 
 void 
-draw_wumpus( int X, int Y, bool A)
+draw_wumpus( int X, int Y, int A)
 {
 /*  if(A) {
     std::cout << "display(draw_wumpus): drawing alive wumpus at (" << X << "," << Y << ")." <<std::endl;
@@ -269,7 +269,86 @@ draw_wumpus( int X, int Y, bool A)
   float scalex = 0.45;
   float scaley = -0.45;
 
-  if(A==false){
+  if(A){
+  // body
+  j_draw_line(start_x+(0*scalex), start_y+(0*scaley), start_x+(8*scalex),start_y+(4*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(8*scalex), start_y+(4*scaley), start_x+(22*scalex),start_y+(2*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(22*scalex), start_y+(2*scaley), start_x+(22*scalex),start_y+(8*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(22*scalex), start_y+(8*scaley), start_x+(8*scalex),start_y+(11*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(8*scalex), start_y+(11*scaley), start_x+(1*scalex),start_y+(18*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(1*scalex), start_y+(18*scaley), start_x+(3*scalex),start_y+(55*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(3*scalex), start_y+(55*scaley), start_x+(-6*scalex),start_y+(71*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-6*scalex), start_y+(71*scaley), start_x+(-16*scalex),start_y+(74*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-16*scalex), start_y+(74*scaley), start_x+(-13*scalex),start_y+(78*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-13*scalex), start_y+(78*scaley), start_x+(-15*scalex),start_y+(81*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-15*scalex), start_y+(81*scaley), start_x+(-11*scalex),start_y+(83*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-11*scalex), start_y+(83*scaley), start_x+(-12*scalex),start_y+(86*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-12*scalex), start_y+(86*scaley), start_x+(-9*scalex),start_y+(87*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-9*scalex), start_y+(87*scaley), start_x+(-6*scalex),start_y+(91*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-6*scalex), start_y+(91*scaley), start_x+(-2*scalex),start_y+(86*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(-2*scalex), start_y+(86*scaley), start_x+(5*scalex),start_y+(67*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(5*scalex), start_y+(67*scaley), start_x+(12*scalex),start_y+(91*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(12*scalex), start_y+(91*scaley), start_x+(25*scalex),start_y+(101*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(25*scalex), start_y+(101*scaley), start_x+(42*scalex),start_y+(105*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(42*scalex), start_y+(105*scaley), start_x+(59*scalex),start_y+(99*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(59*scalex), start_y+(99*scaley), start_x+(66*scalex),start_y+(90*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(66*scalex), start_y+(90*scaley), start_x+(70*scalex),start_y+(68*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(70*scalex), start_y+(68*scaley), start_x+(77*scalex),start_y+(82*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(77*scalex), start_y+(82*scaley), start_x+(80*scalex),start_y+(89*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(80*scalex), start_y+(89*scaley), start_x+(82*scalex),start_y+(85*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(82*scalex), start_y+(85*scaley), start_x+(87*scalex),start_y+(87*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(87*scalex), start_y+(87*scaley), start_x+(86*scalex),start_y+(83*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(86*scalex), start_y+(83*scaley), start_x+(90*scalex),start_y+(81*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(90*scalex), start_y+(81*scaley), start_x+(87*scalex),start_y+(79*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(87*scalex), start_y+(79*scaley), start_x+(91*scalex),start_y+(76*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(91*scalex), start_y+(76*scaley), start_x+(88*scalex),start_y+(74*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(88*scalex), start_y+(74*scaley), start_x+(80*scalex),start_y+(70*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(80*scalex), start_y+(70*scaley), start_x+(71*scalex),start_y+(53*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(71*scalex), start_y+(53*scaley), start_x+(75*scalex),start_y+(19*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(75*scalex), start_y+(19*scaley), start_x+(70*scalex),start_y+(10*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(70*scalex), start_y+(10*scaley), start_x+(55*scalex),start_y+(8*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(55*scalex), start_y+(8*scaley), start_x+(55*scalex),start_y+(3*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(55*scalex), start_y+(3*scaley), start_x+(63*scalex),start_y+(2*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(63*scalex), start_y+(2*scaley), start_x+(75*scalex),start_y+(3*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(75*scalex), start_y+(3*scaley), start_x+(79*scalex),start_y+(-1*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(79*scalex), start_y+(-1*scaley), start_x+(75*scalex),start_y+(-6*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(75*scalex), start_y+(-6*scaley), start_x+(61*scalex),start_y+(-7*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(61*scalex), start_y+(-7*scaley), start_x+(41*scalex),start_y+(-3*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(41*scalex), start_y+(-3*scaley), start_x+(42*scalex),start_y+(2*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(42*scalex), start_y+(2*scaley), start_x+(45*scalex),start_y+(4*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(45*scalex), start_y+(4*scaley), start_x+(45*scalex),start_y+(8*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(45*scalex), start_y+(8*scaley), start_x+(33*scalex),start_y+(8*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(33*scalex), start_y+(8*scaley), start_x+(33*scalex),start_y+(4*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(33*scalex), start_y+(4*scaley), start_x+(37*scalex),start_y+(-3*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(37*scalex), start_y+(-3*scaley), start_x+(4*scalex),start_y+(-6*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(4*scalex), start_y+(-6*scaley), start_x+(0*scalex),start_y+(0*scaley),COLORS[85],3,0,0,WINDOW);
+
+  // eyes
+  j_draw_circle(start_x+(30*scalex), start_y+(61*scaley), 7*scalex, COLORS[85],0,0,WINDOW);
+  j_draw_circle(start_x+(46*scalex), start_y+(61*scaley), 7*scalex, COLORS[85],0,0,WINDOW);
+
+  // eye brows
+  j_draw_line(start_x+(23*scalex), start_y+(72*scaley), start_x+(33*scalex),start_y+(72*scaley),COLORS[85],5,0,0,WINDOW);
+  j_draw_line(start_x+(43*scalex), start_y+(74*scaley), start_x+(53*scalex),start_y+(70*scaley),COLORS[85],5,0,0,WINDOW);
+
+  // mouth
+  j_draw_line(start_x+(22*scalex), start_y+(45*scaley), start_x+(26*scalex),start_y+(42*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(26*scalex), start_y+(42*scaley), start_x+(33*scalex),start_y+(44*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(33*scalex), start_y+(44*scaley), start_x+(39*scalex),start_y+(42*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(39*scalex), start_y+(42*scaley), start_x+(45*scalex),start_y+(45*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(45*scalex), start_y+(45*scaley), start_x+(52*scalex),start_y+(42*scaley),COLORS[85],3,0,0,WINDOW);
+  j_draw_line(start_x+(52*scalex), start_y+(42*scaley), start_x+(56*scalex),start_y+(46*scaley),COLORS[85],3,0,0,WINDOW);
+
+  // teeth
+  j_draw_line(start_x+(31*scalex), start_y+(43*scaley), start_x+(32*scalex),start_y+(35*scaley),COLORS[85],2,0,0,WINDOW);
+  j_draw_line(start_x+(32*scalex), start_y+(35*scaley), start_x+(36*scalex),start_y+(36*scaley),COLORS[85],2,0,0,WINDOW);
+  j_draw_line(start_x+(36*scalex), start_y+(36*scaley), start_x+(37*scalex),start_y+(42*scaley),COLORS[85],2,0,0,WINDOW);
+
+  j_draw_line(start_x+(43*scalex), start_y+(43*scaley), start_x+(44*scalex),start_y+(36*scaley),COLORS[85],2,0,0,WINDOW);
+  j_draw_line(start_x+(44*scalex), start_y+(36*scaley), start_x+(49*scalex),start_y+(36*scaley),COLORS[85],2,0,0,WINDOW);
+  j_draw_line(start_x+(49*scalex), start_y+(36*scaley), start_x+(50*scalex),start_y+(42*scaley),COLORS[85],2,0,0,WINDOW);
+  }
+  else {
   // body
   j_draw_line(start_x+(0*scalex), start_y+(0*scaley), start_x+(8*scalex),start_y+(4*scaley),COLORS[81],3,0,0,WINDOW);
   j_draw_line(start_x+(8*scalex), start_y+(4*scaley), start_x+(22*scalex),start_y+(2*scaley),COLORS[81],3,0,0,WINDOW);
@@ -348,86 +427,6 @@ draw_wumpus( int X, int Y, bool A)
   j_draw_line(start_x+(44*scalex), start_y+(36*scaley), start_x+(49*scalex),start_y+(36*scaley),COLORS[81],2,0,0,WINDOW);
   j_draw_line(start_x+(49*scalex), start_y+(36*scaley), start_x+(50*scalex),start_y+(42*scaley),COLORS[81],2,0,0,WINDOW);
   }
-  else {
-  // body
-  j_draw_line(start_x+(0*scalex), start_y+(0*scaley), start_x+(8*scalex),start_y+(4*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(8*scalex), start_y+(4*scaley), start_x+(22*scalex),start_y+(2*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(22*scalex), start_y+(2*scaley), start_x+(22*scalex),start_y+(8*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(22*scalex), start_y+(8*scaley), start_x+(8*scalex),start_y+(11*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(8*scalex), start_y+(11*scaley), start_x+(1*scalex),start_y+(18*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(1*scalex), start_y+(18*scaley), start_x+(3*scalex),start_y+(55*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(3*scalex), start_y+(55*scaley), start_x+(-6*scalex),start_y+(71*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-6*scalex), start_y+(71*scaley), start_x+(-16*scalex),start_y+(74*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-16*scalex), start_y+(74*scaley), start_x+(-13*scalex),start_y+(78*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-13*scalex), start_y+(78*scaley), start_x+(-15*scalex),start_y+(81*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-15*scalex), start_y+(81*scaley), start_x+(-11*scalex),start_y+(83*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-11*scalex), start_y+(83*scaley), start_x+(-12*scalex),start_y+(86*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-12*scalex), start_y+(86*scaley), start_x+(-9*scalex),start_y+(87*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-9*scalex), start_y+(87*scaley), start_x+(-6*scalex),start_y+(91*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-6*scalex), start_y+(91*scaley), start_x+(-2*scalex),start_y+(86*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(-2*scalex), start_y+(86*scaley), start_x+(5*scalex),start_y+(67*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(5*scalex), start_y+(67*scaley), start_x+(12*scalex),start_y+(91*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(12*scalex), start_y+(91*scaley), start_x+(25*scalex),start_y+(101*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(25*scalex), start_y+(101*scaley), start_x+(42*scalex),start_y+(105*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(42*scalex), start_y+(105*scaley), start_x+(59*scalex),start_y+(99*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(59*scalex), start_y+(99*scaley), start_x+(66*scalex),start_y+(90*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(66*scalex), start_y+(90*scaley), start_x+(70*scalex),start_y+(68*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(70*scalex), start_y+(68*scaley), start_x+(77*scalex),start_y+(82*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(77*scalex), start_y+(82*scaley), start_x+(80*scalex),start_y+(89*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(80*scalex), start_y+(89*scaley), start_x+(82*scalex),start_y+(85*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(82*scalex), start_y+(85*scaley), start_x+(87*scalex),start_y+(87*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(87*scalex), start_y+(87*scaley), start_x+(86*scalex),start_y+(83*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(86*scalex), start_y+(83*scaley), start_x+(90*scalex),start_y+(81*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(90*scalex), start_y+(81*scaley), start_x+(87*scalex),start_y+(79*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(87*scalex), start_y+(79*scaley), start_x+(91*scalex),start_y+(76*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(91*scalex), start_y+(76*scaley), start_x+(88*scalex),start_y+(74*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(88*scalex), start_y+(74*scaley), start_x+(80*scalex),start_y+(70*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(80*scalex), start_y+(70*scaley), start_x+(71*scalex),start_y+(53*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(71*scalex), start_y+(53*scaley), start_x+(75*scalex),start_y+(19*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(75*scalex), start_y+(19*scaley), start_x+(70*scalex),start_y+(10*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(70*scalex), start_y+(10*scaley), start_x+(55*scalex),start_y+(8*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(55*scalex), start_y+(8*scaley), start_x+(55*scalex),start_y+(3*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(55*scalex), start_y+(3*scaley), start_x+(63*scalex),start_y+(2*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(63*scalex), start_y+(2*scaley), start_x+(75*scalex),start_y+(3*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(75*scalex), start_y+(3*scaley), start_x+(79*scalex),start_y+(-1*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(79*scalex), start_y+(-1*scaley), start_x+(75*scalex),start_y+(-6*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(75*scalex), start_y+(-6*scaley), start_x+(61*scalex),start_y+(-7*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(61*scalex), start_y+(-7*scaley), start_x+(41*scalex),start_y+(-3*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(41*scalex), start_y+(-3*scaley), start_x+(42*scalex),start_y+(2*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(42*scalex), start_y+(2*scaley), start_x+(45*scalex),start_y+(4*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(45*scalex), start_y+(4*scaley), start_x+(45*scalex),start_y+(8*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(45*scalex), start_y+(8*scaley), start_x+(33*scalex),start_y+(8*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(33*scalex), start_y+(8*scaley), start_x+(33*scalex),start_y+(4*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(33*scalex), start_y+(4*scaley), start_x+(37*scalex),start_y+(-3*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(37*scalex), start_y+(-3*scaley), start_x+(4*scalex),start_y+(-6*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(4*scalex), start_y+(-6*scaley), start_x+(0*scalex),start_y+(0*scaley),COLORS[85],3,0,0,WINDOW);
-
-  // eyes
-  j_draw_circle(start_x+(30*scalex), start_y+(61*scaley), 7*scalex, COLORS[85],0,0,WINDOW);
-  j_draw_circle(start_x+(46*scalex), start_y+(61*scaley), 7*scalex, COLORS[85],0,0,WINDOW);
-
-  // eye brows
-  j_draw_line(start_x+(23*scalex), start_y+(72*scaley), start_x+(33*scalex),start_y+(72*scaley),COLORS[85],5,0,0,WINDOW);
-  j_draw_line(start_x+(43*scalex), start_y+(74*scaley), start_x+(53*scalex),start_y+(70*scaley),COLORS[85],5,0,0,WINDOW);
-
-  // mouth
-  j_draw_line(start_x+(22*scalex), start_y+(45*scaley), start_x+(26*scalex),start_y+(42*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(26*scalex), start_y+(42*scaley), start_x+(33*scalex),start_y+(44*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(33*scalex), start_y+(44*scaley), start_x+(39*scalex),start_y+(42*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(39*scalex), start_y+(42*scaley), start_x+(45*scalex),start_y+(45*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(45*scalex), start_y+(45*scaley), start_x+(52*scalex),start_y+(42*scaley),COLORS[85],3,0,0,WINDOW);
-  j_draw_line(start_x+(52*scalex), start_y+(42*scaley), start_x+(56*scalex),start_y+(46*scaley),COLORS[85],3,0,0,WINDOW);
-
-  // teeth
-  j_draw_line(start_x+(31*scalex), start_y+(43*scaley), start_x+(32*scalex),start_y+(35*scaley),COLORS[85],2,0,0,WINDOW);
-  j_draw_line(start_x+(32*scalex), start_y+(35*scaley), start_x+(36*scalex),start_y+(36*scaley),COLORS[85],2,0,0,WINDOW);
-  j_draw_line(start_x+(36*scalex), start_y+(36*scaley), start_x+(37*scalex),start_y+(42*scaley),COLORS[85],2,0,0,WINDOW);
-
-  j_draw_line(start_x+(43*scalex), start_y+(43*scaley), start_x+(44*scalex),start_y+(36*scaley),COLORS[85],2,0,0,WINDOW);
-  j_draw_line(start_x+(44*scalex), start_y+(36*scaley), start_x+(49*scalex),start_y+(36*scaley),COLORS[85],2,0,0,WINDOW);
-  j_draw_line(start_x+(49*scalex), start_y+(36*scaley), start_x+(50*scalex),start_y+(42*scaley),COLORS[85],2,0,0,WINDOW);
-
-  }
 
 
 
@@ -476,7 +475,7 @@ draw_arrow( int X, int Y, std::string D )
 }
 
 void
-draw_wumpus_hunter( int X, int Y, std::string D, bool A )
+draw_wumpus_hunter( int X, int Y, std::string D, int A )
 {
   int start_x, start_y; //, end_x, end_y;
   //std::cout << X << " " <<Y <<std::endl;

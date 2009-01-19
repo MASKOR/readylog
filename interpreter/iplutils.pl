@@ -225,15 +225,34 @@ list_to_string( List, ResultString ) :- !,
         /** remove all "'" that Prolog builds in when
          *  converting term->string */
         remove_character( TmpString, "'", ResultString ).        
-        
+
 string_to_list( "", List ) :- !,
-         List = [].
+        List = [].
 
 string_to_list( String, List ) :- !,
         split_string( String, ",", " \t", StringList),
         findall( X,
                  ( member(Y, StringList), atom_string(X,Y) ),
                  List ).
+
+fluent_values_to_string( [], ResultString ) :- !,
+        ResultString = "".
+
+fluent_values_to_string( List, ResultString ) :- !,
+        /** cut away brackets around the argument list */
+        term_string(List, String),
+        string_length(String, StringLength),
+        ReducedLength is (StringLength - 2),
+        substring( String, 2, ReducedLength, TmpString1 ),
+        /** remove all " that Prolog builds in when
+         *  converting (string)term->string */
+        remove_character( TmpString1, "\"", TmpString2 ),
+        /** recover commas that were part of the fluent value. */
+        replace_string( TmpString2, "COMMA", "\\,",
+                        TmpString3, stdout ),
+        /** recover " that were part of the fluent value. */
+        replace_string( TmpString3, "QUOTATION", "\"",
+                        ResultString, stdout ).        
 
 remove_character( String, Character, ResultString ) :- !,
         ( substring( String, Character, PrimePos ) ->
