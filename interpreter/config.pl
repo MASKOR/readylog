@@ -92,6 +92,10 @@ toggle_iplearn :- getval(iplearn, X),
           printf("IPLearn turned ON\n", [])
        ).
 
+/** Is IPL still in training phase or already in consultation phase */
+:- setval(iplTrainingPhase, false).
+iplTrainingPhase :- getval(iplTrainingPhase, X), X=true.
+
 /** Create a hash table to store the filenames (keys) for
  *  the different solve contexts (values). */
 %:- local reference(solveHashTable).

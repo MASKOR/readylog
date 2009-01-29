@@ -1,0 +1,76 @@
+C4.5(1)                                                   C4.5(1)
+
+
+
+NNAAMMEE
+       c4.5rules  -  form production rules from unpruned decision
+       trees
+
+SSYYNNOOPPSSIISS
+       cc44..55rruulleess [ --ff filestem ] [ --uu ] [ --vv verb ] [ --FF siglevel
+       ] [ --cc cf ] [ --rr redundancy ]
+
+DDEESSCCRRIIPPTTIIOONN
+       _C_4_._5_r_u_l_e_s  reads  the  decision  tree or trees produced by
+       C4.5 and generates a set of  production  rules  from  each
+       tree  and  from  all  trees  together.  All files read and
+       written  by  C4.5  are  of  the  form  _f_i_l_e_s_t_e_m_._e_x_t  where
+       _f_i_l_e_s_t_e_m is a file name stem that identifies the induction
+       task and _e_x_t is an extension  that  defines  the  type  of
+       file.   The  Rules  program  expects  to find a nnaammeess ffiillee
+       defining class, attribute and  attribute  value  names,  a
+       ddaattaa  ffiillee  containing  a  set  of objects whose class and
+       value of each attribute is specified, a uunnpprruunneedd ffiillee gen­
+       erated by C4.5 from the ddaattaa ffiillee,, and (optionally) a tteesstt
+       ffiillee containing unseen objects.
+
+       For each tree that it finds, the program generates  a  set
+       of  pruned rules, and then sifts this set in an attempt to
+       find the most useful subset of them.   If  more  than  one
+       tree  was  found,  all  subsets  are  then  merged and the
+       resulting composite set of  rules  is  then  sifted.   The
+       final  set  of rules is saved in a machine-readable format
+       in a rruulleess file.  Each of the rulesets  produced  is  then
+       evaluated  on  the original training data and (optionally)
+       on the test data.
+
+
+OOPPTTIIOONNSS
+       --ff_f_i_l_e_s_t_e_m  Specify the filename stem (default DDFF))..
+
+       --uu          Evaluate rulesets  on  unseen  cases  in  file
+                   _f_i_l_e_s_t_e_m_._t_e_s_t_.
+
+       --vv_v_e_r_b      Set the verbosity level [0-3] (default 0).
+
+       --FF_s_i_g_l_e_v_e_l  Invoke Fisher's significance test when pruning
+                   rules.  If a rule contains a  condition  whose
+                   probability  of  being  irrelevant  is greater
+                   than the stated level, the rule is pruned fur­
+                   ther (default: no significance testing).
+
+       --cc_c_f        Set  the  confidence level used in forming the
+                   pessimistic estimate of a  rule's  error  rate
+                   (default 25%).
+
+       --rr_r_e_d_u_n_d_a_n_c_y
+                   If many irrelevant or redundant attributes are
+                   included, estimate the ratio of attributes  to
+                   ``sensible'' attributes (default 1).
+
+
+FFIILLEESS
+        c4.5
+        c4.5rules
+        filestem.data
+        filestem.names
+        filestem.unpruned  (unpruned trees)
+        filestem.rules  (production rules)
+        filestem.test   (unseen data)
+
+
+SSEEEE AALLSSOO
+       c4.5(1), consultr(1)
+
+BBUUGGSS
+                                                          C4.5(1)

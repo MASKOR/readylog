@@ -268,8 +268,24 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	printf(" CnclEvt: %w\n", [CancelledEvent]),
 	% till here!
 	statistics(times, [CPUT, SYST, RealT]), !,
-	bestDoM(Prog, [clipOnline|S], Horizon, Policy,
-		Value, TermProb, checkEvents, Tree, RewardFunction),
+        % <DP was here>
+        ( iplearn ->
+            ( iplTrainingPhase ->
+                /* compute policy through DT planning */
+	        bestDoM(Prog, [clipOnline|S], Horizon, Policy,
+		        Value, TermProb, checkEvents, Tree, RewardFunction)
+            ;
+                /* consult learned decision tree to get policy */
+                consult_dtree(Prog, [clipOnline|S], Horizon, Policy,
+                              Value, TermProb, Tree, RewardFunction)
+            )
+        ;
+            /** inductive policy learning is turned off ->
+             *  compute policy through DT planning */
+	    bestDoM(Prog, [clipOnline|S], Horizon, Policy,
+		    Value, TermProb, checkEvents, Tree, RewardFunction)
+        ),
+        % </DP was here>
 	statistics(times, [CPUT2, SYST2, RealT2]), !,
 	% STF next 2 me again
 	param_cycletime(CycleTime),
@@ -293,11 +309,16 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	),
         % <DP was here>
         (
-          iplearn -> write_learning_instance(solve(Prog, Horizon, RewardFunction),
-                                             Policy, S),
-                     printf("Learning instance written successfully.\n", [])
+          iplearn -> 
+            ( iplTrainingPhase ->
+                write_learning_instance(solve(Prog, Horizon, RewardFunction),
+                                        Policy, Value, TermProb, Tree, [clipOnline|S]),
+                printf("Learning instance written successfully.\n", [])
+            ;
+                true
+            )
         ;
-                     true
+            true
         ),
         % </DP was here>
 	Policy_r = applyPolicy(Policy),

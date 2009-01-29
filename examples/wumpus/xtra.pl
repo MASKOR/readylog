@@ -40,96 +40,101 @@ exec_ask4outcome :- true.
 %%  this is where we hold real values
 %%  of exogenous fluents hidden for the agent
 
+reset_values :-
+
 /* list of visited cells
  * default value
  * overwritten randomly via place_agent(Seed)*/
-:- setval( real_cells_visited, [[1,1]] ).
+   setval( real_cells_visited, [[1,1]] ),
 
 /* list of unvisited cells */
-:- setval( real_cells_shaded, [ ] ).
+   setval( real_cells_shaded, [ ] ),
 
 /* number of unexplored cells currently lying in front of the agent
  * default value
  * overwritten randomly via place_agent(Seed)*/
-:- setval( real_num_facedShades, 3 ).
+   setval( real_num_facedShades, 3 ),
 
 /* list of (sensed) breezy cells */
-:- setval( real_cells_breezy, [ ] ).
+   setval( real_cells_breezy, [ ] ),
 
 /* list of (sensed) smelly cells */
-:- setval( real_cells_smelly, [ ] ).
-
+   setval( real_cells_smelly, [ ] ),
+ 
 /* list of cells that are known to contain a pit */
 %:- setval( real_cells_know_pit, [ ] ).
 
 /* list of cells that are known to contain no pit
  * default value
  * overwritten randomly via place_agent(Seed)*/
-:- setval( real_cells_know_no_pit, [[1,1]] ).
+   setval( real_cells_know_no_pit, [[1,1]] ),
 
 /* degenerated list of the cell that is known to contain the wumpus */
-:- setval( real_known_wumpus_pos, [ ] ).
+   setval( real_known_wumpus_pos, [ ] ),
 
 /* list of cells that are known to contain no wumpus
  * default value
  * overwritten randomly via place_agent(Seed)*/
-:- setval( real_cells_know_no_wumpus, [[1,1]] ).
+   setval( real_cells_know_no_wumpus, [[1,1]] ),
 
 /* list of cells that are safe to be explored */
-:- setval( real_cells_safe, [ ] ).
+   setval( real_cells_safe, [ ] ),
 
 /* real position of our agent
  * default value
  * overwritten randomly via place_agent(Seed)*/
-:- setval( real_agent_pos, [1,1] ).
+   setval( real_agent_pos, [1,1] ),
 
 /* real direction our agent is facing in */
-:- setval( real_agent_direction, "east" ).
+   setval( real_agent_direction, "east" ),
 
 /* direction that the agent had been facing in
  * just before his most recent move */
-:- setval( real_previous_direction, "N/A" ).
+   setval( real_previous_direction, "N/A" ),
 
 /* tells whether the agent has turned to the
  * same direction he was facing just before.
  * indicates direct turning in circles */
-:- setval( real_turning_back_again, false ).
+   setval( real_turning_back_again, false ),
 
 /* is the arrow still available to the agent */
-:- setval( real_agent_arrow, true ).
+   setval( real_agent_arrow, true ),
 
 /* real position of the wumpus
  * default value
  * overwritten randomly via place_wumpus(Seed)*/
-:- setval( real_wumpus_pos, [1,3] ).
+   setval( real_wumpus_pos, [1,3] ),
 
 /* is wumpus alive */
-:- setval( real_wumpus_alive, true ).
+   setval( real_wumpus_alive, true ),
 
 /* real position of the gold
  * default value
  * overwritten randomly via place_gold(Seed)*/
-:- setval( real_gold_pos, [2,3] ).
+   setval( real_gold_pos, [2,3] ),
 
 /* is our agent carrying the gold */
-:- setval( real_carry_gold, false ).
+   setval( real_carry_gold, false ),
 
 /* can the agent reach the gold safely */
-:- setval( real_gold_reachable, true ).
+   setval( real_gold_reachable, true ),
 
 /* if the agent shoots now, does it know it will
  * hit the wumpus */
-:- setval( real_sure_to_hit, true ).
+   setval( real_sure_to_hit, true ),
 
 /* starting position
  * default value
  * overwritten randomly via place_agent(Seed)*/
-:- setval( real_start_pos, [1,1] ).
+   setval( real_start_pos, [1,1] ),
 
 /* distance to closest cell that can be explored safely
  * default value
  * initialised to maximum Manhattan distance in exogf_Update */
-:- setval( real_distance_to_closest_safe_cell, 8 ).
+   setval( real_distance_to_closest_safe_cell, 8 ).
+
+
+:- reset_values.
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%                                      %%
@@ -892,6 +897,8 @@ shoot_aux( [X,Y], D ) :-
 /** Randomly distribute 1 to 3 pits in the world.
  *  The Seed allows for reproducibility of configurations. */
 distribute_pits(Seed) :-
+        printf("Retracting all pits.\n", []),
+        retract_all(pit(_,_)),
         random_number(Seed, 1, 3, NumberOfPits),
         printf("Number of pits is: %w\n", [NumberOfPits]),
         /** Distribute recursively till NumberOfPits is 0.

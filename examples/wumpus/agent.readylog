@@ -130,6 +130,7 @@ proc( find_gold(Seed),
                cout(" === FINISHED FIND_GOLD === \n")
              ]
            ) %% endif
+
       ]
     ).
 

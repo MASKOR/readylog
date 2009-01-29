@@ -1,0 +1,13 @@
+*~
+*.obj
+*.o
+Makefile.depend
+TAGS
+obj
+.obj
+.deps
+personal_test_*
+moc*
+config.d
+c45_agent.d
+c4.5

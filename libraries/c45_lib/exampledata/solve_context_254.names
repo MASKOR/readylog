@@ -1,0 +1,46 @@
+| ********************************
+| * file generated from ReadyLog *
+| ********************************
+|
+| This is the C4.5 declaration file for the solve context:
+| --------------------------------------------------------
+| solve([if((epf_wumpus_alive=true, epf_agent_arrow=true), [nondet([go_forward, turn_left, turn_right, shoot])], [nondet([go_forward, turn_left, turn_right])])], 8, reward_search_gold)
+| --------------------------------------------------------
+|
+| First we list the possible decisions
+| (policy, value, prob, tree),
+| separated by commas and terminated by a fullstop.
+
+([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_36> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_74> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, turn_right] <Value_83> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, turn_right] <Value_82> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_90> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, turn_left] <Value_102> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_114> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_152> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, turn_left] <Value_162> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, turn_left] <Value_163> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_172> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, turn_right] <Value_183> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_194> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_232> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, turn_left] <Value_262> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_274> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, go_forward] <Value_312> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, turn_left] <Value_323> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, true)\, shoot] <Value_376> <TermProb_1.0> <PolicyTree_Tree>), ([marker((epf_wumpus_alive=true\, epf_agent_arrow=true)\, false)\, go_forward] <Value_456> <TermProb_1.0> <PolicyTree_Tree>).|append policies here|
+
+| Then we list the attributes (fluents) and their domains.
+| The domains can be continuous, discrete, or a set of discrete values
+| (notated as a comma-separated list).
+
+epf_agent_arrow: discrete 100.
+epf_agent_direction: discrete 100.
+epf_agent_pos: discrete 100.
+epf_carry_gold: discrete 100.
+epf_cells_breezy: discrete 100.
+epf_cells_know_no_pit: discrete 100.
+epf_cells_know_no_wumpus: discrete 100.
+epf_cells_safe: discrete 100.
+epf_cells_shaded: discrete 100.
+epf_cells_smelly: discrete 100.
+epf_cells_visited: discrete 100.
+epf_distance_to_closest_safe_cell: discrete 100.
+epf_gold_pos: discrete 100.
+epf_gold_reachable: discrete 100.
+epf_known_wumpus_pos: discrete 100.
+epf_num_facedShades: discrete 100.
+epf_num_visited: discrete 100.
+epf_previous_direction: discrete 100.
+epf_sense_breeze: discrete 100.
+epf_sense_gold: discrete 100.
+epf_sense_stench: discrete 100.
+epf_sure_to_hit: discrete 100.
+epf_turning_back_again: discrete 100.
+epf_wumpus_alive: discrete 100.
+epf_wumpus_pos: discrete 100.
+eval_exog_functions: discrete 100.
+eval_registers: discrete 100.

@@ -1,0 +1,152 @@
+C4.5(1)                                                   C4.5(1)
+
+
+
+NNAAMMEE
+       c4.5 - form a decision tree from a file of examples
+
+SSYYNNOOPPSSIISS
+       cc44..55 [ --ff filestem ] [ --uu ] [ --ss ] [ --pp ] [ --vv verb ] [ --tt
+       trials ]
+          [ --ww wsize ] [ --ii incr ] [ --gg ] [ --mm minobjs ] [ --cc  cf
+       ]
+
+DDEESSCCRRIIPPTTIIOONN
+       _C_4_._5 is a program for inducing classification rules in the
+       form of decision trees from a set of given examples.
+
+       All files read  and  written  by  C4.5  are  of  the  form
+       _f_i_l_e_s_t_e_m_._e_x_t where _f_i_l_e_s_t_e_m is a file name stem that iden­
+       tifies the induction task and _e_x_t  is  an  extension  that
+       defines  the type of file.  The program expects to find at
+       least two files:  a  nnaammeess  ffiillee  _f_i_l_e_s_t_e_m_._n_a_m_e_s  defining
+       class,  attribute  and  attribute  value names, and a ddaattaa
+       ffiillee _f_i_l_e_s_t_e_m_._d_a_t_a containing a set of  objects,  each  of
+       which is described by its values of each of the attributes
+       and its class.
+
+       The program can generate trees in two ways.  In _b_a_t_c_h mode
+       (the  default),  the program generates a single tree using
+       all the available data.  In _i_t_e_r_a_t_i_v_e  mode,  the  program
+       starts  with  a  randomly-selected subset of the data (the
+       _w_i_n_d_o_w_)_, generates a trial decision tree, adds  some  mis­
+       classified objects, and continues until the trial decision
+       tree correctly classifies all objects not in the window or
+       until  it  appears  that no progress is being made.  Since
+       iterative mode starts  with  a  randomly-selected  subset,
+       multiple trials with the same data can be used to generate
+       more than one tree.
+
+       All  trees  generated  in  the  process   are   saved   in
+       _f_i_l_e_s_t_e_m_._u_n_p_r_u_n_e_d_.   After  each  tree is generated, it is
+       _p_r_u_n_e_d in an attempt to simplify it.   The  `best'  pruned
+       tree  (selected  by the program if more there is more than
+       one  trial)  is  saved   in   machine-readable   form   in
+       _f_i_l_e_s_t_e_m_._t_r_e_e_.
+
+       All trees produced, both pre- and post-simplification, are
+       evaluated on the training data.   If  required,  they  can
+       also be evaluated on unseen data in file _f_i_l_e_s_t_e_m_._t_e_s_t_.
+
+
+FFIILLEE FFOORRMMAATTSS
+       The  nnaammeess  ffiillee  _f_i_l_e_s_t_e_m_._n_a_m_e_s  is  a  series of entries
+       defining  names  of  attributes,  attribute   values   and
+       classes.   The file is free-format with the exception that
+       the vertical bar `|' causes the remainder of that line  to
+       be  ignored.   Each  entry is terminated by a period which
+       may be omitted if it is the last character of a line.
+
+       The file commences with the names of  the  classes,  sepa­
+       rated  by  commas and terminated with a period.  Each name
+       consists of a string of characters that does  not  include
+       comma,  question mark or colon (unless preceded by a back­
+       slash).  A period may be embedded in a name provided it is
+       not followed by a space.  Embedded spaces are also permit­
+       ted but multiple whitespace is replaced by a single space.
+       The  rest  of the file consists of a single entry for each
+       attribute.  An attribute entry begins with  the  attribute
+       name  followed  by  a  colon,  and  then  either  the word
+       `ignore' (indicating that this  attribute  should  not  be
+       used),   the   word   `continuous'  (indicating  that  the
+       attribute has real values), the word  `discrete'  followed
+       by an integer _n (indicating that the program should assem­
+       ble a list of up to _n possible values), or a list  of  all
+       possible discrete values separated by commas.  (The latter
+       form for discrete attributes is recommended as it  enables
+       input  to  be  checked.)   Each entry is terminated with a
+       period (but see above).
+
+       The ddaattaa ffiillee _f_i_l_e_s_t_e_m_._d_a_t_a contains one line per  object.
+       Each  line  contains the values of the attributes in order
+       followed by the object's class, with all entries separated
+       by  commas.   The  rules for valid names in the nnaammeess ffiillee
+       also hold for the names in  the  ddaattaa  ffiillee..   An  unknown
+       value of an attribute is indicated by a question mark `?'.
+       If a tteesstt ffiillee _f_i_l_e_s_t_e_m_._t_e_s_t is used, it has the same for­
+       mat as the data file.
+
+
+OOPPTTIIOONNSS
+       Options and their meanings are:
+
+
+       --ff_f_i_l_e_s_t_e_m  Specify the filename stem (default DDFF))
+
+       --uu          Evaluate  trees  produced  on  unseen cases in
+                   file _f_i_l_e_s_t_e_m_._t_e_s_t_.
+
+       --ss          Force `subsetting' of all tests based on  dis­
+                   crete  attributes  with  more than two values.
+                   C4.5 will construct a test with  a  subset  of
+                   values associated with each branch.
+
+       --pp          Probabilistic  thresholds  used for continuous
+                   attributes (see Quinlan, 1987a).
+
+       --tt_t_r_i_a_l_s    Set iterative mode with  specified  number  of
+                   trials.
+
+       --vv_v_e_r_b      Set  the  verbosity  level  [0-3] (default 0).
+                   This option generates more  voluminous  output
+                   that  may  help to explain what the program is
+                   doing (but don't count on it); see the  manual
+                   entry for _v_e_r_b_o_s_e_.
+
+       The  following  options are also available but need not be
+       used except for experimentation with tree construction:
+
+       --ww_w_s_i_z_e     Set the size of the initial window (default is
+                   the maximum of 20 percent and twice the square
+                   root of the number of data objects).
+
+       --ii_i_n_c_r      Set the maximum number of objects that can  be
+                   added to the window at each iteration (default
+                   is 20 percent of the initial window size).
+
+       --gg          Use the gain criterion to select  tests.   The
+                   default uses the gain ratio criterion.
+
+       --mm_m_i_n_o_b_j_s   In  all tests, at least two branches must con­
+                   tain a minimum number of objects (default  2).
+                   This  option  allows  the minimum number to be
+                   altered.
+
+       --cc_c_f        Set  the  pruning  confidence  level  (default
+                   25%).
+
+FFIILLEESS
+        c4.5
+        filestem.data
+        filestem.names
+        filestem.unpruned  (unpruned trees)
+        filestem.tree   (final decision tree)
+        filestem.test   (unseen data)
+
+
+SSEEEE AALLSSOO
+       consult(1)
+
+
+BBUUGGSS
+                                                          C4.5(1)

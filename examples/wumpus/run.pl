@@ -75,7 +75,20 @@ dp :- toggle_iplearn,
       vis_wumpus,
       initialise_shades,
       icp( find_gold(6) ),
-      icp( find_gold(3) ).
+      reset_values,
+      icp( find_gold(3) ),
+      reset_values,
+      icp( find_gold(7) ),
+      reset_values,
+      icp( find_gold(8) ),
+      reset_values,
+      icp( find_gold(9) ),
+      reset_values,
+      icp( find_gold(10) ),
+      reset_values,
+      icp( find_gold(11) ),
+      reset_values,
+      icp( find_gold(12) ).
       
 dpdebug :- toggle_dtdebug, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
 dp_novis :- initialise_wumpus_lists, icp( find_gold ).
