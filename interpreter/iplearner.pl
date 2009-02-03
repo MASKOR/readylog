@@ -213,9 +213,9 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy, Value, Te
                                          ( is_prim_fluent(Fluent) ->
 %                                                 get_domain(Fluent, Domain), 
 %                                                 printf(NameStream, "%w: %w.\n", [Fluent, Domain])
-                                                 printf(NameStream, "%w: discrete 100.\n", [Fluent])
+                                                 printf(NameStream, "%w: discrete 1000.\n", [Fluent])
                                          ;
-                                                 printf(NameStream, "%w: discrete 100.\n", [Fluent]),
+                                                 printf(NameStream, "%w: discrete 1000.\n", [Fluent]),
                                                  printf(NameStream, "| WARNING: is neither cont nor prim!\n,", [Fluent]),
                                                  printf(stdout, "*** WARNING ***: %w is neither cont nor prim!", [Fluent])
                                          )
@@ -364,10 +364,20 @@ ask_prolog_for_value( AttributeName, Value, S ) :-
 %        put_char(Stream, First),
 %        put_string(Stream, Rest).
 
+stream_ready( Stream ) :-
+%        not at_eof( Stream ), % does not work as intended with the pipe stream
+        select([Stream], 100, ReadyStream),
+        ReadyStream \= [].
+
 print_skip( Stream, Pattern, String ) :-
-        read_string(out, end_of_line, _, String),
-        printf(stdout, "%w\n", [String]),
+        not stream_ready( out ), !,
+        printf("***Error*** Got empty Stream %w while trying to skip!\n", [Stream]),
         flush(stdout),
+        String = "".
+
+print_skip( Stream, Pattern, String ) :-
+        stream_ready( out ),
+        read_string(Stream, end_of_line, _, String),
         ( substring(String, Pattern, _) ->
            true
         ;
@@ -375,14 +385,21 @@ print_skip( Stream, Pattern, String ) :-
         ).
 
 quiet_skip( Stream, Pattern, String ) :-
-        read_string(out, end_of_line, _, String),
+        not stream_ready( out ), !,
+        printf("***Error*** Got empty Stream %w while trying to skip!\n", [Stream]),
+        flush(stdout),
+        String = "".
+
+quiet_skip( Stream, Pattern, String ) :-
+        stream_ready( out ),
+        read_string(Stream, end_of_line, _, String),
         ( substring(String, Pattern, _) ->
            true
         ;
            quiet_skip( Stream, Pattern, String )
         ).
 
-consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, RewardFunction) :-
+consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, RewardFunction, Success) :-
         term_hash(solve(Prog, Horizon, RewardFunction), -1, 1000, HashKey),
         term_string(HashKey, HashKeyString),
         concat_string(["solve_context_", HashKeyString], FileStem),
@@ -401,17 +418,20 @@ consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, Rew
                          true
                 ),
                 concat_string(["-f ", FileStem], ConsultParams),
-%                canonical_path_name(FileStem, FullPath),
+                canonical_path_name(FileStem, FullPath),
 %                os_file_name(FullPath, FullPathOS),
 %                concat_string(["-f ", "/", FullPathOS], ConsultParams),
-                printf(stdout, "consult %w\n", [ConsultParams]),
+                printf(stdout, "consulting %w\n", [FullPath]),
                 flush(stdout),
 %                open(string("consultStreamOut"), read, sigio(ConsultOut)),
 %%                exec([consult, "-f", "test"], [null, ConsultOut], Pid),
 %%%%%%%%%%%%%%%%%%%%%%
                 term_string([clipOnline|S], SituationString),
-                exec(["/home/drcid/kbsgolog/libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
-                      "/home/drcid/kbsgolog/programs/wumpus.readylog/solve_context_254", "-s", SituationString],
+%                exec(["/home/drcid/kbsgolog/libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
+%                      FileStem],
+%                      [in, out, err], Pid),
+                exec(["../../libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
+                      FullPath],
                       [in, out, err], Pid),
 %                repeat,
 %                   read_string(out, end_of_line, _, Skip),
@@ -423,13 +443,12 @@ consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, Rew
                 repeat,
 %                   print_skip( out, "####", IndicatorString ),
                    quiet_skip( out, "####", IndicatorString ),
-                  
                    ( substring(IndicatorString, "#### Here comes the attribute name ####", _) ->
+                         read_string(out, end_of_line, _, AttributeNameS),
+                         term_string(AttributeName, AttributeNameS),
                          printf(stdout, "--------\n", []),
                          printf(stdout, "[PROLOG] C4.5 asked for the value of attribute: %w\n", [AttributeNameS]),
                          flush(stdout),
-                         read_string(out, end_of_line, _, AttributeNameS),
-                         term_string(AttributeName, AttributeNameS),
                          exog_fluent_getValue(AttributeName, ValTmp, [clipOnline|S]),
 %                ask_prolog_for_value(AttributeName, AttributeValue, [clipOnline|S]),
                          /** replace commas, as C4.5 forbids them in
@@ -442,18 +461,19 @@ consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, Rew
 %                          *  by Prolog during later conversion. */
 %                         replace_string(ValTmpStringNoComma, "\"", "QUOTATION",
 %                                        AttributeValue, stdout),
-                          flush(stdout),
-                          select([in], 100, _ReadyStream),
+                         flush(stdout),
+                         select([in], 100, _ReadyStream),
 %                          printf(stdout, "Stream %w ready for I/O.\n", [ReadyStream]),
-                          flush(stdout),
-                          printf(in, "%w\n", [AttributeValue]),
-                          flush(in),
-                          select([out], 100, _ReadyStream2),
-%                          printf(stdout, "Stream %w ready for I/O.\n", [ReadyStream2]),
-                          flush(stdout),
-                          read_string(out, end_of_line, _, ConsultString5),
-                          printf(stdout, "%w\n", [ConsultString5]),
-                          flush(stdout)
+                         flush(stdout),
+                         printf(in, "%w\n", [AttributeValue]),
+                         flush(in),
+%                         select([out], 100, ReadyStream2),
+%                         printf(stdout, "Stream %w ready for I/O.\n", [ReadyStream2]),
+%                         flush(stdout),
+                         read_string(out, end_of_line, _, PrologAnswer),
+                         printf(stdout, "%w\n", [PrologAnswer]),
+                         flush(stdout)
+
                    ;
                          ( substring(IndicatorString, "#### Here comes the decision ####", _) ->
                                printf(stdout, "--------\n", []),
@@ -461,115 +481,110 @@ consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, Rew
                                flush(stdout),
                                read_string(out, end_of_line, _, Decision),
                                string_length(Decision, DecisionLength),
-                               RawDecisionLength is (DecisionLength - 10),
-                               substring(Decision, 10, RawDecisionLength, DecisionString),
+                               RawDecisionLength is (DecisionLength - 2),
+                               substring(Decision, 2, RawDecisionLength, DecisionString),
                                printf(stdout, "[C4.5] Decision: %w\n", [DecisionString]),
                                printf(stdout, "--------\n", []),
                                flush(stdout),
-                               read_string(out, end_of_file, _, _Rest)
+                               ( stream_ready(out) ->
+                                    read_string(out, end_of_file, _, _Rest)
+                               ;
+                                    true
+                               )
                          ;
-                               % shouldn't happen
-                               true
+                               % Happens when the attribute value has not been seen during
+                               % training
+                               ( substring(IndicatorString, "#### Error ####", _) ->
+                                     printf(stdout, "--------\n", []),
+                                     printf(stdout, "[C4.5] This attribute value has not appeared during training.\n", []),
+                                     printf(stdout, "       Will use planning instead.\n", []),
+                                     printf(stdout, "--------\n", []),
+                                     Success = false,
+                                     flush(stdout),
+                                     ( stream_ready(out) ->
+                                          read_string(out, end_of_file, _, _Rest)
+                                     ;
+                                          true
+                                     )
+                               ;
+                                     printf(stdout, "--------\n", []),
+                                     printf(stdout, "[C4.5] Error: This should not happen. Error in parsing?\n", []),
+                                     printf(stdout, "--------\n", []),
+                                     Success = false,
+                                     flush(stdout),
+                                     ( stream_ready(out) ->
+                                          read_string(out, end_of_file, _, _Rest)
+                                     ;
+                                          true
+                                     )
+                               )
                          )
                    ),
-                at_eof(out),
+%                at_eof(out), % Somehow doesn't work as intended with the pipe stream
+%                ( not stream_ready(out) ),
+                ( ground(DecisionString) ; ground(Success) ),
                 !,
-
-                
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%
-%                out -> readable (not directly printable, or flushable)
-%                in -> writeable, flushable
-%                exec([consult, "-f", "test"], [in, out, err], Pid),
-
-%                exec([ls, "-la"], [in, out], Pid),
-%                printf(in, '%w\n', [sunny]),
-%                printf(in, '%w\n', [42]),
-%                select([in, out, err], 100, ReadyStream),
-%                printf(stdout, "Streams %w ready for I/O.\n", [ReadyStream]),
-%                flush(stdout),
-%                printf(in, '%w\n', [sunny]),
-%                flush(in),
-%                select([in, out], 100, ReadyStream),
-%                printf(stdout, "Streams %w ready for I/O.\n", [ReadyStream]),
-%                read_string(ReadyStream, end_of_file, _, ConsultString),
-%                printf(stdout, "%w", [ConsultString]),
-%                read_string(out, end_of_file, _, ConsultString),
-%                printf(stdout, "%w", [ConsultString]),
-%                flush(stdout),
-%                select([in], 100, _),
-%                write(in, '%w\n', [sunny]),
-%                flush(in),
-%                read_string(out, end_of_file, _, ConsultString2),
-%                printf(stdout, "%w", [ConsultString2]),
-%                flush(stdout),
-%                at_eof(out),
-%                printf(stdout, "at_eof out!\n", []),
-%                flush(stdout),
                 close(in),
                 close(out),
                 wait(Pid, Stat),
-                sleep(1000),
-%                concat_string(["consult", " -f ", FileStem], ConsultCall),
 
-%                system(ConsultCall),
-
-                % start the subprocess
-%	 	exec(bc, [In,Out], PID),
-	
-	        % send one query and read the answer
-%                writeln(In, "21376123*23186238"), flush(In),
-%	        read_string(Out, end_of_line, _, Answer1), writeln(Answer1),
-	
-               	% send another query and read the answer
-%       	        writeln(In, "123233/3312"), flush(In),
-%                read_string(Out, end_of_line, _, Answer2), writeln(Answer2),
-
-                % close the other process' stdin:
-	 	% this will cause it to terminate
-%	 	close(In),
-                % make sure it has terminated properly
-%       	        wait(PID, Status),
-%
-%                concat_string(["consult -f ", FileStem], ConsultCall),
-%                printf(stdout, "system('%w')\n", [ConsultCall]),
-%                ( system(ConsultCall) ->
-                ( true ->
-/*                         printf(stdout, "true\r\n", []),
-                         printf(stdout, "east\r\n", []),
-                         printf(stdout, "[1\\, 3]\r\n", []),
-                         printf(stdout, "false\r\n", []),
-                         printf(stdout, "[]\r\n", []),
-                         printf(stdout, "[[2\\, 3]\\, [1\\, 2]\\, [1\\, 4]\\, [1\\, 3]]\r\n", []),
-                         printf(stdout, "[[2\\, 3]\\, [1\\, 2]\\, [1\\, 4]\\, [1\\, 3]]\r\n", []),
-                         printf(stdout, "[[1\\, 2]\\, [1\\, 4]\\, [2\\, 3]]\r\n", []),
-                         printf(stdout, "[[1\\, 1]\\, [1\\, 2]\\, [1\\, 4]\\, [2\\, 1]\\, [2\\, 2]\\, [2\\, 3]\\, [2\\, 4]\\, [3\\, 1]\\, [3\\, 2]\\, [3\\, 3]\\, [3\\, 4]\\, [4\\, 1]\\, [4\\, 2]\\, [4\\, 3]\\, [4\\, 4]]\r\n", []),
-                         printf(stdout, "[]\r\n", []),
-                         printf(stdout, "[[1\\, 3]]\r\n", []),
-                         printf(stdout, "1\r\n", []),
-                         printf(stdout, "[3\\, 4]\r\n", []),
-                         printf(stdout, "true\r\n", []),
-                         printf(stdout, "[]\r\n", []),
-                         printf(stdout, "3\r\n", []),
-                         printf(stdout, "1\r\n", []),
-                         printf(stdout, "N/A\r\n", []),
-                         printf(stdout, "false\r\n", []),
-                         printf(stdout, "false\r\n", []),
-                         printf(stdout, "false\r\n", []),
-                         printf(stdout, "false\r\n", []),
-                         printf(stdout, "false\r\n", []),
-                         printf(stdout, "true\r\n", []),
-                         printf(stdout, "[3\\, 4]\r\n", []),
-                         printf(stdout, "true\r\n", []),
-                         printf(stdout, "true\r\n", []),*/
-
-                         printf(stdout, "[Consultation Phase]: Consultation call successful!\n", [])
+                ( ( Success == false ) ->
+                   true
                 ;
-                         printf(stdout, "[Consultation Phase]: (*** Error ***) Consultation call failed!\n", [])
+                   /** Cut out the policy, value, termprob, and tree */
+                   /** Cut out policy */
+                   substring(DecisionString, ValuePos, 7, "<Value_"),
+                   ValuePosLeft is (ValuePos - 2),
+                   substring(DecisionString, 1, ValuePosLeft, PolicyString),
+                   /** Cut out value */
+                   string_length(PolicyString, PolicyLength),
+                   string_length(DecisionString, DecisionStringLength),
+                   BeyondPolicyLength is ( DecisionStringLength
+                                           - PolicyLength - 1),
+                   PolicyEndRight is (PolicyLength + 2),
+                   substring(DecisionString, PolicyEndRight, BeyondPolicyLength,
+                             BeyondPolicy),
+                   substring(BeyondPolicy, ValueEndPos, 12, "> <TermProb_"),
+%                   printf("BeyondPolicy: %w\n", [BeyondPolicy]),
+                   ValueLength is (ValueEndPos - 8),
+                   substring(BeyondPolicy, 8, ValueLength, ValueString),
+                   /** Cut out TermProb */
+                   ValueEndPosRight is (ValueEndPos + 2),
+                   BeyondValueLength is ( BeyondPolicyLength
+                                          - ValueLength - 9 ),
+                   substring(BeyondPolicy, ValueEndPosRight, BeyondValueLength,
+                             BeyondValue),
+%                   printf("BeyondValue: %w\n", [BeyondValue]),
+                   substring(BeyondValue, TermProbEndPos, 14, "> <PolicyTree_"),
+                   TermProbLength is (TermProbEndPos - 11),
+                   substring(BeyondValue, 11, TermProbLength, TermProbString),
+                   /** Cut out Tree */
+                   TermProbEndPosRight is (TermProbEndPos + 2),
+                   BeyondTermProbLength is ( BeyondValueLength
+                                             - TermProbLength - 12 ),
+                   substring(BeyondValue, TermProbEndPosRight, BeyondTermProbLength,
+                             BeyondTermProb),
+%                   printf("BeyondTermProb: %w\n", [BeyondTermProb]),
+                   substring(BeyondTermProb, TreeEndPos, 1, ">"),
+                   TreeLength is (TreeEndPos - 13),
+                   substring(BeyondTermProb, 13, TreeLength, TreeString),
+%                   printf("Policy: %w\n", [Policy]),
+%                   printf("Value: %w\n", [Value]),
+%                   printf("TermProb: %w\n", [TermProb]),
+%                   printf("Tree: %w\n", [Tree]),
+%                   flush(stdout),
+                   term_string(Policy, PolicyString),
+                   term_string(Value, ValueString),
+                   term_string(TermProb, TermProbString),
+                   term_string(Tree, TreeString),
+
+                   Success = true
+                ),
+ 
+                ( Success ->
+                         printf(stdout, "[Consultation Phase]: Consultation successful!\n", [])
+                ;
+                         printf(stdout, "[Consultation Phase]: Consultation failed!\n", [])
                 )
         ).
         

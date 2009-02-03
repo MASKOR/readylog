@@ -90,12 +90,24 @@ function( reward_search_gold, Reward,
                      RewardDoNotTurnInCirclesStupidly = -100,
                      RewardDoNotTurnInCirclesStupidly = 0
                    ),
+                lif( epf_remaining_time > 0,
+                     lif( epf_returned_safely = true,
+                          RewardTime = 0,
+                          RewardTime = 0
+                        ),
+                     % epf_remaining_time <= 0
+                     lif( epf_returned_safely = true,
+                          RewardTime = 0,
+                          RewardTime = -500
+                        )
+                   ),
                 Reward = (
                           RewardKillWumpus +
                           RewardFoundGold +
 %                          RewardSavedArrow +
                           RewardExploration +
-                          RewardDoNotTurnInCirclesStupidly
+                          RewardDoNotTurnInCirclesStupidly +
+                          RewardTime
                          )
               ])
         ).

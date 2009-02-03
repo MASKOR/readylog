@@ -74,21 +74,22 @@
 dp :- toggle_iplearn,
       vis_wumpus,
       initialise_shades,
+      TotalRuns = 1200,
+      printf("######## Run 1 of %w... ########\n", [TotalRuns]),
       icp( find_gold(6) ),
       reset_values,
+      printf("######## Run 2 of %w... ########\n", [TotalRuns]),
       icp( find_gold(3) ),
       reset_values,
-      icp( find_gold(7) ),
-      reset_values,
-      icp( find_gold(8) ),
-      reset_values,
-      icp( find_gold(9) ),
-      reset_values,
-      icp( find_gold(10) ),
-      reset_values,
-      icp( find_gold(11) ),
-      reset_values,
-      icp( find_gold(12) ).
+      LastRun is (TotalRuns + 6),
+      ( count(I,7,LastRun),
+        param(TotalRuns)
+        do
+          CurrentRun is (I - 4),
+          printf("######## Run %w of %w... ########\n", [CurrentRun, TotalRuns]),
+          icp( find_gold(I) ),
+          reset_values
+      ).
       
 dpdebug :- toggle_dtdebug, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
 dp_novis :- initialise_wumpus_lists, icp( find_gold ).

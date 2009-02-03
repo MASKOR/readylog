@@ -551,6 +551,49 @@ exog_prim_fluent( epf_distance_to_closest_safe_cell ).
 exog_fluent_getValue( epf_distance_to_closest_safe_cell, V, _S ) :- !,
       getval( wm_distance_to_closest_safe_cell, V ).
 
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  Estimation of the agent      %%
+%%  whether there is still time  %%
+%%  to explore, or that the      %%
+%%  agent should better be       %%
+%%  going home                   %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_still_time ).
+exog_fluent_getValue( epf_still_time, V, _S ) :- !,
+      getval( wm_still_time, V ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  Indicates, if the agent has  %%
+%%  returned home after its      %%
+%%  exploration of the dungeon   %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent( epf_returned_safely ).
+exog_fluent_getValue( epf_returned_safely, V, _S ) :- !,
+      getval( wm_returned_safely, V ).
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  EXOGENOUS CONTINUOUS FLUENTS                  %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  Start time of the level      %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_cont_fluent( epf_start_time ).
+exog_fluent_getValue( epf_start_time, V, _S ) :- !,
+      getval( wm_start_time, V ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  Remaining time for the       %%
+%%  discovery of the dungeon     %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+exog_cont_fluent( epf_remaining_time ).
+exog_fluent_getValue( epf_remaining_time, V, _S ) :- !,
+      getval( wm_remaining_time, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  OTHER FLUENTS                       %%
@@ -970,6 +1013,16 @@ poss(noop, true ).
  *  The Seed allows for reproducibility of configurations. */
 prim_action(initialise_dungeon(_Seed)).
 poss( initialise_dungeon(_Seed), true ).
+
+/** Arrive at home after exploration */
+prim_action(make_yourself_at_home).
+poss( make_yourself_at_home,
+      and([ epf_agent_pos = [X,Y],
+            getval( real_start_pos, [XS,YS] ),
+            X =:= XS, Y =:= YS
+          ]) 
+    ).
+causes_val( make_yourself_at_home, epf_returned_safely, V, V = true ).
 
 prim_action(reset_visited).
 poss( reset_visited, true ).

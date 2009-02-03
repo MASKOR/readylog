@@ -131,7 +131,22 @@ reset_values :-
 /* distance to closest cell that can be explored safely
  * default value
  * initialised to maximum Manhattan distance in exogf_Update */
-   setval( real_distance_to_closest_safe_cell, 8 ).
+   setval( real_distance_to_closest_safe_cell, 8 ),
+
+/* estimation of the agent if there is still time to explore,
+ * or if there is not, and agent should start going home */
+   setval( real_still_time, true ),
+
+/* indicates, if the agent has returned home after its
+ * exploration of the dungeon */
+   setval( real_returned_safely, false ),
+
+/* start time of the level */
+   cputime(StartTime),
+   setval( real_start_time, StartTime ),
+
+/* remaining time left for exploration of the dungeon */
+   setval( real_remaining_time, 240.0 ).
 
 
 :- reset_values.
@@ -540,6 +555,36 @@ xTra(exogf_Update, _H) :- !,
         setval( real_distance_to_closest_safe_cell, ResultDist ),
         setval( wm_distance_to_closest_safe_cell, ResultDist ),
 
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+        %%  compute the time spent in the dungeon (doesn't pause for thinking)  %%
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+        getval( real_start_time, RealStartTime ),
+        setval( wm_start_time, RealStartTime ),
+        cputime( TimeNow ),
+        TimeDiff is (TimeNow - RealStartTime),
+        getval( real_remaining_time, RemainingTimeOld ),
+        RemainingTimeNew is (RemainingTimeOld - TimeDiff),
+        setval( real_remaining_time, RemainingTimeNew ),
+        setval( wm_remaining_time, RemainingTimeNew ),
+        printColor( green, "Time left: %w\n", [RemainingTimeNew] ),
+
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+        %%  estimate whether there is still time for exploration, or if the     %%
+        %%  agent should better be going home                                   %%
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+        ( (RemainingTimeNew > 60) ->
+            setval( real_still_time, true ),
+            setval( wm_still_time, true )
+        ;
+            setval( real_still_time, false ),
+            setval( wm_still_time, false )
+        ),
+
+        getval( real_returned_safely, ReturnedSafely ),
+        setval( wm_returned_safely, ReturnedSafely ),
+
         printf(" *** exogf_Update DONE. *** \n", []), flush(output).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -615,6 +660,12 @@ xTra(noop,_H)  :-
         printf(" has arrow: %w \n", [A]),
         execdelay,
 	draw_action("0", X, Y).
+
+xTra(make_yourself_at_home,_H) :- 
+	printColor( pink, " xTra: EXEC 'make_yourself_at_home'", []), 
+        execdelay,
+	setval(real_returned_safely, true),
+        setval(wm_returned_safely, true).
 
 xTra(pickup_gold,_H) :- 
 	printColor( pink, " xTra: EXEC 'pickup_gold'", []), 

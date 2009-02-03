@@ -275,9 +275,55 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	        bestDoM(Prog, [clipOnline|S], Horizon, Policy,
 		        Value, TermProb, checkEvents, Tree, RewardFunction)
             ;
+/*	        bestDoM(Prog, [clipOnline|S], Horizon, PolicyConv,
+		        ValueConv, TermProbConv, checkEvents, TreeConv, RewardFunction),
+                printf("PolicyConv: %w\n", [PolicyConv]),
+                printf("ValueConv: %w\n", [ValueConv]),
+                printf("TermProbConv: %w\n", [TermProbConv]),
+                printf("TreeConv: %w\n", [TreeConv]),
+*/
                 /* consult learned decision tree to get policy */
-                consult_dtree(Prog, [clipOnline|S], Horizon, Policy,
-                              Value, TermProb, Tree, RewardFunction)
+                consult_dtree(Prog, [clipOnline|S], Horizon,
+                              PolicyConsult, ValueConsult, TermProbConsult, TreeConsult,
+                              RewardFunction, ConsultSuccess),
+                ( ConsultSuccess ->
+                     Policy = PolicyConsult,
+                     Value = ValueConsult,
+                     TermProb = TermProbConsult,
+                     Tree = TreeConsult
+                ;
+	             bestDoM(Prog, [clipOnline|S], Horizon, PolicyConv,
+		             ValueConv, TermProbConv, checkEvents, TreeConv, RewardFunction),
+                     Policy = PolicyConv,
+                     Value = ValueConv,
+                     TermProb = TermProbConv,
+                     Tree = TreeConv
+                )
+/*                printf("Policy: %w\n", [Policy]),
+                printf("Value: %w\n", [Value]),
+                printf("TermProb: %w\n", [TermProb]),
+                printf("Tree: %w\n", [Tree]),
+                ( PolicyConv \== Policy ->
+                    printf("*** Warning: PolicyConv != Policy!\n", [])
+                ;
+                    true
+                ),
+                ( ValueConv \== Value ->
+                    printf("*** Warning: ValueConv != Value!\n", [])
+                ;
+                    true
+                ),
+                ( TermProbConv \== TermProb ->
+                    printf("*** Warning: TermProbConv != TermProb!\n", [])
+                ;
+                    true
+                ),
+                ( PolicyConv \== Policy ->
+                    printf("*** Warning: TreeConv != Tree!\n", [])
+                ;
+                    true
+                )
+*/
             )
         ;
             /** inductive policy learning is turned off ->

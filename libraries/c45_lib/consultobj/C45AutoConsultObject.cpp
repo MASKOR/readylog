@@ -360,8 +360,8 @@ void C45AutoConsultObject::AutoInterpretTreeProlog( )
   ClassNo c, BestClass;
   float Uncertainty=1.0;
 
-  //  cout << "C45AutoConsultObject(AutoInterpretTreeProlog): Entering" << endl;
-  AutoClear();
+ //   cout << "C45AutoConsultObject(AutoInterpretTreeProlog): Entering" << endl;
+//  AutoClear();
 
   /*  Find the likelihood of an item's being of each class  */
   AutoClassifyCaseProlog(DecisionTree, 1.0);
@@ -376,15 +376,15 @@ void C45AutoConsultObject::AutoInterpretTreeProlog( )
 	  BestClass = c;
 	}
     }
-  //  cout << "C45AutoConsultObject(AutoInterpretTreeProlog): Made my Decision!" << endl;
+ //   cout << "C45AutoConsultObject(AutoInterpretTreeProlog): Made my Decision!" << endl;
   AutoDecisionProlog(BestClass, ClassSum[BestClass], LowClassSum[BestClass], 
 	       Uncertainty + LowClassSum[BestClass]);
   
   /*  Show the other significant classes, if more than two classes  */
   if ( MaxClass > 1 )
     {
-      //    cout << "C45AutoConsultObject(AutoInterpretTreeProlog): More than one class probable!" 
-      //         << endl;
+     //     cout << "C45AutoConsultObject(AutoInterpretTreeProlog): More than one class probable!" 
+     //          << endl;
       while ( true )
 	{
 	  ClassSum[BestClass] = 0;
@@ -405,7 +405,7 @@ void C45AutoConsultObject::AutoInterpretTreeProlog( )
 	}
     }
   
-  //  cout << "C45AutoConsultObject(AutoInterpretTreeProlog): Exiting" << endl;
+ //   cout << "C45AutoConsultObject(AutoInterpretTreeProlog): Exiting" << endl;
   return;
 }
 
@@ -931,6 +931,7 @@ void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)
  	  {
 // 	    cout << "C45AutoConsultObject(AutoReadDiscrProlog): Cannot find attribute in the" 
 // 		 << " attributelist while scanning for attribute!" << endl;
+ 	    cout << "#### Error ####" << endl;
  	    cout << "C45AutoConsultObject(AutoReadDiscr): Cannot find attribute " << valueString
                  << " in the attributelist while scanning for attribute!" << endl;
  	    cout << "Permissible values are ";
@@ -1140,7 +1141,7 @@ void C45AutoConsultObject::AutoDecisionProlog( ClassNo c, float p, float lb, flo
 //    cout << "C45AutoConsultObject(AutoDecisionProlog): Classname = " 
 //         << m_vAutoQueryPrologAnswer[0] << endl;
 
-  if ( (p < 1-Fuzz) || (lb < ub - Fuzz) )
+/*  if ( (p < 1-Fuzz) || (lb < ub - Fuzz) )
     {
       gcvt(p,3,puffer);  
       m_vAutoQueryPrologAnswer[1] = puffer;
@@ -1151,6 +1152,16 @@ void C45AutoConsultObject::AutoDecisionProlog( ClassNo c, float p, float lb, flo
 	m_vAutoQueryPrologAnswer[3] = puffer;
       }
     }
+*/
+/*  if ( p < 1-Fuzz || lb < ub - Fuzz )
+    {
+      cout << "  CF = " << p;
+      if ( lb < ub - Fuzz )
+      {
+          cout << "  [ " << lb << " - " << ub << " ]" << endl;
+      }
+  }
+*/
   //  cout << "C45AutoConsultObject(AutoDecisionProlog): Decision written and done" << endl;
   return;
 }

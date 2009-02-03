@@ -108,7 +108,8 @@ proc( find_gold(Seed),
          ?( epf_gold_pos = [XG, YG] ),
          search_gold,
          if( epf_gold_reachable = false,
-             [ cout(" === CANNOT REACH GOLD SAFELY... GOING HOME === \n"),
+             [ 
+               cout(" === CANNOT REACH GOLD SAFELY... GOING HOME === \n"),
                /** TODO: how about keeping to the safe track already found
                 *  instead of exploration? */
                reset_visited,
@@ -116,20 +117,39 @@ proc( find_gold(Seed),
                       [go_home( HomeX,HomeY ),
                        exogf_Update]
                     ),
+               make_yourself_at_home,
                cout(" === FINISHED FIND_GOLD === \n")
              ],
              [ %% else
-               cout( green, " *** found gold at %w,%w *** \n", [XG,YG] ),
-%               goto_gold( XG, YG ),
-               grab_gold,
-               reset_visited,
-               while( (epf_carry_gold=true, epf_agent_pos \= [HomeX,HomeY]),
-                      [carry_gold( HomeX,HomeY ),
-                       exogf_Update]
-                    ),
-               cout(" === FINISHED FIND_GOLD === \n")
+               if( epf_still_time = false,
+               [
+                 cout(" === I HAVE TO HURRY BACK HOME === \n"),
+                 /** TODO: how about keeping to the safe track already found
+                  *  instead of exploration? */
+                 reset_visited,
+                 while( epf_agent_pos \= [HomeX,HomeY] ,
+                        [go_home( HomeX,HomeY ),
+                         exogf_Update]
+                      ),
+                 make_yourself_at_home,
+                 cout(" === FINISHED FIND_GOLD === \n")
+               ],
+               %% epf_still_time = true
+               [
+                  cout( green, " *** found gold at %w,%w *** \n", [XG,YG] ),
+%                  goto_gold( XG, YG ),
+                  grab_gold,
+                  reset_visited,
+                  while( (epf_carry_gold=true, epf_agent_pos \= [HomeX,HomeY]),
+                         [carry_gold( HomeX,HomeY ),
+                          exogf_Update]
+                       ),
+                  make_yourself_at_home,
+                  cout(" === FINISHED FIND_GOLD === \n")
+               ]
+               ) %% endif epf_still_time
              ]
-           ) %% endif
+           ) %% endif epf_gold_reachable
 
       ]
     ).
@@ -138,7 +158,7 @@ proc( search_gold,
       [
          cout(" --- search gold --- \n"),
          exogf_Update,
-         while( (epf_sense_gold = false, epf_gold_reachable = true ),
+         while( (epf_sense_gold = false, epf_gold_reachable = true, epf_still_time = true ),
                 [
                    % exogf_Update,
                    cout(red, " --- epf_gold_reachable = %w --- \n", [epf_gold_reachable]),
