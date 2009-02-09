@@ -44,6 +44,11 @@ final(withCtrl(_F,E),S) :- final(E,S).
 final(applyPolicy(P), S) :-
 	final(P,S),
 	printColor(yellow, "** POLICY COMPLETED **\n", []).
+% <DP was here>
+final(applyLearnedPolicy(P, _Solve, _S_solve), S) :-
+	final(P,S),
+	printColor(yellow, "** POLICY COMPLETED **\n", []).
+% </DP was here>
 
 /* -- Macros -- */
 final(tryAll(E1,E2),S) :-   final(pconc(E1,E2),S).
@@ -361,13 +366,12 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
                                         Policy, Value, TermProb, Tree, [clipOnline|S]),
                 printf("Learning instance written successfully.\n", [])
             ;
-                true
+	        Policy_r = applyLearnedPolicy(Policy, solve(Prog, Horizon, RewardFunction), S)
             )
         ;
-            true
+            Policy_r = Policy
         ),
         % </DP was here>
-	Policy_r = applyPolicy(Policy),
 	S_r = S.
 
 
@@ -483,6 +487,96 @@ transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 % transPr( applyPolicy(E), S, E, S, 1) :-
 % 	printf("applyPolicy: DEBUG: no case/trans for \t %w\n", [E]),
 % 	flush(output), !, fail.
+
+% <DP was here>
+/* --------------------------------------------------------- */
+/*  applyLearnedPolicy                                       */
+/* --------------------------------------------------------- */
+/** applyLearnedPolicy; case: marker.
+ * if a marker was found as next statement in the policy
+ * it's thruth value is evaluated again. If the truth
+ * values at planning time are the same as at execution
+ * time, we pop the marker from the policy and proceed with the
+ * rest of the policy (done by applyPolicy(PolR) in the clause head)
+ * otherwise PolR is re-planned through DT planning
+ */
+transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
+         solve(Prog, Horizon, RewardFunction), S_solve), S, PolR, S, 1) :- !,
+	printColor(yellow, "applyLearnedPolicy: \tPolHead = %w\n", [marker(Cond, TruthValue)]),
+	flush(output),
+	(
+	  holds(Cond, S) ->
+	  (
+	    TruthValue -> PolR = applyLearnedPolicy(PolTail,
+                                             solve(Prog, Horizon, RewardFunction), S_solve)
+	  ;
+	    printColor(red, "BREAKING POLICY (true-case)\n", []),
+	    %printColor(yellow, "CONDITION:%w\n", [Cond]),
+	    printColor(cyan, "SITUATION:%w\n", [S]),
+   	    printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
+	    bestDoM(Prog, [clipOnline|S_solve], Horizon, PolicyReplanned,
+	            _Value, _TermProb, checkEvents, _Tree, RewardFunction),
+	    printf(" --------\t re-planning DONE \t-------------\n", []),
+   	    printf("Policy:\n", []),
+	    printPol(stdout, PolicyReplanned),
+            % use applyPolicy and NOT applyLearnedPolicy
+            PolR = applyPolicy(PolicyReplanned)
+	  )
+	;
+	  (
+	    not(TruthValue) -> PolR = applyLearnedPolicy(PolTail,
+                                                  solve(Prog, Horizon, RewardFunction), S_solve)
+	  ;
+	    printColor(red, "BREAKING POLICY (false-case)\n", []),
+	    %printColor(yellow, "CONDITION:%w\n", [Cond]),
+	    printColor(cyan, "SITUATION:%w\n", [S]),
+   	    printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
+	    bestDoM(Prog, [clipOnline|S_solve], Horizon, PolicyReplanned,
+	            _Value, _TermProb, checkEvents, _Tree, RewardFunction),
+	    printf(" --------\t re-planning DONE \t-------------\n", []),
+   	    printf("Policy:\n", []),
+	    printPol(stdout, PolicyReplanned),
+            % use applyPolicy and NOT applyLearnedPolicy
+            PolR = applyPolicy(PolicyReplanned)
+	  )
+	).	
+
+/** applyLearnedPolicy; case: conditional.
+ * if the condition Cond holds, we proceed with executing the policy
+ * [Pol1, PolTail], otherwise we proceed with [Pol2, PolTail]. We need
+ * this kind of combination not to leave applyPol transitions
+ */
+transPr( applyLearnedPolicy([if(Cond, Pol1, Pol2) | PolTail],
+         solve(Prog, Horizon, RewardFunction), S_solve), S, ProgR, SNew, 1) :- !,
+	printColor(yellow, "applyLearnedPolicy: \tPolHead = %w\n", [if(Cond, Pol1, Pol2)]),
+	flush(output),
+	(
+	  holds(Cond, S) -> append( Pol1, PolTail, PolNew)
+	;
+	  append( Pol2, PolTail, PolNew)
+	),
+	transPr( applyLearnedPolicy(PolNew,
+                             solve(Prog, Horizon, RewardFunction), S_solve), S, ProgR, SNew, 1).
+
+/** applyLearnedPolicy; case: normal program step.
+ * we check for final of next action and perform transition to the rest of
+ * the program, otherwise we simply make a transtion with PolHead.
+ */
+transPr( applyLearnedPolicy([PolHead | PolTail],
+         solve(Prog, Horizon, RewardFunction), S_solve), S, ProgR, SNew, 1) :-
+	printColor(yellow, "applyLearnedPolicy: general case \tPolHead = %w\n", [PolHead]),
+	printf("PolTail = %w\n", [PolTail]),
+	flush(output),
+	(
+	  final(PolHead, S) ->
+	  transPr( applyLearnedPolicy(PolTail,
+                   solve(Prog, Horizon, RewardFunction), S_solve), S, ProgR, SNew, 1)
+	;
+	  transPr( PolHead, S, PolHeadR, SNew, 1),  
+	  append(PolHeadR, PolTail, PolR),
+	  ProgR = applyLearnedPolicy(PolR, solve(Prog, Horizon, RewardFunction), S_solve)
+	).
+% </DP was here>
 	
 
 

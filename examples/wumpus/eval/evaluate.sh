@@ -25,16 +25,19 @@ The input consists of the C4.5 filestem.names and filestem.data
 files.
 This script takes the filestem filestem as main argument.
 
-Usage: `basename $0` filestem [-stepSize] [-plotOnly]
+Usage: `basename $0` filestem [-stepSize] [-testNum] [-plotOnly]
 
 options:
-    -stepSize  : how many examples should be added to the training set of
-                 C4.5 in each step
+    -stepSize : how many examples should be added to the training set of
+                C4.5 in each step (default 5)
 
-    -printOnly : if there is already an evaluation file filestem.eval,
-                 this option skips the evaluation and only prints a graph
-                 of the training curve.
-                 The image is stored as filestem.eps
+    -testNum  : every testNum instance should be kept apart in a test set
+                (default 3)
+
+    -plotOnly : if there is already an evaluation file filestem.eval,
+                this option skips the evaluation and only prints a graph
+                of the training curve.
+                The image is stored as filestem.eps
 -----------------------------------------------------------------------------	    
 EOF
 }
@@ -44,30 +47,51 @@ if [[ "$1" = "usage" || "$1" = "-usage" || "$1" = "--usage" ]]
    usage
    exit 1
 fi
+
 if [ "$#" -lt 1 ]
   then
    echo No filestem given!
-   echo Usage: `basename $0` filestem [-stepSize] [-plotOnly]
-   exit 1
-fi
-if [ "$#" -gt 3 ]
-  then
-   echo Too many arguments!
-   echo Usage: `basename $0` filestem [-stepSize] [-plotOnly]
+   usage
    exit 1
 fi
 
-if [ "$#" -eq 3 ]
+if [ "$#" -gt 4 ]
   then
-   if [[ "$3" = "-plotOnly" || "$3" = "plotOnly" ]]
+   echo Too many arguments!
+   usage
+   exit 1
+fi
+
+if [ "$#" -eq 4 ]
+  then
+   if [[ "$4" = "-plotOnly" || "$4" = "plotOnly" ]]
    then
     echo plotOnly chosen
     plotOnly=1
-  else
-   echo Wrong arguments!
-   echo Usage: `basename $0` filestem [-stepSize] [-plotOnly]
+   else
+    echo Wrong arguments!
+   usage
    exit 1
   fi
+fi
+
+if [ "$#" -gt 2 ]
+  then
+   if [ "$3" -lt 0 ]
+   then
+    echo Parameter testNum has to be greater than 0!
+    usage
+    exit 1
+   fi
+fi
+
+if [ "$#" -gt 2 ]
+  then
+   echo "keeping apart a test set of (1/"$3")"
+   testSpacing=$3
+  else
+   echo "keeping apart a test set of (1/3)"
+   testSpacing=3
 fi
 
 if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
@@ -75,6 +99,14 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
    if [ -f ./tmp.names ]
    then
     rm ./tmp.names
+   fi
+   if [ -f ./tmp.all ]
+   then
+    rm ./tmp.all
+   fi
+   if [ -f ./tmp.test ]
+   then
+    rm ./tmp.test
    fi
    if [ -f ./tmp.data ]
    then
@@ -91,9 +123,21 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
 
    cp $1.names "./tmp.names"
 
-   numberOfExamples=$(awk 'END{ print NR}' $1.data)
+   # Number of (training + test) data instances
+   # Test data will be extracted from $1.data and will be kept apart
+   numberOfAllInstances=$(( $(awk 'END{ print NR}' $1.data) - 13 ))
+   echo "numberofAllInstances: $numberOfAllInstances"
+   testRatio=`echo "scale=2; 1/$testSpacing" | bc`
+   echo "testRatio: $testRatio"
+   testSetSizeFloat=`echo "scale=0; $testRatio*$numberOfAllInstances" | bc`
+   # round to a pseudo-integer
+   testSetSize=`printf "%.0f\n" $testSetSizeFloat`
+   echo "testSetSize: $testSetSize"
+   # Number of training instances
+   numberOfExamples=$(( $numberOfAllInstances - $testSetSize ))
+   echo "numberofExamples: $numberOfExamples"
 
-   if [ "$#" -eq 2 ]
+   if [ "$#" -gt 1 ]
      then
       echo using stepSize of $2
       stepSize=$2
@@ -103,40 +147,53 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
    fi
 
 
-   if [ -f ./$1.eval ]
+   if [ -f ./$1.eval.train ]
    then
-    rm ./$1.eval
+    rm ./$1.eval.train
+   fi
+   if [ -f ./$1.eval.test ]
+   then
+    rm ./$1.eval.test
    fi
 
    firstRun="true"
 
-   totalRuns=$(( $(( $numberOfExamples - 14 )) / $stepSize))
+   totalRunsFloat=`echo "scale=2; $numberOfAllInstances / $stepSize" | bc`
+#   echo "totalRunsFloat: $totalRunsFloat"
+   # round up to a pseudo-integer
+   totalRuns=`perl -le 'print int(shift()+0.9999)' $totalRunsFloat`
+#   echo "totalRuns: $totalRuns"
     
-       totalRuns=$totalRuns || return $?
-#       currentRun=1
-#       width=${3:-25}
-       width=25
-#       mega=$(( 1024 * 1024 ))
-       start=$(date +%s)
+#   totalRuns=$totalRuns || return $?
+
+#   currentRun=1
+#   width=${3:-25}
+   width=25
+#   mega=$(( 1024 * 1024 ))
+   start=$(date +%s)
 
    echo "Evaluating $1..."
-   echo "($numberOfExamples examples total)"
+   echo "($numberOfExamples training examples total)"
 
    for(( currentRun = 1; currentRun <= $totalRuns; currentRun += 1 ))
    do
-         itemSetFirstLine=$(( 14 + $(( $currentRun * $stepSize )) ))
+         itemSetFirstLine=$(( 14 + $(( $(( $currentRun - 1 )) * $stepSize )) ))
 
-         if [ $(( $itemSetFirstLine + $stepSize )) -gt $numberOfExamples ]
+         if [ $(( $itemSetFirstLine + $stepSize - 1 )) -gt $(( 13 + $numberOfAllInstances )) ]
          then
-          itemSetLastLine=$numberOfExamples
+          itemSetLastLine=$(( 13 + $numberOfAllInstances ))
          else   
-          itemSetLastLine=$(( $itemSetFirstLine + $stepSize ))
+          itemSetLastLine=$(( $itemSetFirstLine + $stepSize - 1 ))
          fi
 
-#         echo writing examples from line $itemSetFirstLine to $itemSetLastLine [$numberOfExamples lines total]
+#         echo "adding examples from line $itemSetFirstLine to $itemSetLastLine [$numberOfAllInstances lines total]"
 
-         sed -n $itemSetFirstLine,$itemSetLastLine'p' $1.data >> tmp.data
-       
+         sed -n $itemSetFirstLine,$itemSetLastLine'p' $1.data >> tmp.all
+         # keep every $testSpacing (default 3rd) instance as test data
+         sed -n '0~'$testSpacing'p' tmp.all > tmp.test
+         # store the other instances as training data
+         sed '0~'$testSpacing'd' tmp.all > tmp.data
+#         sed -n $itemSetFirstLine,$itemSetLastLine'p' $1.data >> tmp.data
          items=$(( $(($currentRun+1)) * $stepSize ))
 #         echo $items items
 
@@ -149,12 +206,23 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
                                             -e '3s/.*/# Items\t&/g' \
                                             -e "5s/.*/  $items \t&/g" \
                                             -e 's/(/ /g' \
-                                            -e 's/)/ /g' > $1.eval
+                                            -e 's/)/ /g' > $1.eval.train
+          sed -n '1,4p' $1.eval.train > $1.eval.test
+
           firstRun="false"
          else
-          c4.5 -f tmp | grep '<<' | sed -e "s/.*/  $items \t&/g" \
-                                        -e 's/(/ /g' \
-                                        -e 's/)/ /g' >> $1.eval
+           # store data for both the training set and the test set in
+           # a temporary file
+           c4.5 -u -f tmp | grep '<<' | sed -e "s/.*/  $items \t&/g" \
+                                            -e 's/(/ /g' \
+                                            -e 's/)/ /g' > $1.eval.tmp
+           # split the data up
+           sed -n '1p' $1.eval.tmp >> $1.eval.train
+           sed -n '2p' $1.eval.tmp >> $1.eval.test
+           rm $1.eval.tmp
+#           c4.5 -f tmp | grep '<<' | sed -e "s/.*/  $items \t&/g" \
+#                                         -e 's/(/ /g' \
+#                                         -e 's/)/ /g' >> $1.test
          fi
 
            ### progress bar ###
@@ -190,25 +258,43 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
 
    echo ""
    echo "done :)"
-   echo "results stored in $1.eval"
+   echo "results stored in $1.eval.train and $1.eval.test"
 fi # end if [[ ${plotOnly:-0} -eq 0 ]]
 
-if [ -f $1.eval ]
+if [ -f $1.eval.train ]
   then
    echo ""
-   echo "Plotting graph for $1.eval..."
+   echo "Plotting graph for $1.eval.train..."
    gnuplot << EOF
    set terminal postscript eps color enhanced
-   set output "$1.eps"
+   set output "$1.train.eps"
    set xlabel "Training Instances"
    set ylabel "Errors [in %]"
-   set title "Learning Curve"
-   plot "$1.eval" using 1:4 notitle w l
+   set title "Learning Curve on Training Data"
+   plot "$1.eval.train" using 1:4 notitle w l
 EOF
    echo "done :)"
-   echo "graph stored in $1.eps"
+   echo "graph stored in $1.train.eps"
   else
-   echo "Error: File $1.eval does not exist!"
+   echo "Error: File $1.eval.train does not exist!"
+   exit 1
+fi
+if [ -f $1.eval.test ]
+  then
+   echo ""
+   echo "Plotting graph for $1.eval.test..."
+   gnuplot << EOF
+   set terminal postscript eps color enhanced
+   set output "$1.test.eps"
+   set xlabel "Training Instances"
+   set ylabel "Errors [in %]"
+   set title "Learning Curve on Test Data"
+   plot "$1.eval.test" using 1:4 notitle w l
+EOF
+   echo "done :)"
+   echo "graph stored in $1.test.eps"
+  else
+   echo "Error: File $1.eval.test does not exist!"
    exit 1
 fi
 
@@ -217,10 +303,10 @@ if [ -f ./tmp.names ]
 then
  rm ./tmp.names
 fi
-if [ -f ./tmp.data ]
-then
- rm ./tmp.data
-fi
+#if [ -f ./tmp.data ]
+#then
+# rm ./tmp.data
+#fi
 if [ -f ./tmp.tree ]
 then
  rm ./tmp.tree
