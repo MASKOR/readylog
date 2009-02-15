@@ -364,12 +364,13 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
             ( iplTrainingPhase ->
                 write_learning_instance(solve(Prog, Horizon, RewardFunction),
                                         Policy, Value, TermProb, Tree, [clipOnline|S]),
-                printf("Learning instance written successfully.\n", [])
+                printf("Learning instance written successfully.\n", []),
+                Policy_r = applyPolicy(Policy)
             ;
 	        Policy_r = applyLearnedPolicy(Policy, solve(Prog, Horizon, RewardFunction), S)
             )
         ;
-            Policy_r = Policy
+            Policy_r = applyPolicy(Policy)
         ),
         % </DP was here>
 	S_r = S.
