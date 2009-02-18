@@ -195,8 +195,8 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
          sed '0~'$testSpacing'd' tmp.all > tmp.data
 #         sed -n $itemSetFirstLine,$itemSetLastLine'p' $1.data >> tmp.data
 #         items=$(( $(($currentRun+1)) * $stepSize ))
-#         trainingItems=$(awk 'END{ print NR}' tmp.data)
-         testItems=$(awk 'END{ print NR}' tmp.test)
+         trainingItems=$(awk 'END{ print NR}' tmp.data)
+#         testItems=$(awk 'END{ print NR}' tmp.test)
 #         echo $items items
 
          if [ $firstRun = "true" ]
@@ -211,7 +211,7 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
                                             -e 's/)/ /g' > $1.eval.train
           sed -n '1,4p' $1.eval.train > $1.eval.test
 
-          firstRun="false"
+#          firstRun="false"
          else
            # store data for both the training set and the test set in
            # a temporary file
@@ -249,14 +249,49 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
 
            # print estimated time of arrival
            elapsed=$(( $(date +%s) - $start ))
-           remain=$(( $totalRuns - $currentRun ))
-           eta=$(( ($elapsed * $remain) / $currentRun + 1))
+           # doesn't really work linearly...
+#           remain=$(( $totalRuns - $currentRun ))
+#           eta=$(( ($elapsed * $remain) / $currentRun + 1))
+#           firstRun="false"
+           # Jobs are taking much longer when the data set grows.
+           # Thus, we could estimate the remaining time by
+           # supposing quadradic time complexity of C4.5:
+#           remainLinear=$(( $totalRuns - $currentRun ))
+#           remain=`echo "scale=2; $remainLinear ^ 2" | bc`
+#           normaliser=`echo "scale=2; $(( currentRun + 1 )) ^ 2" | bc`
+#           eta=$(( ($elapsed * $remain) / $normaliser ))
+#           firstRun="false"
+           # But we want a better estimate. So we spent some
+           # time on inducing the biggest tree and then computing
+           # the average job length:
+           if [ $firstRun = "true" ]
+           then 
+              waitstr=" Please wait..."
+              printf " $waitstr" 1>&2
+              biggestJobStart=$(date +%s)
+              c4.5 -u -f $1 > /dev/null
+              biggestJobLength=$(( $(date +%s) - $biggestJobStart ))
+              averageJobLength=$(( $(( $elapsed + $biggestJobLength )) / 2 ))
+              # erase waitstr
+              for(( i = 1; i <= 16; i += 1 ))
+              do
+                 printf "\b" 1>&2
+              done
+              firstRun="false"
+           fi
+#           echo "biggestJobLength=$biggestJobLength"
+#           echo "averageJobLength=$averageJobLength"
+#           echo "total Time estimation:$(( $averageJobLength*$totalRuns ))"
+           totalLength=$(( $averageJobLength * $totalRuns ))
+           eta=$(( $totalLength - $elapsed ))
+#           echo "ETA: $eta"
+           
            if [[ $remain == 0 ]]; then eta=0; fi
-           etamin=$(( $eta / 60 ))
+           etahours=$(( $eta / 3600 ))
+           etamin=$(( $(( $eta / 60 )) % 60 ))
            etasec=$(( $eta % 60 ))
            if [[ $eta > 0 ]]; then etastr="ETA"; else etastr="   "; fi
-           printf "   %02d:%02d $etastr" $etamin $etasec 1>&2
-
+           printf "   %02dh:%02dm:%02ds $etastr" $etahours $etamin $etasec 1>&2
    done
 
    echo ""
