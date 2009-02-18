@@ -112,50 +112,11 @@ function(f_is_pit(X, Y), V,
 /** (Facts about) Breezes are created by the distribute_breezes
  *  action in xtra.pl. */
 
-%update_breezes_aux :-
-%        printf("Retracting all breezes.\n", []),
-%        retract_all(breeze(_,_)),
-%        findall( [X,Y],
-%                 ( world( XMin, YMin, XMax, YMax ),
-%                   between(XMin, XMax, 1, X),
-%                   between(YMin, YMax, 1, Y),
-%                   not is_pit(X,Y),
-%                   /** horizontal and vertical neighbour cells of
-%                    *  pits are breezy */
-%                   XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
-%                   ( is_pit(XW, Y);
-%                     is_pit(X, YS);
-%                     is_pit(XE, Y);
-%                     is_pit(X, YN)
-%                   )
-%                 ),
-%                 BreezeList
-%               ),
-%        setval( real_cells_breezy, BreezeList ).
-%        ( foreach((X,Y), BreezeList) do
-%             printf("Asserting breeze(%w, %w).\n", [X,Y]),
-%             assert(breeze(X,Y))
-%        ).
-
-%breeze(X, Y) :- ( world( XMin, YMin, XMax, YMax ),
-%                  between(XMin, XMax, 1, X),
-%                  between(YMin, YMax, 1, Y),
-%                  not is_pit(X,Y),
-%                  /** horizontal and vertical neighbour cells of
-%                   *  pits are breezy */
-%                  XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
-%                  ( is_pit(XW, Y);
-%                    is_pit(X, YS);
-%                    is_pit(XE, Y);
-%                    is_pit(X, YN)
-%                  )
-%                ).
-
-
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  WUMPUS
 
-wumpus(X, Y) :-  getval( real_wumpus_pos, [X,Y] ).
+wumpus(X, Y) :-  getval( real_wumpus_pos_X, X ),
+                 getval( real_wumpus_pos_Y, Y ).
 
 is_wumpus(X, Y) :- is_pos(X, Y),
                    wumpus(X, Y).
@@ -172,22 +133,6 @@ function(f_is_wumpus(X, Y), V,
 
 /** (Facts about) Stenches are created by the distribute_stenches
  *  function in xtra.pl. */
-
-%stench(X, Y) :- ( world( XMin, YMin, XMax, YMax ),
-%                  between(XMin, XMax, 1, X),
-%                  between(YMin, YMax, 1, Y),
-%                  not is_pit(X,Y),
-%                  /* horizontal and vertical neighbour cells of
-%                   * the wumpus smell (for simplicity also when
-%                   * it's February 29th in leap years and the
-%                   * wumpus had its bath) */
-%                  XW is X-1, XE is X+1, YN is Y+1, YS is Y-1,
-%                  ( is_wumpus(XW, Y);
-%                    is_wumpus(X, YS);
-%                    is_wumpus(XE, Y);
-%                    is_wumpus(X, YN)
-%                  )
-%                ).
 
 is_stench(X, Y) :- is_pos(X, Y),
                    stench(X, Y).
@@ -248,6 +193,7 @@ function(f_is_direction(X), V,
 /** get domain info for visualization.
  *  compile a list of information on the domain we act in
  */
+:- mode get_domain_wumpus(-, -, -, -, -, -).
 get_domain_wumpus(X, Y, W, P, WI, S) :-
         world(_, _, X, Y),
         findall([A, B, C, D], wall(A, B, C, D), W),
@@ -256,6 +202,7 @@ get_domain_wumpus(X, Y, W, P, WI, S) :-
         findall([Sx, Sy], stench(Sx, Sy), S).
 
 /** gather the initially unseen cells */
+:- mode get_shades_wumpus(-).
 get_shades_wumpus(SH) :-
         findall([X, Y], shade_init(X,Y), SH).
 
@@ -270,6 +217,7 @@ get_shades_wumpus(SH) :-
 %        findall([X, Y], smelly_init(X,Y), S).
 
 /** compiles a list of all legal positions in the maze */
+:- mode get_all_positions(-).
 get_all_positions(PLIST) :-
         findall([X,Y], pos(X,Y), PLIST).
 
@@ -352,9 +300,13 @@ exog_fluent_getValue( epf_num_facedShades, V, _S ) :- !,
 %%  real position        %%
 %% %%%%%%%%%%%%%%%%%%%%% %%
 
-exog_prim_fluent( epf_agent_pos ).
-exog_fluent_getValue( epf_agent_pos, V, _S ) :- !,
-      getval( wm_agent_pos, V).
+exog_prim_fluent( epf_agent_pos_X ).
+exog_fluent_getValue( epf_agent_pos_X, V, _S ) :- !,
+      getval( wm_agent_pos_X, V).
+
+exog_prim_fluent( epf_agent_pos_Y ).
+exog_fluent_getValue( epf_agent_pos_Y, V, _S ) :- !,
+      getval( wm_agent_pos_Y, V).
 
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %%  real direction in    %%
@@ -399,9 +351,13 @@ exog_fluent_getValue( epf_agent_arrow, V, _S ) :- !,
 %%  wumpus position      %%
 %% %%%%%%%%%%%%%%%%%%%%% %%
 
-exog_prim_fluent(epf_wumpus_pos).
-exog_fluent_getValue(epf_wumpus_pos, V, _S) :- !,
-      getval( wm_wumpus_pos, V ).
+exog_prim_fluent(epf_wumpus_pos_X).
+exog_fluent_getValue(epf_wumpus_pos_X, V, _S) :- !,
+      getval( wm_wumpus_pos_X, V ).
+
+exog_prim_fluent(epf_wumpus_pos_Y).
+exog_fluent_getValue(epf_wumpus_pos_Y, V, _S) :- !,
+      getval( wm_wumpus_pos_Y, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  is wumpus alive? ('T'/'F') %%
@@ -412,12 +368,28 @@ exog_fluent_getValue(epf_wumpus_alive, V, _S) :- !,
       getval( wm_wumpus_alive, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%% %%
+%%  start position       %%
+%% %%%%%%%%%%%%%%%%%%%%% %%
+
+exog_prim_fluent(epf_start_pos_X).
+exog_fluent_getValue(epf_start_pos_X, V, _S) :- !,
+      getval( wm_start_pos_X, V ).
+
+exog_prim_fluent(epf_start_pos_Y).
+exog_fluent_getValue(epf_start_pos_Y, V, _S) :- !,
+      getval( wm_start_pos_Y, V ).
+
+%% %%%%%%%%%%%%%%%%%%%%% %%
 %%  gold position        %%
 %% %%%%%%%%%%%%%%%%%%%%% %%
 
-exog_prim_fluent(epf_gold_pos).
-exog_fluent_getValue(epf_gold_pos, V, _S) :- !,
-      getval( wm_gold_pos, V ).
+exog_prim_fluent(epf_gold_pos_X).
+exog_fluent_getValue(epf_gold_pos_X, V, _S) :- !,
+      getval( wm_gold_pos_X, V ).
+
+exog_prim_fluent(epf_gold_pos_Y).
+exog_fluent_getValue(epf_gold_pos_Y, V, _S) :- !,
+      getval( wm_gold_pos_Y, V ).
 
 /** are we carrying the gold */
 exog_prim_fluent( epf_carry_gold ).
@@ -433,8 +405,10 @@ exog_prim_fluent( epf_sense_gold ).
 
 /** access function returns the fluent's value in Situation _S. */
 exog_fluent_getValue(epf_sense_gold, V, _S) :- !,
-      getval( wm_gold_pos, [XG,YG] ),
-      getval( wm_agent_pos, [XA,YA] ),
+      getval( wm_gold_pos_X, XG ),
+      getval( wm_gold_pos_Y, YG ),
+      getval( wm_agent_pos_X, XA ),
+      getval( wm_agent_pos_Y, YA ),
       ( ([XG,YG]=[XA,YA]) -> V = true; V = false ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -462,7 +436,8 @@ exog_prim_fluent( epf_sense_breeze ).
 
 /** access function returns the fluent's value in Situation _S. */
 exog_fluent_getValue(epf_sense_breeze, V, _S) :- !,
-      getval( real_agent_pos, [X,Y]),
+      getval( real_agent_pos_X, X ),
+      getval( real_agent_pos_Y, Y ),
       ( breeze(X,Y) -> V = true; V = false ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -483,7 +458,8 @@ exog_prim_fluent( epf_sense_stench ).
 
 /** access function returns the fluent's value in Situation _S. */
 exog_fluent_getValue(epf_sense_stench, V, _S) :- !,
-      getval( real_agent_pos, [X,Y]),
+      getval( real_agent_pos_X, X ),
+      getval( real_agent_pos_Y, Y ),
       ( stench(X,Y) -> V = true; V = false ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -514,13 +490,18 @@ exog_fluent_getValue( epf_cells_know_no_pit, V, _S ) :- !,
       getval( wm_cells_know_no_pit, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-%%  degenerated list of cell that is  %%
+%%  coordinates of the cell that is   %%
 %%  known to contain the wumpus       %%
+%%  (not ground if not known)         %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
-exog_prim_fluent( epf_known_wumpus_pos ).
-exog_fluent_getValue( epf_known_wumpus_pos, V, _S ) :- !,
-      getval( wm_known_wumpus_pos, V ).
+exog_prim_fluent( epf_known_wumpus_pos_X ).
+exog_fluent_getValue( epf_known_wumpus_pos_X, V, _S ) :- !,
+      getval( wm_known_wumpus_pos_X, V ).
+
+exog_prim_fluent( epf_known_wumpus_pos_Y ).
+exog_fluent_getValue( epf_known_wumpus_pos_Y, V, _S ) :- !,
+      getval( wm_known_wumpus_pos_Y, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  list of cells that are       %%
@@ -623,7 +604,8 @@ exog_fluent_getValue( epf_remaining_time, V, _S ) :- !,
 prim_action( go_forward ).
 
 poss( go_forward,
-        and([ epf_agent_pos = [Xp, Yp],
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
               is_pos(Xp, Yp),
               epf_wumpus_alive = WA,
               
@@ -633,7 +615,7 @@ poss( go_forward,
               epf_cells_know_no_pit = NoPits,
 
               /** agent has deduced that the wumpus is not in the cells in the list
-               * RCKNW(RealCellsKnowNoWumpus)
+               *  RCKNW(RealCellsKnowNoWumpus)
                */
               epf_cells_know_no_wumpus = NoWumpus,
               
@@ -666,7 +648,7 @@ function( f_allowed_to_go(Xp, Yp, Xn, Yn, NoPits, NoWumpus, WA, Visited), V,
                    not is_wall(Xp, Yp, Xn, Yn),
                    % not is_pit(Xn, Yp),            /** would be absolute knowledge */
                    member([Xn, Yn], NoPits),        /** agent knows that there is no pit
-                                                     *  in the neighbour cell to the east */
+                                                     *  in the neighbour cell */
                    % not is_wumpus(Xn, Yn)          /** would be absolute knowledge */
                    or([ member([Xn, Yn], NoWumpus), /** either wumpus is know not to be in the cell... */
                         WA = false,                 /** ... or wumpus is dead */
@@ -677,26 +659,49 @@ function( f_allowed_to_go(Xp, Yp, Xn, Yn, NoPits, NoWumpus, WA, Visited), V,
              V = false )
         ).
 
-causes_val( go_forward, epf_agent_pos, L,
-        and([ epf_agent_pos = [Xp, Yp],
+causes_val( go_forward, epf_agent_pos_X, L,
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
               is_pos(Xp, Yp),
               epf_agent_direction = Dir,
               is_direction(Dir),
               or([ and([ Dir = east,
                          XEast is Xp + 1,
-                         L = [XEast, Yp]
+                         L = XEast
                       ]),
                    and([ Dir = south,
-                         YSouth is Yp - 1,
-                         L = [Xp, YSouth]
+                         L = Xp
                       ]),
                    and([ Dir = west,
                          XWest is Xp - 1,
-                         L = [XWest,Yp]
+                         L = XWest
+                      ]),
+                   and([ Dir = north,
+                         L = Xp
+                      ])
+                ])
+           ])
+          ).
+
+causes_val( go_forward, epf_agent_pos_Y, L,
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              or([ and([ Dir = east,
+                         L = Yp
+                      ]),
+                   and([ Dir = south,
+                         YSouth is Yp - 1,
+                         L = YSouth
+                      ]),
+                   and([ Dir = west,
+                         L = Yp
                       ]),
                    and([ Dir = north,
                          YNorth is Yp + 1,
-                         L = [Xp, YNorth]
+                         L = YNorth
                       ])
                 ])
            ])
@@ -704,7 +709,8 @@ causes_val( go_forward, epf_agent_pos, L,
 
 /** QUESTION: Do I really have to change epf_cells_visited here, or wm_cells_visited? */
 causes_val( go_forward, epf_cells_visited, CellsVisitedNew,
-        and([ epf_agent_pos = [Xp, Yp],
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
               is_pos(Xp, Yp),
               epf_agent_direction = Dir,
               is_direction(Dir),
@@ -734,7 +740,8 @@ causes_val( go_forward, epf_cells_visited, CellsVisitedNew,
         ).
 
 causes_val( go_forward, epf_num_facedShades, V,
-        and([ epf_agent_pos = [Xc, Yc],
+        and([ epf_agent_pos_X = Xc,
+              epf_agent_pos_Y = Yc,
               is_pos(Xc, Yc),
               epf_agent_direction = Dir,
               is_direction(Dir),
@@ -744,7 +751,8 @@ causes_val( go_forward, epf_num_facedShades, V,
         ).
 
 causes_val( go_forward, epf_distance_to_closest_safe_cell, D,
-        and([ epf_agent_pos = [Xp, Yp],
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
               is_pos(Xp, Yp),
               epf_agent_direction = Dir,
               is_direction(Dir),
@@ -776,15 +784,17 @@ causes_val( go_forward, epf_previous_direction, V,
             V = 'N/A').
 
 causes_val( go_forward, epf_sure_to_hit, V,
-        and([ epf_agent_pos = [Xc, Yc],
+        and([ epf_agent_pos_X = Xc,
+              epf_agent_pos_Y = Yc,
               is_pos(Xc, Yc),
               epf_agent_direction = Dir,
               is_direction(Dir),
               epf_cells_know_no_wumpus = CellsKnowNoWumpus,
               epf_cells_smelly = CellsSmelly,
-              epf_known_wumpus_pos = KnownWumpusPos,
+              epf_known_wumpus_pos_X = KnownWumpusPosX,
+              epf_known_wumpus_pos_Y = KnownWumpusPosY,
               determine_sure_to_hit(Xc, Yc, Dir, CellsKnowNoWumpus,
-                                    CellsSmelly, KnownWumpusPos, Vtmp, _WumpusPos),
+                                    CellsSmelly, KnownWumpusPosX, KnownWumpusPosY, Vtmp, _WumpusPosX, _WumpusPosY),
               V = Vtmp
            ])
         ).
@@ -821,7 +831,8 @@ causes_val( turn_right, epf_agent_direction, D,
         ).
 
 causes_val( turn_right, epf_num_facedShades, V,
-        and([ epf_agent_pos = [Xc, Yc],
+        and([ epf_agent_pos_X = Xc,
+              epf_agent_pos_Y = Yc,
               is_pos(Xc, Yc),
               epf_agent_direction = DirCurr,
               is_direction(DirCurr),
@@ -889,7 +900,8 @@ causes_val( turn_left, epf_agent_direction, D,
         ).
 
 causes_val( turn_left, epf_num_facedShades, V,
-        and([ epf_agent_pos = [Xc, Yc],
+        and([ epf_agent_pos_X = Xc,
+              epf_agent_pos_Y = Yc,
               is_pos(Xc, Yc),
               epf_agent_direction = DirCurr,
               is_direction(DirCurr),
@@ -946,11 +958,13 @@ causes_val( shoot, epf_agent_arrow, A,
 
 causes_val( shoot, epf_wumpus_alive, WA,
         WA = false ). % as otherwise shoot is not possible
-%              epf_agent_pos = [XA, YA],
+%              epf_agent_pos_X = XA,
+%              epf_agent_pos_Y = YA,
 %              is_pos(XA, YA),
 %              epf_agent_direction = Dir,
 %              is_direction(Dir),
-%              epf_wumpus_pos = [XW, YW],
+%              epf_wumpus_pos_X = XW,
+%              epf_wumpus_pos_Y = YW,
 %              or([ and([ Dir = east,
 %                         YW = YA,    % agent and wumpus in same row
 %                         XW > XA,    % wumpus is in front
@@ -984,7 +998,9 @@ causes_val( shoot, epf_cells_know_no_wumpus, CellsNoWumpus,
 /** do not move */
 prim_action( rest ).
 poss( rest, 
-     and([ epf_agent_pos = [X,Y], is_pos(X,Y) ]) 
+     and([ epf_agent_pos_X = X,
+           epf_agent_pos_Y = Y,
+           is_pos(X,Y) ]) 
     ).
 
 %% %%%%%%%%%%%%%%%%%%%%% %%
@@ -993,9 +1009,11 @@ poss( rest,
 
 prim_action(pickup_gold).
 poss( pickup_gold,
-      and([ epf_agent_pos = [X,Y],
+      and([ epf_agent_pos_X = X,
+            epf_agent_pos_Y = Y,
             is_pos(X,Y),
-            getval( real_gold_pos, [XG,YG] ),
+            epf_gold_pos_X = XG,
+            epf_gold_pos_Y = YG,
             X =:= XG, Y =:= YG,
             epf_carry_gold = false
           ]) 
@@ -1017,8 +1035,10 @@ poss( initialise_dungeon(_Seed), true ).
 /** Arrive at home after exploration */
 prim_action(make_yourself_at_home).
 poss( make_yourself_at_home,
-      and([ epf_agent_pos = [X,Y],
-            getval( real_start_pos, [XS,YS] ),
+      and([ epf_agent_pos_X = X,
+            epf_agent_pos_Y = Y,
+            epf_start_pos_X = XS,
+            epf_start_pos_Y = YS,
             X =:= XS, Y =:= YS
           ]) 
     ).

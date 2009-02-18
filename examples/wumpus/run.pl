@@ -71,6 +71,17 @@
 
 /* dennis's test stuff */
 %dp :- toggle_iplearn, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
+dp_profile :- toggle_iplearn,
+              vis_wumpus,
+              initialise_shades,
+              TotalRuns = 2,
+              printf("######## Run 1 of %w... ########\n", [TotalRuns]),
+              icp( find_gold(6) ),
+              reset_values,
+              printf("######## Run 2 of %w... ########\n", [TotalRuns]),
+              icp( find_gold(3) ),
+              reset_values.
+
 dp :- toggle_iplearn,
       vis_wumpus,
       initialise_shades,
@@ -81,7 +92,7 @@ dp :- toggle_iplearn,
       printf("######## Run 2 of %w... ########\n", [TotalRuns]),
       icp( find_gold(3) ),
       reset_values,
-      LastRun is (TotalRuns + 6),
+      LastRun is (TotalRuns + 4),
       ( count(I,7,LastRun),
         param(TotalRuns)
         do
@@ -121,7 +132,8 @@ initialise_shades :- get_shades_wumpus(SH),
 vis_wumpus :- display_wumpus,
 %	getval(real_start_pos, [StartX, StartY]),
 %	draw_start(StartX,StartY),
-	getval(real_gold_pos, [GoldX, GoldY]),
+	getval(real_gold_pos_X, GoldX),
+	getval(real_gold_pos_Y, GoldY),
 	draw_gold(GoldX,GoldY).
 
 

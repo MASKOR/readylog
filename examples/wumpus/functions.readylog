@@ -28,7 +28,8 @@
  * This is really VERY VERY important for DT-planning!
  */
 function( reward, V, 
-          lif( epf_agent_pos = [3,3], 
+          lif( ( epf_agent_pos_X = 3,
+                 epf_agent_pos_Y = 3 ), 
                V=100, 
                V=(-1) ) 
         ).
@@ -36,7 +37,8 @@ function( reward, V,
 /** parameterized reward function.
  */
 function( reward(X,Y), V, 
-          lif( epf_agent_pos = [X,Y], 
+          lif( ( epf_agent_pos_X = X,
+                 epf_agent_pos_Y = Y ),
                V=100, 
                V=(-1) ) 
         ).
@@ -46,9 +48,11 @@ function( reward(X,Y), V,
  * by giving the negative manhattan dist to goal as the reward
  */
 function( reward_heuristic(X,Y), V, 
-          and([ lif( epf_agent_pos = [X,Y], 
+          and([ lif( ( epf_agent_pos_X = X,
+                       epf_agent_pos_Y = Y ), 
                      V=100,
-                     and([ epf_agent_pos = [PosX,PosY],
+                     and([ epf_agent_pos_X = PosX,
+                           epf_agent_pos_Y = PosY,
                            PreDiffX = X - PosX,
                            lif( PreDiffX > 0,
                                 DiffX = -PreDiffX,
@@ -120,7 +124,8 @@ function( reward_search_gold, Reward,
 %                MinXDist is XMax,
 %                MinYDist is YMax,
 %                MinManhattan is (XMax + YMax),
-%                epf_agent_pos = [AgentX, AgentY],
+%                epf_agent_pos_X = AgentX,
+%                epf_agent_pos_Y = AgentY,
 %                Candidate is MinManhattan,
 %                ( foreach([X,Y], CSAFE) do      %% doesn't work :(
 %                  /** compute Manhattan Distance to agent */

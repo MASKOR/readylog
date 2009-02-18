@@ -91,6 +91,7 @@ get_all_fluent_values(S, Result) :-
         findall( ValFStringNoComma,
                  ( member(F, Fluents),
                    /** check if fluent is instantiated */
+                   /** TODO: should this be nonvar(F) instead? */
                    ( ( ( ground(F) /** TODO: Find out why useAbstraction messes up subf/hasval */
                        , F \= useAbstraction )  ->
                          ( exog_fluent(F) ->

@@ -194,7 +194,9 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
          # store the other instances as training data
          sed '0~'$testSpacing'd' tmp.all > tmp.data
 #         sed -n $itemSetFirstLine,$itemSetLastLine'p' $1.data >> tmp.data
-         items=$(( $(($currentRun+1)) * $stepSize ))
+#         items=$(( $(($currentRun+1)) * $stepSize ))
+#         trainingItems=$(awk 'END{ print NR}' tmp.data)
+         testItems=$(awk 'END{ print NR}' tmp.test)
 #         echo $items items
 
          if [ $firstRun = "true" ]
@@ -213,7 +215,8 @@ if [[ ${plotOnly:-0} -eq 0 ]] # if plotOnly is false
          else
            # store data for both the training set and the test set in
            # a temporary file
-           c4.5 -u -f tmp | grep '<<' | sed -e "s/.*/  $items \t&/g" \
+           c4.5 -u -f tmp | grep '<<' | sed -e "1s/.*/  $trainingItems \t&/g" \
+                                            -e "2s/.*/  $trainingItems \t&/g" \
                                             -e 's/(/ /g' \
                                             -e 's/)/ /g' > $1.eval.tmp
            # split the data up
@@ -265,14 +268,19 @@ if [ -f $1.eval.train ]
   then
    echo ""
    echo "Plotting graph for $1.eval.train..."
-   gnuplot << EOF
+   gnuplot << EOF1
    set terminal postscript eps color enhanced
    set output "$1.train.eps"
    set xlabel "Training Instances"
-   set ylabel "Errors [in %]"
+   set xtics 500
+   set mxtics 100
+   set ylabel "Accuracy [in %]"
+   set yrange [ 0 : 100 ]
+   set ytics 10
+   set mytics 5
    set title "Learning Curve on Training Data"
-   plot "$1.eval.train" using 1:4 notitle w l
-EOF
+   plot "$1.eval.train" using 1:(100-\$4) notitle w l
+EOF1
    echo "done :)"
    echo "graph stored in $1.train.eps"
   else
@@ -283,18 +291,49 @@ if [ -f $1.eval.test ]
   then
    echo ""
    echo "Plotting graph for $1.eval.test..."
-   gnuplot << EOF
+   gnuplot << EOF2
    set terminal postscript eps color enhanced
    set output "$1.test.eps"
    set xlabel "Training Instances"
-   set ylabel "Errors [in %]"
-   set title "Learning Curve on Test Data"
-   plot "$1.eval.test" using 1:4 notitle w l
-EOF
+   set xtics 500
+   set mxtics 100
+   set ylabel "Accuracy [in %]"
+   set yrange [ 0 : 100 ]
+   set ytics 10
+   set mytics 5
+   set title "Learning Curve on Unseen Data"
+   plot "$1.eval.test" using 1:(100-\$4) notitle w l
+EOF2
    echo "done :)"
    echo "graph stored in $1.test.eps"
   else
    echo "Error: File $1.eval.test does not exist!"
+   exit 1
+fi
+if [[ '-f $1.eval.train' && '-f $1.eval.test' ]]
+  then
+   echo ""
+   echo "Plotting graph for $1.eval.combined..."
+   gnuplot << EOF3
+   set terminal postscript eps enhanced
+   set key right bottom
+   set output "$1.combined.eps"
+   set xlabel "Training Instances"
+   set xtics 500
+   set mxtics 5
+   set ylabel "Accuracy [in %]"
+   set yrange [ 0 : 100 ]
+   set ytics 10
+   set mytics 5
+   set title "Learning Curves"
+   set line style 1 lt 6 lw 1
+   plot "$1.eval.train" using 1:(100-\$4) ti "on training data" with lines, \
+        "$1.eval.test" using 1:(100-\$4) ti "on unseen data" w l ls 1
+EOF3
+   echo "done :)"
+   echo "graph stored in $1.combined.eps"
+  else
+   echo "Error: File $1.eval.train or $1.eval.test does not exist!"
    exit 1
 fi
 
