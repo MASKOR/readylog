@@ -60,6 +60,9 @@ final(interrupt(E1, E2, E3), S) :- final(E1, S); final(E2, S); final(E3, S).
 /* ------------ */
 
 final(E,S) :- proc(E,E1), final(E1,S). 
+% <DP was here>
+final(E,S) :- ipl_proc(E,E1), final(E1,S).
+% </DP was here>
 
 % }}}
 

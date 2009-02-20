@@ -44,65 +44,65 @@
  *  quotation marks; we now give them back. We do this in a
  *  preprocessing step, as we would otherwise miss some
  *  (e.g., in deterministic subprograms of if-clauses). */
-fix_couts( [], Fixed, Stream ) :- !,
+fix_couts( [], Fixed ) :- !,
         Fixed = [].
 
-fix_couts( [cout(V) | RestProgram], Fixed, Stream ) :- !,
-%        printf( Stream, "\nEncountered cout(V).\n", [] ),
-        fix_couts( RestProgram, FixedRest, Stream ),
+fix_couts( [cout(V) | RestProgram], Fixed ) :- !,
+%        printf( stdout, "\nEncountered cout(V).\n", [] ),
+        fix_couts( RestProgram, FixedRest ),
         term_string( V, VString ),
         Fixed = [ cout(VString) | FixedRest ].
 
-fix_couts( [cout(F, V) | RestProgram], Fixed, Stream ) :- !,
-%        printf( Stream, "\nEncountered cout(F, V).\n", [] ),
-        fix_couts( RestProgram, FixedRest, Stream ),
+fix_couts( [cout(F, V) | RestProgram], Fixed ) :- !,
+%        printf( stdout, "\nEncountered cout(F, V).\n", [] ),
+        fix_couts( RestProgram, FixedRest ),
 %        term_string( V, VString ),
         term_string( F, FString ),
         Fixed = [ cout(FString, V) | FixedRest ].
 
-fix_couts( [cout(Color, F, V) | RestProgram], Fixed, Stream ) :- !,
-%        printf( Stream, "\nEncountered cout(Color, F, V).\n", [] ),
-        fix_couts( RestProgram, FixedRest, Stream ),
+fix_couts( [cout(Color, F, V) | RestProgram], Fixed ) :- !,
+%        printf( stdout, "\nEncountered cout(Color, F, V).\n", [] ),
+        fix_couts( RestProgram, FixedRest ),
 %        term_string( V, VString ),
         term_string( F, FString ),
         Fixed = [ cout(Color, FString, V) | FixedRest ].
 
-fix_couts( [if(Cond, Sigma1, Sigma2) | RestProgram], Fixed, Stream ) :- !,
-%        printf( Stream, "\nEncountered if.\n", [] ),
-        fix_couts( Sigma1, FixedSigma1, Stream ),
-        fix_couts( Sigma2, FixedSigma2, Stream ),
-        fix_couts( RestProgram, FixedRest, Stream ),
+fix_couts( [if(Cond, Sigma1, Sigma2) | RestProgram], Fixed ) :- !,
+%        printf( stdout, "\nEncountered if.\n", [] ),
+        fix_couts( Sigma1, FixedSigma1 ),
+        fix_couts( Sigma2, FixedSigma2 ),
+        fix_couts( RestProgram, FixedRest ),
         Fixed = [ if(Cond, FixedSigma1, FixedSigma2) | FixedRest ].
 
-fix_couts( [if(Cond, Sigma) | RestProgram], Fixed, Stream ) :-
-        fix_couts( [if(Cond, Sigma, []) | RestProgram], Fixed, Stream ).
+fix_couts( [if(Cond, Sigma) | RestProgram], Fixed ) :-
+        fix_couts( [if(Cond, Sigma, []) | RestProgram], Fixed ).
 
-fix_couts( [while(Cond, Sigma) | RestProgram], Fixed, Stream ) :- !,
-%        printf( Stream, "\nEncountered while.\n", [] ),
-        fix_couts( Sigma, FixedSigma, Stream ),
-%        printf( Stream, "FixedSigma: %w\n", [FixedSigma] ),
-        fix_couts( RestProgram, FixedRest, Stream ),
-%        printf( Stream, "FixedRest: %w\n", [FixedRest] ),
+fix_couts( [while(Cond, Sigma) | RestProgram], Fixed ) :- !,
+%        printf( stdout, "\nEncountered while.\n", [] ),
+        fix_couts( Sigma, FixedSigma ),
+%        printf( stdout, "FixedSigma: %w\n", [FixedSigma] ),
+        fix_couts( RestProgram, FixedRest ),
+%        printf( stdout, "FixedRest: %w\n", [FixedRest] ),
         Fixed = [ while(Cond, FixedSigma) | FixedRest ].
-%        printf( Stream, "FixedTmp: %w\n", [FixedTmp] ),
+%        printf( stdout, "FixedTmp: %w\n", [FixedTmp] ),
 %        Fixed = FixedTmp.
 
-fix_couts( Program, Fixed, Stream ) :-
+fix_couts( Program, Fixed ) :-
         not(is_list(Program)),
         % Program \= [_Action],
         !,
-%        printf( Stream, "\nEncountered single action %w.\n", [Program] ),
+%        printf( stdout, "\nEncountered single action %w.\n", [Program] ),
         Fixed = Program.
 
-fix_couts( [Term | RestProgram], Fixed, Stream ) :- !,
-%        printf( Stream, "\nEncountered Term %w.\n", [Term] ),
-%        printf( Stream, "RestProgram: %w.\n", [RestProgram] ),
-        fix_couts( RestProgram, FixedRest, Stream ),
-%        printf( Stream, "FixedRest: %w.\n", [FixedRest] ),
+fix_couts( [Term | RestProgram], Fixed ) :- !,
+%        printf( stdout, "\nEncountered Term %w.\n", [Term] ),
+%        printf( stdout, "RestProgram: %w.\n", [RestProgram] ),
+        fix_couts( RestProgram, FixedRest ),
+%        printf( stdout, "FixedRest: %w.\n", [FixedRest] ),
 %        ( ground(Fixed) ->
-%                    printf( Stream, "Fixed already defined!\n", [] )
+%                    printf( stdout, "Fixed already defined!\n", [] )
 %        ;
-%                    printf( Stream, "Fixed undefined.\n", [] )
+%                    printf( stdout, "Fixed undefined.\n", [] )
 %        ),
         /** TODO: remove additional outer [], when the program consists
          *  of more than a single action. */
@@ -111,29 +111,29 @@ fix_couts( [Term | RestProgram], Fixed, Stream ) :- !,
 /** replace commas that separate consecutive actions by semicolons,
  *  but ignores commas in tests, if-conditions, and while statements
  *  by commas */
-comma_to_semicolon( "", String_New, Stream ) :- !,
+comma_to_semicolon( "", String_New ) :- !,
         String_New = "".
 
-comma_to_semicolon( String, String_New, Stream ) :-
+comma_to_semicolon( String, String_New ) :-
         substring( String, 1, 3, "if(" ),
-%        printf( Stream, "if( pattern found\n", [] ),
+%        printf( stdout, "if( pattern found\n", [] ),
         !,
-        comma_to_semicolon_aux( String, String_New, Stream ).
+        comma_to_semicolon_aux( String, String_New ).
         
-comma_to_semicolon( String, String_New, Stream ) :-
+comma_to_semicolon( String, String_New ) :-
         substring( String, 1, 6, "while(" ),
-%        printf( Stream, "while( pattern found\n", [] ),
+%        printf( stdout, "while( pattern found\n", [] ),
         !,
-        comma_to_semicolon_aux( String, String_New, Stream ).
+        comma_to_semicolon_aux( String, String_New ).
         
-comma_to_semicolon( String, String_New, Stream ) :-
+comma_to_semicolon( String, String_New ) :-
         substring( String, 1, 2, "?(" ),
-%        printf( Stream, "?( pattern found\n", [] ),
+%        printf( stdout, "?( pattern found\n", [] ),
         !,
-        comma_to_semicolon_aux( String, String_New, Stream ).
+        comma_to_semicolon_aux( String, String_New ).
 
-comma_to_semicolon( String, String_New, Stream ) :- !, 
-%        printf( Stream, "no special statement found\n", [] ),
+comma_to_semicolon( String, String_New ) :- !, 
+%        printf( stdout, "no special statement found\n", [] ),
         ( ( substring( String, IfPos, 3, "if(" ) ;
             substring( String, WhilePos, 6, "while(" ) ;
             substring( String, TestPos, 2, "?(" )
@@ -169,7 +169,7 @@ comma_to_semicolon( String, String_New, Stream ) :- !,
                                                          MinPos = TestPos
                                   )
               ),
-%              printf( Stream, "********** MinPos: %w\n", [MinPos] ),
+%              printf( stdout, "********** MinPos: %w\n", [MinPos] ),
               string_length( String, StringLength ),
               /** String left from statement */
               /** Note that MinPos > 0. Otherwise, a previous clause would have matched. */
@@ -181,17 +181,17 @@ comma_to_semicolon( String, String_New, Stream ) :- !,
               MinPosRight is (MinPos + 1),
               RestLength is (StringLength - MinPosRight + 2),
               substring( String, MinPos, RestLength, Rest ),
-%              printf( Stream, "********** Rest: %w\n", [Rest] ),
-              comma_to_semicolon( Rest, RestResult, Stream ),
+%              printf( stdout, "********** Rest: %w\n", [Rest] ),
+              comma_to_semicolon( Rest, RestResult ),
               concat_strings( LeftResult, RestResult, String_New )
-%              printf( Stream, "********** concat_strings( %w, %w, String_New )\n", [LeftResult, RestResult] )
+%              printf( stdout, "********** concat_strings( %w, %w, String_New )\n", [LeftResult, RestResult] )
         ;
               /** No special term found in the String */                                    
               /** Commas can all be replaced */
               replace_character(String, ",", ";", String_New)
         ).
         
-comma_to_semicolon_aux( String, String_New, Stream ) :-
+comma_to_semicolon_aux( String, String_New ) :-
         string_length( String, StringLength ),
         substring( String, ClosingBracketPos, 1, ")" ),
 
@@ -209,7 +209,7 @@ comma_to_semicolon_aux( String, String_New, Stream ) :-
         /** Rest string */
         RightLength is (StringLength - ClosingBracketPos + 1),
         substring( String, ClosingBracketPos, RightLength, Right ),
-        comma_to_semicolon( Right, RightResult, Stream ),
+        comma_to_semicolon( Right, RightResult ),
 
         concat_strings( LeftResult, RightResult, String_New ).
 
@@ -249,10 +249,10 @@ fluent_values_to_string( List, ResultString ) :- !,
         remove_character( TmpString1, "\"", TmpString2 ),
         /** recover commas that were part of the fluent value. */
         replace_string( TmpString2, "COMMA", "\\,",
-                        TmpString3, stdout ),
+                        TmpString3 ),
         /** recover " that were part of the fluent value. */
         replace_string( TmpString3, "QUOTATION", "\"",
-                        ResultString, stdout ).        
+                        ResultString ).        
 
 remove_character( String, Character, ResultString ) :- !,
         ( substring( String, Character, PrimePos ) ->
@@ -318,32 +318,32 @@ replace_character( String, OldChar, NewChar, ResultString ) :- !,
               ResultString = String
         ).
 
-replace_string( "", _Pattern, _Value, String_New, Stream ) :-!,
+replace_string( "", _Pattern, _Value, String_New ) :-!,
         String_New = "".
 
-replace_string( String, Pattern, Value, String_New, Stream ) :-!,
+replace_string( String, Pattern, Value, String_New ) :-!,
         ( substring( String, Pattern, PatternPos ) ->
               string_length( String, StringLength ),
               string_length( Pattern, PatternLength ),
               PatternPosRight is (PatternPos + PatternLength),
               ( PatternPos = 1 ->
                     /** If Pattern is at the beginning */
-%                    printf( Stream, "%w found at the beginning.\n", [Pattern] ),
+%                    printf( stdout, "%w found at the beginning.\n", [Pattern] ),
                     RestLength is (StringLength - PatternPosRight + 1),
                     substring( String, PatternPosRight, RestLength, Right ),
-%                    printf( Stream, "replace_string( %w, %w, %w, String_Tmp, Stream)\n",
+%                    printf( stdout, "replace_string( %w, %w, %w, String_Tmp )\n",
 %                                    [Right, Pattern, Value] ),
-                    replace_string( Right, Pattern, Value, String_Tmp, Stream ),
-%                    printf( Stream, "String_Tmp: %w\n", [String_Tmp] ),
+                    replace_string( Right, Pattern, Value, String_Tmp ),
+%                    printf( stdout, "String_Tmp: %w\n", [String_Tmp] ),
                     concat_strings( Value, String_Tmp, String_New )
               ;
                     /** Else */
                     PatternPosLeft is (PatternPos - 1),
                     substring( String, 1, PatternPosLeft, Left ),
-                    replace_string( Left, Pattern, Value, String_Left_Tmp, Stream),
+                    replace_string( Left, Pattern, Value, String_Left_Tmp ),
                     RestLength is (StringLength - PatternPosRight + 1),
                     substring( String, PatternPosRight, RestLength, Right ),
-                    replace_string( Right, Pattern, Value, String_Right_Tmp, Stream),
+                    replace_string( Right, Pattern, Value, String_Right_Tmp ),
                     concat_string( [String_Left_Tmp, Value, String_Right_Tmp], String_New )
               )
         ;
@@ -351,53 +351,53 @@ replace_string( String, Pattern, Value, String_New, Stream ) :-!,
               String_New = String
         ).
 
-replace_term( Program, Term, Value, Program_New, Stream ) :-!,
+replace_term( Program, Term, Value, Program_New ) :-!,
         term_string(Term, TermS),
         term_string(Value, ValueS),
 %        list_to_string(Program, ProgramS),
         term_string(Program, ProgramS),
-%        printf( Stream, "*1*replace_term_aux( %w, %w, %w, %w, Stream)\n",
+%        printf( stdout, "*1*replace_term_aux( %w, %w, %w, %w )\n",
 %                [ProgramS, TermS, ValueS, Program_NewS]),
-        replace_term_aux( ProgramS, TermS, ValueS, Program_NewS, Stream ),
+        replace_term_aux( ProgramS, TermS, ValueS, Program_NewS ),
 %        split_string(ProgramS, ValueS, "", Program_Tmp),
 %        string_to_list(Program_NewS, Program_New).
         term_string( Program_New, Program_NewS ). /** Correct? Or string_to_list w/o []? */
 
-replace_term_aux( "", _Term, _Value, Program_New, Stream ) :- !,
+replace_term_aux( "", _Term, _Value, Program_New ) :- !,
         Program_New = "".
 
-replace_term_aux( Program, Term, Value, Program_New, Stream ) :- !,
-%        printf( Stream, "*2* replace_term_aux(%w, %w, %w, Program_New, Stream)\n",
+replace_term_aux( Program, Term, Value, Program_New ) :- !,
+%        printf( stdout, "*2* replace_term_aux(%w, %w, %w, Program_New, stdout)\n",
 %                [Program, Term, Value] ),
         ( substring( Program, Term, TermPos ) ->
               /** If Term is found in the string Program */
-%              printf( Stream, "Term is found...\n", [] ),
+%              printf( stdout, "Term is found...\n", [] ),
               string_length( Program, ProgramLength ),
               string_length( Term, TermLength ),
               TermPosRight is (TermPos + TermLength),
               ( TermPos = 1 ->
                     /** If Term is at the beginning */
-%                    printf( Stream, "... at the beginning.\n", [] ),
+%                    printf( stdout, "... at the beginning.\n", [] ),
                     substring( Program, TermPosRight, TermLength, Right ),
-                    replace_term_aux( Right, Term, Value, Program_Tmp, Stream ),
+                    replace_term_aux( Right, Term, Value, Program_Tmp ),
                     concat_strings( Value, Program_Tmp, Program_New )
               ;
                     /** Else */
-%                    printf( Stream, "... in the middle.\n", [] ),
+%                    printf( stdout, "... in the middle.\n", [] ),
                     TermPosLeft is (TermPos - 1),
                     substring( Program, 1, TermPosLeft, Left ),
-                    replace_term_aux( Left, Term, Value, Program_Left_Tmp, Stream),
-%                    printf( Stream, "Left string successfully replaced by %w\n", [Program_Left_Tmp] ),
+                    replace_term_aux( Left, Term, Value, Program_Left_Tmp ),
+%                    printf( stdout, "Left string successfully replaced by %w\n", [Program_Left_Tmp] ),
                     RestLength is (ProgramLength - TermPosRight + 1),
                     substring( Program, TermPosRight, RestLength, Right ),
-%                    printf( Stream, "Right string: %w\n", [Right] ),
-                    replace_term_aux( Right, Term, Value, Program_Right_Tmp, Stream),
-%                    printf( Stream, "Right string successfully replaced by %w\n", [Program_Right_Tmp] ),
+%                    printf( stdout, "Right string: %w\n", [Right] ),
+                    replace_term_aux( Right, Term, Value, Program_Right_Tmp ),
+%                    printf( stdout, "Right string successfully replaced by %w\n", [Program_Right_Tmp] ),
                     concat_string( [Program_Left_Tmp, Value, Program_Right_Tmp], Program_New )
               )
         ;
               /** If Term is not found in the string Program */
-%              printf( Stream, "Term is *not* found...\n", [] ),
+%              printf( stdout, "Term is *not* found...\n", [] ),
               Program_New = Program
         ).
 
@@ -406,13 +406,13 @@ replace_term_aux( Program, Term, Value, Program_New, Stream ) :- !,
    Alpha* Expansion
 ---------------------------------------------------------- */
 
-expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program, Star_Program, Stream ) :-
+expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program, Star_Program ) :-
          /** Consume is the minimal horizon consumption of Alpha.
           *  If this number is =< Horizon, then append another Alpha.
           *  A too long final sequence will only be considered up to
           *  the horizon by the Readylog interpreter.
           */
-%         printf( Stream, "Horizon consumption of %w: %w\n", [Alpha, Consume] ),
+%         printf( stdout, "Horizon consumption of %w: %w\n", [Alpha, Consume] ),
          ( (Consume > Horizon) -> /** End recursion. */
                                   Star_Program = []
          ;
@@ -421,24 +421,24 @@ expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program, Star_Program, Strea
                                   /** Conversion from comma to semicolon necessary to
                                    *  mark consecutive actions. */
                                   list_to_string(P_w_Alpha, P_w_AlphaS),
-                                  comma_to_semicolon( P_w_AlphaS, P_w_AlphaFinalS, Stream ),
+                                  comma_to_semicolon( P_w_AlphaS, P_w_AlphaFinalS ),
                                   string_to_list( P_w_AlphaFinalS, P_w_AlphaFinal ),
-%                                  printf(Stream, "Program with Alpha: %w\n", [P_w_AlphaFinal]),
+%                                  printf(stdout, "Program with Alpha: %w\n", [P_w_AlphaFinal]),
 
                                   P_w_Alpha_Omega = [ P_w_Alpha | Omega_Prime ],
                                   /** Conversion from comma to semicolon necessary to
                                    *  mark consecutive actions. */
                                   list_to_string(P_w_Alpha_Omega, P_w_Alpha_OmegaS),
-                                  comma_to_semicolon( P_w_Alpha_OmegaS, P_w_Alpha_OmegaFinalS, Stream ),
+                                  comma_to_semicolon( P_w_Alpha_OmegaS, P_w_Alpha_OmegaFinalS ),
                                   string_to_list( P_w_Alpha_OmegaFinalS, P_w_Alpha_OmegaFinal ),
-%                                  printf(Stream, "Program with Alpha and Omega_Prime: %w\n", [P_w_Alpha_OmegaFinal]),
+%                                  printf(stdout, "Program with Alpha and Omega_Prime: %w\n", [P_w_Alpha_OmegaFinal]),
 
                                   Horizon_New is (Horizon - Consume),
                                   /** Continue appending Alpha. Note, that
                                    *  the parameter P_w_AlphaFinal does not
                                    *  contain Omega_Prime. */
                                   expand_alpha( Alpha, Consume, Omega_Prime, Horizon_New, P_w_AlphaFinal,
-                                                Star_Program_Tmp, Stream ),
+                                                Star_Program_Tmp ),
                                   append( P_w_Alpha_OmegaFinal, Star_Program_Tmp, Star_Program )
          ).
 
@@ -446,95 +446,87 @@ expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program, Star_Program, Strea
  *  consumption for deterministic sub-programs, and the *horizon* for
  *  solve sub-programs. */
 /** TODO: What about nondeterministic programs inside star? */
-horizon_consumption([], Consume, _Stream) :- !,
+horizon_consumption([], Consume) :- !,
         Consume = 0.
 
-%%horizon_consumption([remove2before], Consume, _Stream) :- !,
-%%        Consume = 0.
-
-horizon_consumption([if(_Cond, Sigma1, Sigma2) | Rest], Consume, Stream) :- !, 
-        horizon_consumption( Sigma1, Consume1, Stream ),
-%         printf( Stream, "if-clause... Horizon consumption of Sigma1=%w: %w\n", [Sigma1, Consume1] ),
-        horizon_consumption( Sigma2, Consume2, Stream ),
-%         printf( Stream, "if-clause... Horizon consumption of Sigma2=%w: %w\n", [Sigma2, Consume2] ),
+horizon_consumption([if(_Cond, Sigma1, Sigma2) | Rest], Consume) :- !, 
+        horizon_consumption( Sigma1, Consume1 ),
+%         printf( stdout, "if-clause... Horizon consumption of Sigma1=%w: %w\n", [Sigma1, Consume1] ),
+        horizon_consumption( Sigma2, Consume2 ),
+%         printf( stdout, "if-clause... Horizon consumption of Sigma2=%w: %w\n", [Sigma2, Consume2] ),
         min( Consume1, Consume2, ConsumeTmp ),
-        horizon_consumption( Rest, ConsumeR, Stream ),
-%         printf( Stream, "if-clause... Horizon consumption of Rest=%w: %w\n", [Rest, ConsumeR] ),
+        horizon_consumption( Rest, ConsumeR ),
+%         printf( stdout, "if-clause... Horizon consumption of Rest=%w: %w\n", [Rest, ConsumeR] ),
         Consume is ( ConsumeTmp + ConsumeR ).
 
-horizon_consumption([if(Cond, Sigma) | Rest], Consume, Stream) :-
-        horizon_consumption( [if(Cond, Sigma, [])], ConsumeIf, Stream ),
-        horizon_consumption( Rest, ConsumeR, Stream ),
+horizon_consumption([if(Cond, Sigma) | Rest], Consume) :-
+        horizon_consumption( [if(Cond, Sigma, [])], ConsumeIf ),
+        horizon_consumption( Rest, ConsumeR ),
         Consume is ( ConsumeIf + ConsumeR ).
 
-horizon_consumption([while(_Cond, Sigma) | Rest], Consume, Stream) :- !,
-        horizon_consumption( Sigma, ConsumeWhile, Stream ),
-        horizon_consumption( Rest, ConsumeR, Stream ),
+horizon_consumption([while(_Cond, Sigma) | Rest], Consume) :- !,
+        horizon_consumption( Sigma, ConsumeWhile ),
+        horizon_consumption( Rest, ConsumeR ),
         Consume is ( ConsumeWhile + ConsumeR ).
 
-horizon_consumption([?(_Test) | Rest], Consume, Stream) :- !,
-        horizon_consumption(Rest, Consume, Stream).
+horizon_consumption([?(_Test) | Rest], Consume) :- !,
+        horizon_consumption(Rest, Consume).
 
-horizon_consumption([_Action | Rest], Consume, Stream) :- !,
-        horizon_consumption(Rest, Consume_Rest, Stream),
-%         printf( Stream, "action %w... Horizon consumption of Rest=%w: %w\n", [Action, Rest, Consume_Rest] ),
+horizon_consumption([_Action | Rest], Consume) :- !,
+        horizon_consumption(Rest, Consume_Rest),
+%         printf( stdout, "action %w... Horizon consumption of Rest=%w: %w\n", [Action, Rest, Consume_Rest] ),
         Consume is (1 + Consume_Rest).
 
 /* ----------------------------------------------------------
    Determination of Determinism for Procedures
 ---------------------------------------------------------- */
 
-is_deterministic( [], Result, _Stream ) :-
+is_deterministic( [], Result ) :-
         Result = true.
 
-%is_deterministic( Program, Result, Stream ) :-
-%        Program \= [_Action],
-%        NewProgram = [Program],
-%        is_deterministic( NewProgram, Result, Stream ).
-
-is_deterministic( [ProcName | Rest], Result, Stream ) :-
+is_deterministic( [ProcName | Rest], Result ) :-
         proc( ProcName, ProcBody ), !,
-        is_deterministic( ProcBody, ResultTmp, Stream ),
+        is_deterministic( ProcBody, ResultTmp ),
         ( ResultTmp = false -> 
                 Result = false
         ;
-                is_deterministic( Rest, Result, Stream )
+                is_deterministic( Rest, Result )
         ).
 
-is_deterministic( [if(_Cond, Sigma1, Sigma2) | Rest], Result, Stream ) :- !,
-        is_deterministic( [Sigma1], ResultTmp1, Stream ),
-        is_deterministic( [Sigma2], ResultTmp2, Stream ),
+is_deterministic( [if(_Cond, Sigma1, Sigma2) | Rest], Result ) :- !,
+        is_deterministic( [Sigma1], ResultTmp1 ),
+        is_deterministic( [Sigma2], ResultTmp2 ),
         ( (ResultTmp1 = false; ResultTmp2 = false) -> 
                 Result = false
         ;
-                is_deterministic( Rest, Result, Stream )
+                is_deterministic( Rest, Result )
         ).
 
-is_deterministic( [if(Cond, Sigma) | Rest], Result, Stream ) :-
-        is_deterministic( [if(Cond, Sigma, []) | Rest], Result, Stream ).
+is_deterministic( [if(Cond, Sigma) | Rest], Result ) :-
+        is_deterministic( [if(Cond, Sigma, []) | Rest], Result ).
 
 
-is_deterministic( [while(_Cond, Sigma) | Rest], Result, Stream ) :- !,
-%        printf(Stream, "While! Sigma=%w\n", [Sigma]),
-        is_deterministic( [Sigma], ResultTmp, Stream ),
-%        printf(Stream, "While result: %w\n", [ResultTmp]),
+is_deterministic( [while(_Cond, Sigma) | Rest], Result ) :- !,
+%        printf(stdout, "While! Sigma=%w\n", [Sigma]),
+        is_deterministic( [Sigma], ResultTmp ),
+%        printf(stdout, "While result: %w\n", [ResultTmp]),
         ( ResultTmp = false -> 
                 Result = false
         ;
-                is_deterministic( Rest, Result, Stream )
+                is_deterministic( Rest, Result )
         ).
         
-is_deterministic( [nondet(_Args) | _Rest], Result, _Stream ) :- !,
+is_deterministic( [nondet(_Args) | _Rest], Result ) :- !,
         Result = false.
 
-is_deterministic( [pickBest(_Args) | _Rest], Result, _Stream ) :- !,
+is_deterministic( [pickBest(_Args) | _Rest], Result ) :- !,
         Result = false.
 
-is_deterministic( [star(_Args) | _Rest], Result, _Stream ) :- !,
+is_deterministic( [star(_Args) | _Rest], Result ) :- !,
         Result = false.
 
-is_deterministic( [_Term | Rest], Result, Stream ) :- !,
-        is_deterministic( Rest, Result, Stream ).
+is_deterministic( [_Term | Rest], Result ) :- !,
+        is_deterministic( Rest, Result ).
 
 /* ----------------------------------------------------------
    Manipulation of Nondeterministic Program Sets/Lists
@@ -548,47 +540,47 @@ join_prog_lists( {P_String1}, {P_String2}, {P_String_Joined} ) :-
         /** join argument lists */
         concat_strings( ReducedString1, ReducedString2, P_String_Joined ).
 
-integrate({P1_String}, {P2_String}, {P_String_New}, Stream) :- 
+integrate({P1_String}, {P2_String}, {P_String_New} ) :- 
         string(P2_String),
         !,
         string_to_list(P2_String, P2_List),
-        integrate({P1_String}, P2_List, {P_String_New}, Stream).
+        integrate({P1_String}, P2_List, {P_String_New}).
 
-integrate({P_String}, List, {P_String_New}, Stream) :- !,
-%        printf(Stream, "*** Checking if there are brackets in %w...\n ", [P_String]),
+integrate({P_String}, List, {P_String_New} ) :- !,
+%        printf(stdout, "*** Checking if there are brackets in %w...\n ", [P_String]),
         /** cut away [ and ]. Note that [] are not counted in StringLength */
         string_length(P_String, StringLength),
         /** check if first character is [ and last character is ] */
         ( (substring( P_String, 1, 1, "["),
            substring( P_String, StringLength, 1, "]") ) ->
-%                printf(Stream, "There are brackets ***\n", []),
+%                printf(stdout, "There are brackets ***\n", []),
                  /** cut away brackets */
                  StringLengthReduced is (StringLength-2),
                  substring( P_String, 2, StringLengthReduced, ReducedString ),
-                 integrate({ReducedString}, List, {P_String_New}, Stream)
+                 integrate({ReducedString}, List, {P_String_New})
            ;
-%                printf(Stream, "No brackets found ***\n", []),
-                 integrate_aux({P_String}, List, {P_String_New}, Stream)
+%                printf(stdout, "No brackets found ***\n", []),
+                 integrate_aux({P_String}, List, {P_String_New})
         ).
 
-integrate_aux({P_String}, [], {P_String_New}, Stream) :- !,
-%        printf(Stream, "*integrate case 1*\n", []),
+integrate_aux({P_String}, [], {P_String_New}) :- !,
+%        printf(stdout, "*integrate case 1*\n", []),
         P_String_New = P_String.
 
-integrate_aux({""}, List, {P_String_New}, Stream) :- !,
-%        printf(Stream, "*integrate case 4* with [Term]=[%w]\n", [Term]),
+integrate_aux({""}, List, {P_String_New}) :- !,
+%        printf(stdout, "*integrate case 4* with [Term]=[%w]\n", [Term]),
         P_List = [],
-%        printf(Stream, "P_String: "" --> P_List: %w\n", [P_List]),
+%        printf(stdout, "P_String: "" --> P_List: %w\n", [P_List]),
         append(P_List, List, P_List_New),
         list_to_string(P_List_New, P_String_New).
-%        printf(Stream, "P_List_New: %w --> P_String_New: %w\n", [P_List_New, P_String_New]).
+%        printf(stdout, "P_List_New: %w --> P_String_New: %w\n", [P_List_New, P_String_New]).
 
-integrate_aux({P_String}, List, {P_String_New}, Stream) :- !,
+integrate_aux({P_String}, List, {P_String_New}) :- !,
         /** test, if List really is a list */ 
-%        printf(Stream, "*integrating a program list*\n", []),
-%        printf(Stream, "%w ---integrate--> {%w}\n", [List, P_String]),
+%        printf(stdout, "*integrating a program list*\n", []),
+%        printf(stdout, "%w ---integrate--> {%w}\n", [List, P_String]),
         string_to_list(P_String, P_List),
-%        printf(Stream, "P_List: %w\n", [P_List]),
+%        printf(stdout, "P_List: %w\n", [P_List]),
         /** create some kind of cross-product */
         findall([X;Y],
                 ( member(X, P_List),               
@@ -600,14 +592,14 @@ integrate_aux({P_String}, List, {P_String_New}, Stream) :- !,
          *  are separated by semicolons. */
         /** Remove empty program (note that the empty program
          *  has been considered in the cross product already */
-        replace_string(P_String_Cross, "[];", "", Tmp1, Stream),
-        replace_string(Tmp1, ";[]", "", Tmp2, Stream),
+        replace_string(P_String_Cross, "[];", "", Tmp1 ),
+        replace_string(Tmp1, ";[]", "", Tmp2 ),
         /* remove brackets */
         remove_character(Tmp2, "[", Tmp3),
         remove_character(Tmp3, "]", P_String_Cross_Clean),
-%        printf(Stream, "P_String_Cross_Clean: %w\n", [P_String_Cross_Clean]),
+%        printf(stdout, "P_String_Cross_Clean: %w\n", [P_String_Cross_Clean]),
 
-%        printf(Stream, "P_List_Cross: %w --> P_String_Cross: %w\n", [P_List_Cross, P_String_Cross]),
+%        printf(stdout, "P_List_Cross: %w --> P_String_Cross: %w\n", [P_List_Cross, P_String_Cross]),
         P_String_New = P_String_Cross_Clean.
 
         

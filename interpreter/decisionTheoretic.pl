@@ -521,11 +521,23 @@ bestDoM([Proc | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
 	Proc =.. [ProcName|Args_s],
 	subfl(Args_s, Args_eval_s, S),
 	Proc_sub =.. [ProcName|Args_eval_s],
-	proc(Proc_sub,Body),
+        ( iplearn ->
+                ipl_proc(Proc_sub,Body)
+        ;
+                proc(Proc_sub,Body)
+        ),
+% </DP was here>
 	not(stoch_proc(ProcName)),
 	!,
 	bestDoM([Body | E],S,H,Pol,V,Prob,ignoreEvents, Tree_rest,RewardFunction),
-	Tree = [proc( Proc_sub)|Tree_rest].
+% <DP was here>
+        ( iplearn ->
+                Tree = [ipl_proc( Proc_sub)|Tree_rest]
+        ; 
+                Tree = [proc( Proc_sub)|Tree_rest]
+        ).
+%	Tree = [proc( Proc_sub)|Tree_rest].
+% </DP was here>
 
 
 bestDoM([A | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-

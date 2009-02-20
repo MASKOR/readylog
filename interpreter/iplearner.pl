@@ -108,12 +108,12 @@ get_all_fluent_values(S, Result) :-
                           *  Note, that, in general, ValF is a list! */
                          term_string(ValF, ValFString),
                          replace_string(ValFString, ",", "COMMA",
-                                        ValFStringTmp, stdout),
+                                        ValFStringTmp),
                          /** replace ", as they are part of the fluent value
                           *  and otherwise would be interpreted as string identifier
                           *  by Prolog during later conversion. */
                          replace_string(ValFStringTmp, "\"", "QUOTATION",
-                                        ValFStringNoComma, stdout)
+                                        ValFStringNoComma)
                      ;
                          printf(stdout, "*** Warning: *** ", []),
                          printf(stdout, "Fluent %w is not instantiated. ", [F]),
@@ -181,13 +181,15 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy, Value, Te
                          printf(NameStream, "\n", []),
                          /** replace commas, as C4.5 forbids them in class names */
                          term_string(Policy, PolicyString),
-                         replace_string(PolicyString, ",", "\\,", PolicyStringNoComma, stdout),
+                         replace_string(PolicyString, ",", "\\,", PolicyStringNoComma),
 %                         printf(NameStream, "%w", [PolicyStringNoComma]),
                          term_string(Value, ValueString),
                          term_string(TermProb, TermProbString),
-%                         term_string(PolicyTree, PolicyTreeString),
-                                PolicyTreeString = "Tree",
-                         replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma, stdout),
+                         term_string(PolicyTree, PolicyTreeString),
+                         % To make the entry more readable, you might want to insert a dummy object "Tree"
+                         % instead of the whole tree.
+%                         PolicyTreeString = "Tree",
+                         replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
                          concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
                                         " <TermProb_", TermProbString, ">", 
                                         " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
@@ -277,12 +279,12 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy, Value, Te
                 printf(stdout, "PolicyString: %w.\n", [PolicyString]),
                 /** replace commas in policy, as C4.5 forbids them in class names */
                 replace_string(PolicyString, ",", "\\,",
-                               PolicyStringNoComma, stdout),
+                               PolicyStringNoComma),
                 term_string(Value, ValueString),
                 term_string(TermProb, TermProbString),
 %                term_string(PolicyTree, PolicyTreeString),
                 PolicyTreeString = "Tree",
-                replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma, stdout),
+                replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
                 concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
                                " <TermProb_", TermProbString, ">", 
                                " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
@@ -340,39 +342,14 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy, Value, Te
 /* --------------------------------------------------------- */
 % {{{ Consultation of dtrees
 
-test(Answer) :-
-        Answer = "Goal test(Answer) succeeded.".
-
-ask_prolog_for_value( AttributeName, Value, S ) :-
-        printf(stdout, "inside ask_prolog_for_value\n", []),
-        printf(stdout, "AttributeName is: %w\n", [AttributeName]),
-        printf(stdout, "Situation is: %w\n", [S]),
-        ( exog_fluent(AttributeName) ->
-            printf(stdout, "is exog_fluent\n", []),
-            exog_fluent_getValue(AttributeName, ValueTmp, S)
-        ;
-            printf(stdout, "is NOT exog_fluent\n", []),
-            subf(AttributeName, ValueTmp, S)
-        ),
-        term_string(ValTmp, Value),
-        printf(stdout, "Value is: %w\n", [Value]).
-        
-%put_string(Stream, "") :- !.
-
-%put_string(Stream, nl) :- !.
-
-%put_string(Stream, [First|Rest]) :-
-%        put_char(Stream, First),
-%        put_string(Stream, Rest).
-
 stream_ready( Stream ) :-
 %        not at_eof( Stream ), % does not work as intended with the pipe stream
         select([Stream], 100, ReadyStream),
         ReadyStream \= [].
 
-print_skip( Stream, Pattern, String ) :-
+print_skip( Stream, _Pattern, String ) :-
         not stream_ready( out ), !,
-        printf("***Error*** Got empty Stream %w while trying to skip!\n", [Stream]),
+        printf("[print_skip] ***Error*** Got empty Stream %w while trying to skip!\n", [Stream]),
         flush(stdout),
         String = "".
 
@@ -385,9 +362,9 @@ print_skip( Stream, Pattern, String ) :-
            print_skip( Stream, Pattern, String )
         ).
 
-quiet_skip( Stream, Pattern, String ) :-
+quiet_skip( Stream, _Pattern, String ) :-
         not stream_ready( out ), !,
-        printf("***Error*** Got empty Stream %w while trying to skip!\n", [Stream]),
+        printf("[quiet_skip] ***Error*** Got empty Stream %w while trying to skip!\n", [Stream]),
         flush(stdout),
         String = "".
 
@@ -418,7 +395,6 @@ consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, Rew
                 ;
                          true
                 ),
-                concat_string(["-f ", FileStem], ConsultParams),
                 canonical_path_name(FileStem, FullPath),
 %                os_file_name(FullPath, FullPathOS),
 %                concat_string(["-f ", "/", FullPathOS], ConsultParams),
@@ -427,7 +403,6 @@ consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, Rew
 %                open(string("consultStreamOut"), read, sigio(ConsultOut)),
 %%                exec([consult, "-f", "test"], [null, ConsultOut], Pid),
 %%%%%%%%%%%%%%%%%%%%%%
-                term_string([clipOnline|S], SituationString),
 %                exec(["/home/drcid/kbsgolog/libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
 %                      FileStem],
 %                      [in, out, err], Pid),
@@ -451,17 +426,16 @@ consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, Rew
                          printf(stdout, "[PROLOG] C4.5 asked for the value of attribute: %w\n", [AttributeNameS]),
                          flush(stdout),
                          exog_fluent_getValue(AttributeName, ValTmp, [clipOnline|S]),
-%                ask_prolog_for_value(AttributeName, AttributeValue, [clipOnline|S]),
                          /** replace commas, as C4.5 forbids them in
                           *  attribute values. */
                          term_string(ValTmp, ValTmpString),
                          replace_string(ValTmpString, ",", "\\,",
-                                        AttributeValue, stdout),
+                                        AttributeValue),
 %                         /** replace ", as they are part of the fluent value
 %                          *  and otherwise would be interpreted as string identifier
 %                          *  by Prolog during later conversion. */
 %                         replace_string(ValTmpStringNoComma, "\"", "QUOTATION",
-%                                        AttributeValue, stdout),
+%                                        AttributeValue),
                          flush(stdout),
                          select([in], 100, _ReadyStream),
 %                          printf(stdout, "Stream %w ready for I/O.\n", [ReadyStream]),
@@ -527,7 +501,7 @@ consult_dtree( Prog, [clipOnline|S], Horizon, Policy, Value, TermProb, Tree, Rew
                 !,
                 close(in),
                 close(out),
-                wait(Pid, Stat),
+                wait(Pid, _Stat),
 
                 ( ( Success == false ) ->
                    true

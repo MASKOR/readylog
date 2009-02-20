@@ -93,7 +93,7 @@ toggle_iplearn :- getval(iplearn, X),
        ).
 
 /** Is IPL still in training phase or already in consultation phase */
-:- setval(iplTrainingPhase, false).
+:- setval(iplTrainingPhase, true).
 iplTrainingPhase :- getval(iplTrainingPhase, X), X=true.
 
 /** Create a hash table to store the filenames (keys) for

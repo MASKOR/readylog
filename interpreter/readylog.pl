@@ -1071,6 +1071,11 @@ holds(P,H) :-
 holds(P,H) :- proc(P,_), !, subf(P,P1,H), % call-by-value 
               proc(P1,P2), holds(P2,H).
 
+% <DP was here>
+holds(P,H) :- iplearn, ipl_proc(P,_), !, subf(P,P1,H), % call-by-value 
+              ipl_proc(P1,P2), holds(P2,H).
+% </DP was here>
+
 /* allow conditions returned by functions */
 holds(P,H) :- function(P,_,_), !, subf(P,P1,H),
               holds(P1,H).  
@@ -1130,6 +1135,10 @@ holds_not(P,H) :-
 holds_not(P,H) :- fluent(P), !, subf(P,P1,H), call(not(P1)).
 holds_not(P,H) :- proc(P,_), !, subf(P,P1,H),  % call-by-value
 	          proc(P1,P2), holds(not(P2),H). 
+% <DP was here>
+holds_not(P,H) :- iplearn, ipl_proc(P,_), !, subf(P,P1,H),  % call-by-value
+	          ipl_proc(P1,P2), holds(not(P2),H). 
+% </DP was here>
 holds_not(P,H) :- !, not holds(P,H).  % Negation by failure
 
 
