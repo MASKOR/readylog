@@ -261,83 +261,21 @@ fluent_values_to_string( List, ResultString ) :-
         replace_string( TmpString3, "QUOTATION", "\"",
                         ResultString ).        
 
-%  Removes a single Character from a String.
-:- mode remove_character(++, ++, -).
-remove_character( String, Character, ResultString ) :-
-        substring( String, Character, PrimePos ),
-        !,
-        %  There still is such a character in the string.
-        PrimePosRight is (PrimePos + 1),
-        string_length( String, StringLength ),
-        RightLength is (StringLength - PrimePos),
-        ( PrimePos = 1 ->
-           %  If Character is the first character.
-           substring( String, 2, RightLength, RightFromPrime),
-           remove_character(RightFromPrime, Character, ResultString)
-        ;
-           %  Else.
-           PrimePosLeft is (PrimePos - 1),
-           substring( String, 1, PrimePosLeft, LeftFromPrime),
-           ( PrimePos = StringLength ->
-              %  If Character is the last character.
-              remove_character(LeftFromPrime, Character, ResultString)
-           ;
-              %  Character is found somewhere in the middle.
-              substring( String, PrimePosRight, RightLength, RightFromPrime),
-              remove_character(LeftFromPrime, Character, LeftResult),
-              remove_character(RightFromPrime, Character, RightResult),
-              concat_strings(LeftResult, RightResult, ResultString)
-           )
-        ).
-
-remove_character( String, _Character, ResultString ) :-
-        %  Character is not found in the String.
-        ResultString = String.
-
-%  Replaces all occurrences of the character OldChar in String
-%  by the character NewChar.
-:- mode replace_character(++, ++, ++, -).
-replace_character( String, OldChar, NewChar, ResultString ) :-
-        substring( String, OldChar, PrimePos ),
-        !,
-        %  There still is such a character in the string.
-        PrimePosRight is (PrimePos + 1),
-        string_length( String, StringLength ),
-        RightLength is (StringLength - PrimePos),
-        ( PrimePos = 1 ->
-           %  If Character is the first character.
-           substring( String, 2, RightLength, RightFromPrime),
-           replace_character(RightFromPrime, OldChar, NewChar, ResultStringTmp),
-           concat_strings(NewChar, ResultStringTmp, ResultString)
-        ;
-           %  Else.
-           PrimePosLeft is (PrimePos - 1),
-           substring( String, 1, PrimePosLeft, LeftFromPrime),
-           ( PrimePos = StringLength ->
-              %  If Character is the last character.
-              replace_character(LeftFromPrime, OldChar, NewChar,
-                                ResultStringTmp),
-              concat_strings(ResultStringTmp, NewChar, ResultString)
-           ;
-              %  Character is found somewhere in the middle.
-              substring( String, PrimePosRight, RightLength, RightFromPrime),
-              replace_character(LeftFromPrime, OldChar, NewChar, LeftResult),
-              replace_character(RightFromPrime, OldChar, NewChar, RightResult),
-              concat_string([LeftResult, NewChar, RightResult], ResultString)
-           )
-        ).
-
-replace_character( String, _OldChar, _NewChar, ResultString ) :-
-        %  OldChar is not found in the String.
-        ResultString = String.
 
 %  Finds every occurrence of the string-pattern Pattern in the String and
 %  replaces it by the string Value.
 :- mode replace_string(++, ++, ++, -).
-replace_string( "", _Pattern, _Value, String_New ) :-!,
-        String_New = "".
+replace_string( String, Pattern, Value, StringNew ) :-
+        replace_string_aux( String, Pattern, Value, "", StringNew ).
 
-replace_string( String, Pattern, Value, String_New ) :-
+%  Helper predicate to carry through the already processed
+%  part of the string ProcessedPart.
+%  This avoids too much recursion and global stack overflows.
+:- mode replace_string_aux(++, ++, ++, ++, -).
+replace_string_aux( "", _Pattern, _Value, ProcessedPart, StringNew ) :- !,
+        StringNew = ProcessedPart.
+
+replace_string_aux( String, Pattern, Value, ProcessedPart, StringNew ) :-
         substring( String, Pattern, PatternPos ),
         !,
         %  Pattern is found in String.
@@ -348,79 +286,47 @@ replace_string( String, Pattern, Value, String_New ) :-
            %  If Pattern is at the beginning.
            RestLength is (StringLength - PatternPosRight + 1),
            substring( String, PatternPosRight, RestLength, Right ),
-           replace_string( Right, Pattern, Value, String_Tmp ),
-           concat_strings( Value, String_Tmp, String_New )
+           replace_string_aux( Right, Pattern, Value, Value, StringNew )
         ;
            %  Else.
            PatternPosLeft is (PatternPos - 1),
            substring( String, 1, PatternPosLeft, Left ),
-           replace_string( Left, Pattern, Value, String_Left_Tmp ),
            RestLength is (StringLength - PatternPosRight + 1),
            substring( String, PatternPosRight, RestLength, Right ),
-           replace_string( Right, Pattern, Value, String_Right_Tmp ),
-           concat_string( [String_Left_Tmp, Value, String_Right_Tmp],
-                          String_New )
+           concat_string( [ProcessedPart, Left, Value],
+                          ProcessedPartNew ),
+           replace_string_aux( Right, Pattern, Value, ProcessedPartNew,
+                               StringNew )
         ).
 
-replace_string( String, _Pattern, _Value, String_New ) :-
+replace_string_aux( String, _Pattern, _Value, ProcessedPart, StringNew ) :-
         %  Pattern is not found in String.
-        String_New = String.
+        concat_strings( ProcessedPart, String, StringNew ).
+
+
+%  Replaces all occurrences of the character OldChar in String
+%  by the character NewChar.
+:- mode replace_character(++, ++, ++, -).
+replace_character( String, OldChar, NewChar, ResultString ) :-
+        replace_string( String, OldChar, NewChar, ResultString ).
+
+
+%  Removes a single Character from a String.
+:- mode remove_character(++, ++, -).
+remove_character( String, Character, ResultString ) :-
+        replace_string( String, Character, "", ResultString ).
+
 
 %  Finds every occurrence of the Prolog term in the Program and
 %  replaces it by the Prolog term Value.
 :- mode replace_term(++, ++, ++, -).
-replace_term( Program, Term, Value, Program_New ) :-
+replace_term( Program, Term, Value, ProgramNew ) :-
         term_string(Term, TermS),
         term_string(Value, ValueS),
-%        list_to_string(Program, ProgramS),
         term_string(Program, ProgramS),
-%        printf( stdout, "*1*replace_term_aux( %w, %w, %w, %w )\n",
-%                [ProgramS, TermS, ValueS, Program_NewS]),
-        replace_term_aux( ProgramS, TermS, ValueS, Program_NewS ),
-%        split_string(ProgramS, ValueS, "", Program_Tmp),
-%        string_to_list(Program_NewS, Program_New).
-        term_string( Program_New, Program_NewS ).  % Correct?
-                                                   % Or string_to_list w/o []?
+        replace_string( ProgramS, TermS, ValueS, ProgramNewS ),
+        term_string( ProgramNew, ProgramNewS ).
 
-:- mode replace_term_aux(++, ++, ++, -).
-replace_term_aux( "", _Term, _Value, Program_New ) :- !,
-        Program_New = "".
-
-replace_term_aux( Program, Term, Value, Program_New ) :-
-        substring( Program, Term, TermPos ),
-        !,
-        %  Term is found in the string Program.
-%        printf( stdout, "Term is found...\n", [] ),
-        string_length( Program, ProgramLength ),
-        string_length( Term, TermLength ),
-        TermPosRight is (TermPos + TermLength),
-        ( TermPos = 1 ->
-           %  If Term is at the beginning.
-%           printf( stdout, "... at the beginning.\n", [] ),
-           substring( Program, TermPosRight, TermLength, Right ),
-           replace_term_aux( Right, Term, Value, Program_Tmp ),
-           concat_strings( Value, Program_Tmp, Program_New )
-        ;
-           %  Else.
-%           printf( stdout, "... in the middle.\n", [] ),
-           TermPosLeft is (TermPos - 1),
-           substring( Program, 1, TermPosLeft, Left ),
-           replace_term_aux( Left, Term, Value, Program_Left_Tmp ),
-%           printf(stdout, "Left string successfully replaced by %w\n",
-%                  [Program_Left_Tmp] ),
-           RestLength is (ProgramLength - TermPosRight + 1),
-           substring( Program, TermPosRight, RestLength, Right ),
-%           printf(stdout, "Right string: %w\n", [Right]),
-           replace_term_aux( Right, Term, Value, Program_Right_Tmp ),
-%           printf(stdout, "Right string successfully replaced by %w\n",
-%          [Program_Right_Tmp] ),
-           concat_string( [Program_Left_Tmp, Value, Program_Right_Tmp],
-                          Program_New )
-        ).
-
-replace_term_aux( Program, _Term, _Value, Program_New ) :-
-        %  Term is not found in the string Program.
-        Program_New = Program.
 
 
 

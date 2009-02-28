@@ -295,11 +295,13 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), Policy, Value,
 %        printf(NameStream, "%w", [PolicyStringNoComma]),
         term_string(Value, ValueString),
         term_string(TermProb, TermProbString),
-        term_string(PolicyTree, PolicyTreeString),
-        %  To make the entry more readable, you might want to insert a
-        %  dummy object "Tree" instead of the whole tree.
-%        PolicyTreeString = "Tree",
-        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
+        %  TODO: PolicyTreeString can get too big for
+        %        reasonable processing.
+        %        We replace it by the placeholder "Tree", as
+        %        it only is used for DT-debugging anyway.
+%%        term_string(PolicyTree, PolicyTreeString),
+%%        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
+        PolicyTreeStringNoComma = "Tree",
         concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
                        " <TermProb_", TermProbString, ">", 
                        " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
@@ -404,11 +406,13 @@ continue_names_file( Policy, Value, TermProb, PolicyTree, HashKeyString,
                        PolicyStringNoComma),
         term_string(Value, ValueString),
         term_string(TermProb, TermProbString),
-        term_string(PolicyTree, PolicyTreeString),
-        %  To make the entry more readable, you might want to insert a
-        %  dummy object "Tree" instead of the whole tree.
-%        PolicyTreeString = "Tree",
-        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
+        %  TODO: PolicyTreeString can get too big for
+        %        reasonable processing.
+        %        We replace it by the placeholder "Tree", as
+        %        it only is used for DT-debugging anyway.
+%%        term_string(PolicyTree, PolicyTreeString),
+%%        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
+        PolicyTreeStringNoComma = "Tree",
         concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
                        " <TermProb_", TermProbString, ">", 
                        " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
