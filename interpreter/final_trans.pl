@@ -291,9 +291,9 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
                 printf("TreeConv: %w\n", [TreeConv]),
 */
                 /* consult learned decision tree to get policy */
-                consult_dtree(Prog, [clipOnline|S], Horizon,
+                consult_dtree(Prog, Horizon, RewardFunction, [clipOnline|S], 
                               PolicyConsult, ValueConsult, TermProbConsult, TreeConsult,
-                              RewardFunction, ConsultSuccess),
+                              ConsultSuccess),
                 ( ConsultSuccess ->
                      Policy = PolicyConsult,
                      Value = ValueConsult,

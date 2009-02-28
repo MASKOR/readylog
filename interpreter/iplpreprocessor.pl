@@ -20,23 +20,23 @@
  *
  * **************************************************************************/
 
-/* ================================================================== */
-/*  PREPROCESSOR                                                      */
-/* ================================================================== */
+% ================================================================== %
+%  PREPROCESSOR                                                      %
+% ================================================================== %
 
-/** The IPL preprocessor works as a prepreprocessor on the READYLOG
- *  code. Its task is to transform all solve statements in the code
- *  to a standard form, where they only consist of a single nondet.
- *  The intention behind this is to maximise the number of matching
- *  solve statements, which then can be learned by the decision tree
- *  learning algorithm, and eventually be replaced by decision trees.
- */
+%  The IPL preprocessor works as a prepreprocessor on the READYLOG
+%  code. Its task is to transform all solve statements in the code
+%  to a standard form, where they only consist of a single nondet.
+%  The intention behind this is to maximise the number of matching
+%  solve statements, which then can be learned by the decision tree
+%  learning algorithm, and eventually be replaced by decision trees.
+
 
 :- write("** loading iplpreprocessor.pl\n"). 
 
-/* --------------------------------------------------------- */
-/*  Header + Flags                                           */
-/* --------------------------------------------------------- */
+% --------------------------------------------------------- %
+%  Header + Flags                                           %
+% --------------------------------------------------------- %
 % {{{ header + flags
 
 :- ensure_loaded('readylog.pl').
@@ -45,568 +45,1106 @@
 
 % }}}
 
-/* ----------------------------------------------------------
-   procedures
----------------------------------------------------------- */
+% ---------------------------------------------------------- %
+%  Procedures                                                %
+% ---------------------------------------------------------- %
 % {{{ procedures
 % >>>>
 
+%  Recurses through the code of a Readylog procedure, and
+%  returns the transformed proc Processed.
+%  Processed only contains solves in standard form.
+:- mode process_proc(++, -).
 process_proc( [], Processed ) :- !,
-%        printf( stdout, "\n******* Empty. ******\n", [] ),
         Processed = [].
 
-
-process_proc( [if(Cond, Sigma1, Sigma2) | RestProgram], Processed ) :- !,
-        /** Test, if Sigma1 is nondeterministic program. If so, we must
-         *  first transform this subprogram. */
-%        printf( stdout, "Sigma1: %w\n", [Sigma1] ),
+process_proc( [if(Cond, Sigma1, Sigma2) | RestProgram], Processed ) :-
+        %  Test, if Sigma1 is a nondeterministic program. If so, we must
+        %  first transform this subprogram.
         term_string( Sigma1, Sigma1S ),
         ( substring( Sigma1S, "solve", _Pos ) ->
-             /** If contains a solve context. */
-%             printf( stdout, "\n*~*~SIGMA1_BEGIN*~*\n", [] ),
-             process_proc( Sigma1, ProcessedSigma1 )
-%             printf( stdout, "\nProcessed Sigma1: %w\n", [ProcessedSigma1] ),
-%            printf( stdout, "\n*~*~SIGMA1_END*~*\n", [] )
+           %  Sigma1 contains a solve context.
+           ContainsSolveSigma1 = true
         ;
-             true
+           ContainsSolveSigma1 = false
         ),
-        /** Test, if Sigma2 is nondeterministic program. If so, we must
-         *  first transform this subprogram. */
-%        printf( stdout, "Sigma2: %w\n", [Sigma2] ),
+        %  Test, if Sigma2 is a nondeterministic program. If so, we must
+        %  first transform this subprogram.
         term_string( Sigma2, Sigma2S ),
         ( substring( Sigma2S, "solve", _Pos ) ->
-             /** If contains a solve context. */
-%             printf( stdout, "\n*~*~SIGMA2_BEGIN*~*\n", [] ),
-             process_proc( Sigma2, ProcessedSigma2 )
-%             printf( stdout, "\nProcessed Sigma2: %w\n", [ProcessedSigma2] ),
-%             printf( stdout, "\n*~*~SIGMA2_END*~*\n", [] )
+           %  Sigma2 contains a solve context.
+           ContainsSolveSigma2 = true
         ;
-             true
+           ContainsSolveSigma2 = false
         ),
-        process_proc( RestProgram, ProcessedRest ),
-        ( ( ground( ProcessedSigma1 ), ground( ProcessedSigma2 ) ) ->
-             /** both subprograms are nondeterministic */
-             Processed = [ if(Cond, ProcessedSigma1, ProcessedSigma2) |
-                           ProcessedRest ]
-        ;
-             /** not both subprograms are nondeterministic */
-             ( ground( ProcessedSigma1 ) ->
-                  /** only Sigma1 is nondeterministic */
-                  Processed = [ if(Cond, ProcessedSigma1, Sigma2) |
-                                ProcessedRest ]
-             ;
-                  /** Sigma1 is deterministic */
-                  ( ground( ProcessedSigma2 ) ->
-                       /** only Sigma2 is nondeterministic */
-                       Processed = [ if(Cond, Sigma1, ProcessedSigma2) |
-                                     ProcessedRest ]
-                  ;
-                       /** both subprograms are deterministic */
-                       Processed = [ if(Cond, Sigma1, Sigma2) |
-                                     ProcessedRest ]
-                  )
-             )
-        ).
+        process_proc_if_aux( [if(Cond, Sigma1, Sigma2) | RestProgram], 
+                             ContainsSolveSigma1, ContainsSolveSigma2,
+                             Processed ).
 
+%  Shortcut, if there is no else-branch.
 process_proc( [if(Cond, Sigma) | RestProgram], Processed ) :-
         process_proc( [if(Cond, Sigma, []) | RestProgram], Processed ).
 
 process_proc( [while(Cond, Sigma) | RestProgram], Processed ) :- !,
-        /** Test, if Sigma is nondeterministic program. If so, we must
-         *  first transform this subprogram. */
-%        printf( stdout, "Sigma: %w\n", [Sigma] ),
- 
+        %  Test, if Sigma is a nondeterministic program. If so, we must
+        %  first transform this subprogram.
         term_string( Sigma, SigmaS ),
         ( substring( SigmaS, "solve", _Pos ) ->
-             /** While contains a solve context. */
-%             printf( stdout, "\n*~*~SIGMA_BEGIN*~*\n", [] ),
-             process_proc( Sigma, ProcessedSigma ),
-%             printf( stdout, "\nProcessed Sigma: %w\n", [ProcessedSigma] ),
-%             printf( stdout, "\n*~*~SIGMA_END*~*\n", [] ),
-             
-             process_proc( RestProgram, ProcessedRest ),
-             Processed = [ while(Cond, ProcessedSigma) | ProcessedRest ]
+           %  While contains a solve context.
+           process_proc( Sigma, ProcessedSigma ),
+           process_proc( RestProgram, ProcessedRest ),
+           Processed = [ while(Cond, ProcessedSigma) | ProcessedRest ]
         ;
-              /** While contains no solve context. */
-             process_proc( RestProgram, ProcessedRest ),
-             Processed = [ while(Cond, Sigma) | ProcessedRest ]
+           %  While contains no solve context.
+           process_proc( RestProgram, ProcessedRest ),
+           Processed = [ while(Cond, Sigma) | ProcessedRest ]
         ).
 
 process_proc( [solve(Prog, Horizon, RewardFunction) | RestProgram],
               Processed ) :- !,
-%        printf( stdout, "\n******* Encountered solve. ******\n", [] ),
+%        printf(stdout, "\n*** Encountered solve. ***\n", []),
         process_solve( Prog, Horizon, RewardFunction, ProcessedSolve ),
-%        printf( stdout, "\n******* Rest_Program: %w. ******\n", [RestProgram] ),
+%        printf(stdout, "\n*** Rest_Program: %w. ***\n", [RestProgram]),
         process_proc( RestProgram, ProcessedRest ),
-%        printf( stdout, "\n******* ProcessedRest: %w. ******\n", [ProcessedRest] ),
+%        printf(stdout, "\n*** ProcessedRest: %w. ***\n", [ProcessedRest]),
         append( ProcessedSolve, ProcessedRest, Processed ).
-%        printf( stdout, "\n******* Processed: %w. ******\n", [Processed] ).
 
-process_proc( [Term | RestProgram], Processed ) :- 
-%        prim_action(Term),
-        !,
-%        printf( stdout, "\n******* Encountered Term: %w. ******\n", [Term] ),
-%        printf( stdout, "\n******* Rest_Program: %w. ******\n", [RestProgram] ),
+process_proc( [Term | RestProgram], Processed ) :- !,
         process_proc( RestProgram, ProcessedRest ),
         Processed = [ Term | ProcessedRest ].
-%        printf( stdout, "\n******* Processed: %w. ******\n", [Processed] ).
 
-/** If the proc only consists of a single action without [], we
- *  add those brackets. */
 process_proc( Program, Processed ) :-
-%        printf( stdout, "\n******* Encountered Single Action: %w. ******\n", [Program] ),
         Program \= [_Action],
-        !,
+        %  If the proc only consists of a single action without [], we
+        %  add those brackets.
         Processed = [Program].
-%        NewProgram = [Program],
-%        process_proc( NewProgram, Processed ).
+
+%  Helper predicate for the transformation of an if-expression.
+%  This predicate helps to keep apart the different cases of
+%  deterministic/nondeterministic subprograms.
+:- mode process_proc_if_aux(++, ++, ++, -).
+process_proc_if_aux( [if(Cond, Sigma1, Sigma2) | RestProgram], false, false,
+                     Processed ) :- !,
+        % The subprograms do not contain a solve-context. We can safely
+        % skip the whole if statement.
+        process_proc( RestProgram, ProcessedRest ),
+        Processed = [if(Cond, Sigma1, Sigma2) | ProcessedRest].
+
+%  The following three clauses take care of the cases, where
+%  at least one subprogram of the if-expression contains a solve-context.
+%  We first have to process the subprograms that contain a
+%  solve context.
+process_proc_if_aux( [if(Cond, Sigma1, Sigma2) | RestProgram], true, false,
+                     Processed ) :- !,
+        %  Only Sigma1 contains a solve.
+        process_proc( Sigma1, ProcessedSigma1 ),
+        process_proc( RestProgram, ProcessedRest ),
+        Processed = [ if(Cond, ProcessedSigma1, Sigma2) |
+                      ProcessedRest ].
+
+process_proc_if_aux( [if(Cond, Sigma1, Sigma2) | RestProgram], false, true,
+                     Processed ) :- !,
+        %  Only Sigma2 contains a solve.
+        process_proc( Sigma2, ProcessedSigma2 ),
+        process_proc( RestProgram, ProcessedRest ),
+        Processed = [ if(Cond, Sigma1, ProcessedSigma2) |
+                      ProcessedRest ].
+
+process_proc_if_aux( [if(Cond, Sigma1, Sigma2) | RestProgram], true, true,
+                     Processed ) :- !,
+        %  Both subprograms contain a solve.
+        process_proc( Sigma1, ProcessedSigma1 ),
+        process_proc( Sigma2, ProcessedSigma2 ),
+        process_proc( RestProgram, ProcessedRest ),
+        Processed = [ if(Cond, ProcessedSigma1, ProcessedSigma2) |
+                      ProcessedRest ].
 
 
-process_proc_aux( ProcName, ProcBody, Stream ) :-        
-        printf(Stream, "ipl_proc( %w, ", [ProcName]),
-%        printf( stdout, "Processing ProcBody: %w\n", [ProcBody] ),
-        /** Make the arguments of cout strings again. */
-        fix_couts( ProcBody, ProcBodyNew ),
-%        printf( stdout, "ProcBodyNew: %w\n", [ProcBodyNew] ),
-%        printf( stdout, "process_proc( %w, Processed )\n", [ProcBodyNew] ),
-        process_proc( ProcBodyNew, Processed ),
-%        printf( stdout, "process_proc( %w, %w )\n", [ProcBodyNew, Processed] ),
-%        /** cut away superfluous outer brackets [].
-%         *  Doesn't work :/ replaces variables by 
-%         *  Prolog placeholders... not nice. */
-%        list_to_string( Processed, ProcessedClean ),
-        /** write the transformed proc to the file */
-        printf( Stream, "%w ).\n", [Processed] ).
-
+%  Processes all Readylog procedures proc that are found
+%  in the compiled knowledge base, and writes the
+%  transformed ipl_procs into the file Stream.
+:- mode process_all_proc(++).
 process_all_proc( Stream ) :-
         findall( (ProcName, ProcBody),
                  proc(ProcName, ProcBody),
                  ProcList), !,
-%        findall( ProcName,
-%                 proc(ProcName, ProcBody),
-%                 ProcNames), !,
-%        printf( stdout, "All procs: %w\n", [ProcNames] ),
         process_all_proc_aux(ProcList, Stream).
 
+%  Recurse through the list of all procs, and
+%  process each single one with process_proc_aux/3.
+:- mode process_all_proc_aux(++, ++).
 process_all_proc_aux([], _Stream) :- !.
+
 process_all_proc_aux([(ProcName, ProcBody)|List_rest], Stream) :-
-%        printf( stdout, "process_proc_aux(%w, %w, Stream)\n", [ProcName, ProcBody] ),
         process_proc_aux( ProcName, ProcBody, Stream ), !,
         process_all_proc_aux( List_rest, Stream ).
 
+%  Helper predicate for process_all_proc_aux/2.
+%  Writes the proc ProcName with its transformed Body to
+%  the file ipl_preprocessed_agent.pl (Stream).
+%  Those ipl_procs will be used by the Readylog interpreter
+%  if iplearning is active.
+:- mode process_proc_aux(++, ++, ++).
+process_proc_aux( ProcName, ProcBody, Stream ) :-        
+        printf(Stream, "ipl_proc( %w, ", [ProcName]),
+        %  Make the arguments of cout strings again.
+        fix_couts( ProcBody, ProcBodyNew ),
+        process_proc( ProcBodyNew, Processed ),
+        %  Write the transformed proc to the file.
+        printf( Stream, "%w ).\n", [Processed] ).
 
-/* ----------------------------------------------------------
-   solve statements
---------------------------------------------------------- */
 
-/** process_solve( Program, Horizon, RewardFunction )
- *  preprocesses a general solve statement of the form
- *  solve([alpha; nondet(p_1,...,p_n); omega], H, rew),
- *  where alpha is the deterministic part before the first
- *  nondet (if any) in the code,
- *  the p_i are deterministic programs,
- *  and omega is an arbitrary READYLOG program (not containing
- *  another solve).
- *  First the operator rho is applied to transform the
- *  argument list of the nondet to a set,
- *  then the operator tau_prime_H is applied until the omega
- *  is integrated into the nondet, leading to
- *  solve([alpha; nondet(q_1,...,q_m)], H, rew).
- *  Finally the operator tau is applied until the alpha is
- *  pulled out of the solve context, leading to
- *  alpha; solve(nondet(q_1,...,q_m), H, rew).
- */
+% --------------------------------------------------------- %
+%  solve statements                                         %
+% --------------------------------------------------------- %
 
+%  Preprocesses a general solve statement of the form
+%  solve([alpha; nondet(p_1,...,p_n); omega], H, rew),
+%  where alpha is the deterministic part before the first
+%  nondet (if any) in the code,
+%  the p_i are deterministic programs,
+%  and omega is an arbitrary Readylog program (not containing
+%  another solve).
+%  First the operator rho is applied to transform the
+%  argument list of the nondet to a set,
+%  then the operator tau_prime_H is applied until the omega
+%  is integrated into the nondet, leading to
+%  solve([alpha; nondet(q_1,...,q_m)], H, rew).
+%  Finally the operator tau is applied until the alpha is
+%  pulled out of the solve context, leading to
+%  alpha; solve(nondet(q_1,...,q_m), H, rew).
+:- mode process_solve(++, ++, ++, -).
 process_solve( [], _Horizon, _RewardFunction, Processed ) :-
         Processed = [].
 
-/** If the solve program only consists of a single action without [], we
- *  add those brackets. */
+%  If the solve program only consists of a single action without [], we
+%  add those brackets.
 process_solve( Program, Horizon, RewardFunction, Processed ) :-
         Program \= [_Action],
         NewProgram = [Program],
         process_solve( NewProgram, Horizon, RewardFunction, Processed ).
 
-/** If the solve program contains a call to a proc, we have to follow that trail.
- *  Otherwise we might loose a solve context. Consider this example:
- *  proc( procOne, [solve(procTwo, H, R)] ).
- *  proc( procTwo, [nondet[a,b]] ).
- *  The procTwo would be treated as a primitive action, pulled outside the solve
- *  and the solve would be deleted. */
+%  If the solve program contains a call to a proc, we have to follow that trail.
+%  Otherwise we might lose a solve context. Consider this example:
+%  proc( procOne, [solve(procTwo, H, R)] ).
+%  proc( procTwo, [nondet[a,b]] ).
+%  The procTwo would be treated as a primitive action, pulled outside the solve
+%  and the solve would be deleted. */
 process_solve( Program, Horizon, RewardFunction, Processed ) :-
-%        printf( stdout, "Applying rho.\n", [] ),
-        Initial_Rho_Program = [],
-%        printf( stdout, "apply_rho(%w, [], Rho_Program)\n,", [Program] ),
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%  solve([alpha; nondet(p_1,...,p_n); omega], H, rew)  %%%%%%%%%%%
+
+        %%%  Rho  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        printf(stdout, "\n", []),
+%        printf(stdout, "--- process_solve_begin -------------------\n", []),
+%        printf(stdout, "apply_rho(%w, [], Rho_Program)\n", [Program]),
         apply_rho( [solve(Program, Horizon, RewardFunction)],
-                   Initial_Rho_Program, Rho_Program ),
+                   [], Rho_Program ),
 %        printf(stdout, "Rho_Program: %w\n", [Rho_Program]),
-        Initial_Tau_Prime_H_Program = [],
-%        printf(stdout, "apply_tau_prime_H(%w, %w, Tau_Prime_H_Program)\n)",
-%                       [Rho_Program, Initial_Tau_Prime_H_Program]),
-	apply_tau_prime_H( Rho_Program, Initial_Tau_Prime_H_Program,
-                           Tau_Prime_H_Program ),
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        %%%  => solve([alpha; {p_1,...,p_n}; omega], H, rew)  %%%%%%%%%%%%%%
+
+        %%%  Tau_Prime_H  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        printf(stdout, "apply_tau_prime_H(%w, [], Tau_Prime_H_Program))\n",
+%                       [Rho_Program]),
+	apply_tau_prime_H( Rho_Program, [], Tau_Prime_H_Program ),
 %        printf(stdout, "Tau_Prime_H_Program: %w\n", [Tau_Prime_H_Program]),
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        %%%  => solve([alpha; nondet(q_1,...,q_m)], H, rew)  %%%%%%%%%%%%%%%
+
+        %%%  Tau  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        printf(stdout, "apply_tau(solve(%w, %w, %w), Tau_Program))\n",
+%                       [Tau_Prime_H_Program, Horizon, RewardFunction]),
         apply_tau( solve(Tau_Prime_H_Program, Horizon, RewardFunction),
                          Tau_Program ),
 %        printf(stdout, "Tau_Program: %w", [Tau_Program]),
-        Processed = Tau_Program.
+%        printf(stdout, "--- process_solve_end ---------------------\n", []),
+%        printf(stdout, "\n", []),
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        %%%  => alpha; solve(nondet(q_1,...,q_m), H, rew)  %%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        Processed = Tau_Program.                                
 
 
-/* ----------------------------------------------------------
-   transformation operators
----------------------------------------------------------- */
+% ---------------------------------------------------------- %
+%  Solve Transformation Operators                            %
+% ---------------------------------------------------------- %
 
-/* ----------------------------------------------------------
-                            rho                             
----------------------------------------------------------- */
+% ---------------------------------------------------------- %
+%                            Rho                             %
+% ---------------------------------------------------------- %
 
-/** rho finds the first nondeteministic statement
- *  (nondet, pickBest, or star) in the code. In case of
- *  pickBest or star, the operator transforms it into
- *  a nondet. Afterwards, the argument list of the nondet
- *  is transformed into a set.
- */
+%  Rho finds the first nondeteministic statement
+%  (nondet, pickBest, or star) in the code. In case of
+%  pickBest or star, the operator transforms it into
+%  a nondet. Afterwards, the argument list of the nondet
+%  is transformed into a set.
 
+:- mode apply_rho(++, ++, -).
+%%%  Empty procedure  %%%
 apply_rho( [], Program, Rho_Program ) :- !,
         Rho_Program = Program.
+
+%%%  Prog is a single action without brackets. Add program brackets.  %%%
+apply_rho( [solve(Action, Horizon, RewardFunction)], Program,
+           Rho_Program ) :- 
+        Action \= [_Prog],
+        !,
+        apply_rho( [solve([Action], Horizon, RewardFunction)], Program,
+                   Rho_Program ).
 
 apply_rho( [solve(Prog, Horizon, RewardFunction)], Program,
            Rho_Program ) :- !,
         apply_rho(Prog, Program, Rho_Program_Tmp),
         Rho_Program = [solve(Rho_Program_Tmp, Horizon, RewardFunction)].
 
-apply_rho( [{P_List} | Omega], Program, Rho_Program ) :- !,
-        /** Rho had already been applied to this program before. Thus,
-         *  do not change anything. */
-        /** TODO: Check if this is correct, or if append has to be used.
-         *  Also appears in other places! */
-        Rho_Program = [ Program | [{P_List} | Omega] ].
+%  In the following, for each possible expression in the Prog,
+%  we use four clauses for differentiating between the following four
+%  cases:
+%  1) Omega  = [] and Prog  = []
+%  2) Omega  = [] and Prog \= []
+%  3) Omega \= [] and Prog  = []
+%  4) Omega \= [] and Prog \= [].
+%
+%  This is necessary, because we use the | operator
+%  instead of append/3 (which has a time complexity of O(n^2)).
+%  When the first argument is the empty list, the two behave
+%  differently:
+%  append([], List, Result) -> Result=List
+%  Result=[[] | List]       -> Result=[[] | List]
+%  We want to achieve the first result, but with the | operator.
+%
+%  We could also use ( if -> then; else ) constructs inside one
+%  clause, but having different clauses is more efficient.
 
-apply_rho( [pickBest(F, Domain, Delta) | Omega], Program, Rho_Program ) :- !,
+%%%  Prog = ...  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%  Rho has been applied to program before. Do not change anything.  %%%
+apply_rho( [{P_List}], [], Rho_Program ) :- !,
+        %  Rho had already been applied to this program before. Thus,
+        %  do not change anything.
+        Rho_Program = [{P_List}].
+
+apply_rho( [{P_List}], Program, Rho_Program ) :- !,
+        %  Rho had already been applied to this program before. Thus,
+        %  do not change anything.
+        Rho_Program = [Program | [{P_List}]].
+
+apply_rho( [{P_List} | Omega], [], Rho_Program ) :- !,
+        %  Rho had already been applied to this program before. Thus,
+        %  do not change anything.
+        Rho_Program = [{P_List} | Omega].
+
+apply_rho( [{P_List} | Omega], Program, Rho_Program ) :- !,
+        %  Rho had already been applied to this program before. Thus,
+        %  do not change anything.
+        Rho_Program = [Program | [{P_List} | Omega]].
+
+%%%  PickBest  %%%
+apply_rho( [pickBest(F, Domain, Delta)], [], Rho_Program ) :- !,
         findall( Delta_New,
-                 /** Domain will be a list, correct? */
+                 %  Domain will be a list, correct?
                  ( member(Value, Domain), 
                    replace_term( Delta, F, Value, Delta_New ) ),
                  Instantiated_Progs ),
-%        printf( stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
+%        printf(stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
         list_to_string(Instantiated_Progs, Instantiated_Progs_String),
-        Program_New = [ Program | {Instantiated_Progs_String} ],
-        /** end recursion to make sure that only the first nondeterministic
-         *  statement is replaced */
-        Rho_Program = [ Program_New, Omega ].
-               
-apply_rho( [star(Alpha) | Omega], Program, Rho_Program ) :- !,
-        /** we delay the listing of the programs [], Alpha, Alpha^2,...
-         *  for later (when we will know the horizon), and now just put
-         *  the star-statement inside the set brackets {}.
-         *  It is important to store Omega with the star statement
-         *  as in the following process programs q_i might be
-         *  integrated into the choice set.
-         */
+        %  End recursion to make sure that only the first nondeterministic
+        %  statement is replaced.
+        Rho_Program = [{Instantiated_Progs_String}].
+
+apply_rho( [pickBest(F, Domain, Delta)], Program, Rho_Program ) :- !,
+        findall( Delta_New,
+                 %  Domain will be a list, correct?
+                 ( member(Value, Domain), 
+                   replace_term( Delta, F, Value, Delta_New ) ),
+                 Instantiated_Progs ),
+%        printf(stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
+        list_to_string(Instantiated_Progs, Instantiated_Progs_String),
+        %  End recursion to make sure that only the first nondeterministic
+        %  statement is replaced.
+        Rho_Program = [Program | {Instantiated_Progs_String}].
+
+apply_rho( [pickBest(F, Domain, Delta) | Omega], [], Rho_Program ) :- !,
+        findall( Delta_New,
+                 %  Domain will be a list, correct?
+                 ( member(Value, Domain), 
+                   replace_term( Delta, F, Value, Delta_New ) ),
+                 Instantiated_Progs ),
+%        printf(stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
+        list_to_string(Instantiated_Progs, Instantiated_Progs_String),
+        Program_New = [{Instantiated_Progs_String}],
+        %  End recursion to make sure that only the first nondeterministic
+        %  statement is replaced.
+        Rho_Program = [Program_New | Omega].
+
+apply_rho( [pickBest(F, Domain, Delta) | Omega], Program, Rho_Program ) :- !,
+        findall( Delta_New,
+                 %  Domain will be a list, correct?
+                 ( member(Value, Domain), 
+                   replace_term( Delta, F, Value, Delta_New ) ),
+                 Instantiated_Progs ),
+%        printf(stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
+        list_to_string(Instantiated_Progs, Instantiated_Progs_String),
+        Program_New = [Program | {Instantiated_Progs_String}],
+        %  End recursion to make sure that only the first nondeterministic
+        %  statement is replaced.
+        Rho_Program = [Program_New | Omega].
+
+%%%  Star  %%%
+apply_rho( [star(Alpha)], [], Rho_Program ) :- !,
+        %  We delay the listing of the programs [], Alpha, Alpha^2,...
+        %  for later (when we will know the horizon for termination),
+        %  and now just put the star-statement inside the set brackets {}.
         list_to_string([star(Alpha)], Star_String),
-        Program_New = [ Program | {Star_String} ],
-        /** end recursion to make sure that only the first nondeterministic
-         *  statement is replaced */
-        /** As we end the application of rho here, and the next operator
-         *  apply_tau_prime_H is first matched with the star string in
-         *  the nondeterministic set, we do not need to remember Omega
-         *  now. */
-        Rho_Program = [ Program_New | Omega ].
+        %  End recursion to make sure that only the first nondeterministic
+        %  statement is replaced.
+        Rho_Program = [{Star_String}].
 
-apply_rho( [if(Cond, Sigma1, Sigma2) | Omega], [], Rho_Program ) :- !,
-        apply_rho( [if(Cond, Sigma1, Sigma2) | Omega], [DUMMY], Rho_Program_Tmp ),
-        Rho_Program_Tmp = [DUMMY | Rho_Program].
+apply_rho( [star(Alpha)], Program, Rho_Program ) :- !,
+        %  We delay the listing of the programs [], Alpha, Alpha^2,...
+        %  for later (when we will know the horizon for termination),
+        %  and now just put the star-statement inside the set brackets {}.
+        list_to_string([star(Alpha)], Star_String),
+        %  End recursion to make sure that only the first nondeterministic
+        %  statement is replaced.
+        Rho_Program = [Program | {Star_String}].
 
-% If Program = [], the result becomes "[ [] | if... ]". :(
-% [--] Program_New = [ Program | if(Cond, Rho_Program_Sigma1, Rho_Program_Sigma2) ]
-% Append works fine and leads to "[ if... ]"
-% but append should be avoided.
-% [--] append(Program, if(Cond, Rho_Program_Sigma1, Rho_Program_Sigma2), Program_New)
-% This is why above there is a second predicate that matches Program = [].
+apply_rho( [star(Alpha) | Omega], [], Rho_Program ) :- !,
+        %  We delay the listing of the programs [], Alpha, Alpha^2,...
+        %  for later (when we will know the horizon for termination),
+        %  and now just put the star-statement inside the set brackets {}.
+        list_to_string([star(Alpha)], Star_String),
+        %  End recursion to make sure that only the first nondeterministic
+        %  statement is replaced.
+        %  As we end the application of rho here, and the next operator
+        %  apply_tau_prime_H is first matched with the star string in
+        %  the nondeterministic set, we do not need to remember Omega
+        %  now.
+        Rho_Program = [{Star_String} | Omega].
+
+apply_rho( [star(Alpha) | Omega], Program, Rho_Program ) :- !,
+        %  We delay the listing of the programs [], Alpha, Alpha^2,...
+        %  for later (when we will know the horizon for termination),
+        %  and now just put the star-statement inside the set brackets {}.
+        list_to_string([star(Alpha)], Star_String),
+        Program_New = [Program | {Star_String}],
+        %  End recursion to make sure that only the first nondeterministic
+        %  statement is replaced.
+        %  As we end the application of rho here, and the next operator
+        %  apply_tau_prime_H is first matched with the star string in
+        %  the nondeterministic set, we do not need to remember Omega
+        %  now.
+        Rho_Program = [Program_New | Omega].
+
+%%%  Conditional  %%%
+%  If Program = [], this will be matched in apply_rho_if_aux/5.
+apply_rho( [if(Cond, Sigma1, Sigma2)], Program, Rho_Program ) :- !,
+        is_deterministic( Sigma1, Sigma1Det ),
+%        printf( stdout, "Sigma1 is deterministic is %w.\n", [Sigma1Det] ),
+        is_deterministic( Sigma2, Sigma2Det ),
+%        printf( stdout, "Sigma2 is deterministic is %w.\n", [Sigma2Det] ),
+        apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], Program,
+                          Sigma1Det, Sigma2Det, Rho_Program ).
+
 apply_rho( [if(Cond, Sigma1, Sigma2) | Omega], Program, Rho_Program ) :- !,
-        is_deterministic( Sigma1, Result1 ),
-%        printf( stdout, "Sigma1 is deterministic is %w.\n", [Result1] ),
-        is_deterministic( Sigma2, Result2 ),
-%        printf( stdout, "Sigma2 is deterministic is %w.\n", [Result2] ),
-        ( (Result1 = true, Result2 = true) ->
-                           /** Skip if statement. */
-                           Program_New = [ Program | if(Cond, Sigma1, Sigma2) ],
-                           apply_rho( Omega, Program_New, Rho_Program_Tmp ),
-                           Rho_Program = Rho_Program_Tmp
+        is_deterministic( Sigma1, Sigma1Det ),
+%        printf( stdout, "Sigma1 is deterministic is %w.\n", [Sigma1Det] ),
+        is_deterministic( Sigma2, Sigma2Det ),
+%        printf( stdout, "Sigma2 is deterministic is %w.\n", [Sigma2Det] ),
+        apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
+                          Sigma1Det, Sigma2Det, Rho_Program ).
+
+%  Shortcut, if else-branch is not provided.
+apply_rho( [if(Cond, Sigma)], Program, Rho_Program ) :- !,
+        apply_rho( [if(Cond, Sigma, [])], Program, Rho_Program ).
+
+apply_rho( [if(Cond, Sigma) | Omega], Program, Rho_Program ) :- !,
+        apply_rho( [if(Cond, Sigma, []) | Omega], Program, Rho_Program ).
+
+%%%  Loop  %%%
+apply_rho( [while(Cond, Sigma)], [], Rho_Program ) :- !,
+        is_deterministic( Sigma, Result ),
+%        printf( stdout, "Sigma is deterministic is %w.\n", [Result] ),
+        ( Result = true ->
+           %  Skip while. 
+           Rho_Program = [while(Cond, Sigma)]
         ;
-                           /** The first nondeterministic statement is found
-                            *  inside Sigma1 or Sigma2. But as we do not allow
-                            *  nested solve statements, the solve context inside
-                            *  Sigma1 and Sigma2 will be independent of a possible
-                            *  solve in Omega. That is why me may apply rho
-                            *  recursively. */
-                           ( (Result1 = true) ->
-                                    apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
-                                    Program_New = [ Program | if(Cond, Sigma1, Rho_Program_Sigma2) ],
-                                    apply_rho( Omega, Program_New, Rho_Program_Tmp ),
-                                    Rho_Program = Rho_Program_Tmp
-                           ;
-                                    ( (Result2 = true) ->
-                                             apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
-                                             Program_New = [ Program |
-                                                             if(Cond, Rho_Program_Sigma1, Sigma2) ],
-                                                    apply_rho( Omega, Program_New, Rho_Program_Tmp ),
-                                             Rho_Program = Rho_Program_Tmp
-                                    ;
-                                             /** Both Sigma1 and Sigma2 are nondeterministic */
-%                                             printf( Stream, "Both Sigma1 and Sigma2 are nondeterministic.\n", [] ),
-                                             apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
-                                             apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
-                                             Program_New = [ Program |
-                                                             if(Cond, Rho_Program_Sigma1, Rho_Program_Sigma2) ],
-                                             apply_rho( Omega, Program_New, Rho_Program_Tmp ),
-                                             Rho_Program = Rho_Program_Tmp
-                                    )
-                           )
+           apply_rho( Sigma, [], Rho_Program_Sigma ),
+           Rho_Program = [while(Cond, Rho_Program_Sigma)]
         ).
 
-apply_rho( [if(Cond, Sigma) | Omega], Program, Rho_Program ) :-
-        apply_rho( [if(Cond, Sigma, []) | Omega], Program, Rho_Program ).
+apply_rho( [while(Cond, Sigma)], Program, Rho_Program ) :- !,
+        is_deterministic( Sigma, Result ),
+%        printf( stdout, "Sigma is deterministic is %w.\n", [Result] ),
+        ( Result = true ->
+           %  Skip while. 
+           Rho_Program = [Program | while(Cond, Sigma)]
+        ;
+           apply_rho( Sigma, [], Rho_Program_Sigma ),
+           Rho_Program = [Program | while(Cond, Rho_Program_Sigma)]
+        ).
+
+apply_rho( [while(Cond, Sigma) | Omega], [], Rho_Program ) :- !,
+        is_deterministic( Sigma, Result ),
+%        printf( stdout, "Sigma is deterministic is %w.\n", [Result] ),
+        ( Result = true ->
+           %  Skip while. 
+           Program_New = [while(Cond, Sigma)],
+           apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+           Rho_Program = Rho_Program_Tmp
+        ;
+           %  The first nondeterministic statement is found
+           %  inside Sigma. But as we do not allow nested solve
+           %  statements, the solve context inside Sigma will
+           %  be independent of a possible solve in Omega. That
+           %  is why me may apply rho recursively.
+           apply_rho( Sigma, [], Rho_Program_Sigma ),
+           Program_New = [while(Cond, Rho_Program_Sigma)],
+           apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+           Rho_Program = Rho_Program_Tmp
+        ).
 
 apply_rho( [while(Cond, Sigma) | Omega], Program, Rho_Program ) :- !,
         is_deterministic( Sigma, Result ),
 %        printf( stdout, "Sigma is deterministic is %w.\n", [Result] ),
-        ( Result = true -> /** Skip while. */
-                           Program_New = [ Program | while(Cond, Sigma) ],
-                           apply_rho( Omega, Program_New, Rho_Program_Tmp ),
-                           Rho_Program = Rho_Program_Tmp
+        ( Result = true ->
+           %  Skip while. 
+           Program_New = [Program | while(Cond, Sigma)],
+           apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+           Rho_Program = Rho_Program_Tmp
         ;
-                           /** The first nondeterministic statement is found
-                            *  inside Sigma. But as we do not allow nested solve
-                            *  statements, the solve context inside Sigma will
-                            *  be independent of a possible solve in Omega. That
-                            *  is why me may apply rho recursively. */
-                           apply_rho( Sigma, [], Rho_Program_Sigma ),
-                           Program_New = [ Program | while(Cond, Rho_Program_Sigma) ],
-                           apply_rho( Omega, Program_New, Rho_Program_Tmp ),
-                           Rho_Program = Rho_Program_Tmp
+           %  The first nondeterministic statement is found
+           %  inside Sigma. But as we do not allow nested solve
+           %  statements, the solve context inside Sigma will
+           %  be independent of a possible solve in Omega. That
+           %  is why me may apply rho recursively.
+           apply_rho( Sigma, [], Rho_Program_Sigma ),
+           Program_New = [Program | while(Cond, Rho_Program_Sigma)],
+           apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+           Rho_Program = Rho_Program_Tmp
         ).
+
+%%%  Nondeterministic Choice  %%%
+apply_rho( [nondet(ProgList)], [], Rho_Program ) :- !,
+%        printf(stdout, "ProgList: %w.\n", [ProgList]),
+        list_to_string(ProgList, ReducedString),
+%        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
+        %  End recursion to make sure that only the first nondet
+        %  is replaced.       
+        Rho_Program = [{ReducedString}].
+
+apply_rho( [nondet(ProgList)], Program, Rho_Program ) :- !,
+%        printf(stdout, "ProgList: %w.\n", [ProgList]),
+        list_to_string(ProgList, ReducedString),
+%        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
+        %  End recursion to make sure that only the first nondet
+        %  is replaced.       
+        Rho_Program = [Program | {ReducedString}].
 
 apply_rho( [nondet(ProgList) | Omega], [], Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
         list_to_string(ProgList, ReducedString),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
-        Program_New = {ReducedString},
-        /** end recursion to make sure that only the first nondet
-          * is replaced */
-        Rho_Program = [ Program_New | Omega ].
+        %  End recursion to make sure that only the first nondet
+        %  is replaced.       
+        Rho_Program = [{ReducedString} | Omega].
 
 apply_rho( [nondet(ProgList) | Omega], Program, Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
         list_to_string(ProgList, ReducedString),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
-        Program_New = [ Program | {ReducedString} ],
-        /** end recursion to make sure that only the first nondet
-          * is replaced */
-        Rho_Program = [ Program_New | Omega ].
+        Program_New = [Program | {ReducedString}],
+        %  End recursion to make sure that only the first nondet
+        %  is replaced.       
+        Rho_Program = [Program_New | Omega].
 
-/** Program is []. This is the case, when the Prog in the
- *  solve only consists of one Term. We want to avoid the
- *  Rho_Program to look like [ []|Term ]. */
+%%%  Test Action, Primitive Action, Stochastic Action, or proc  %%%
+apply_rho( [Term], [], Rho_Program ) :- !,
+        Rho_Program = [Term].
+
+apply_rho( [Term], Program, Rho_Program ) :- !,
+        Rho_Program = [Program | Term].
+
 apply_rho( [Term | Omega], [], Rho_Program ) :- !,
-%        printf(stdout, "Program: %w\n", [Program]),
-        Program_New = [ Term ],
-%        printf(stdout, "Appending: [%w]\n", [Term]),        
-%        printf(stdout, "Program_New: %w\n", [Program_New]),
-%        printf(stdout, "Omega: %w\n", [Omega]),
-        apply_rho( Omega, Program_New, Rho_Program_Tmp ),
-%        printf( stdout, "Rho_Program_Tmp=%w\n", [Rho_Program_Tmp]),
-        Rho_Program = Rho_Program_Tmp.
+        apply_rho( Omega, [Term], Rho_Program ).
 
 apply_rho( [Term | Omega], Program, Rho_Program ) :- !,
-%        printf(stdout, "Program: %w\n", [Program]),
-        Program_New = [ Program | Term ],
-%        printf(stdout, "Appending: [%w]\n", [Term]),        
-%        printf(stdout, "Program_New: %w\n", [Program_New]),
-%        printf(stdout, "Omega: %w\n", [Omega]),
+        Program_New = [Program | Term],
+        apply_rho( Omega, Program_New, Rho_Program ).
+
+
+%  Helper predicate for the application of rho to an if-expression.
+%  This predicate helps to keep apart the different cases of
+%  deterministic/nondeterministic subprograms.
+:- mode apply_rho_if_aux(++, ++, ++, ++, -).
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], [],
+                   true, true, Rho_Program ) :- !,
+        % The subprograms are deterministic. We can safely skip
+        % the whole if-statement.
+        Rho_Program = [if(Cond, Sigma1, Sigma2)].
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], Program,
+                   true, true, Rho_Program ) :- !,
+        % The subprograms are deterministic. We can safely skip
+        % the whole if-statement.
+        Rho_Program = [Program | if(Cond, Sigma1, Sigma2)].
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], [],
+                   true, true, Rho_Program ) :- !,
+        % The subprograms are deterministic. We can safely skip
+        % the whole if-statement.
+        Program_New = [if(Cond, Sigma1, Sigma2)],
         apply_rho( Omega, Program_New, Rho_Program_Tmp ),
-%        printf( stdout, "Rho_Program_Tmp=%w\n", [Rho_Program_Tmp]),
         Rho_Program = Rho_Program_Tmp.
-%        printf(stdout, "Rho_Program_After_Recursion: %w\n", [Rho_Program]).
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
+                   true, true, Rho_Program ) :- !,
+        % The subprograms are deterministic. We can safely skip
+        % the whole if-statement.
+        Program_New = [Program | if(Cond, Sigma1, Sigma2)],
+        apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+        Rho_Program = Rho_Program_Tmp.
+
+%  The following twelve clauses take care of the three cases (four
+%  clauses per case to match empty Omega/Program), where
+%  at least one subprogram of the if-expression is nondeterministic.
+%  So, the first nondeterministic statement is found inside Sigma1 or Sigma2.
+%  But as we do not allow nested solve statements, the solve context inside
+%  Sigma1 and Sigma2 will be independent of a possible solve in Omega.
+%  That is why me may apply Rho recursively.
+
+%%  Sigma1 is nondeterministic.  %%
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], [],
+                   true, false, Rho_Program ) :- !,
+        apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
+        Rho_Program = [if(Cond, Sigma1, Rho_Program_Sigma2)].
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], Program,
+                   true, false, Rho_Program ) :- !,
+        apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
+        Rho_Program = [Program | if(Cond, Sigma1, Rho_Program_Sigma2)].
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], [],
+                   true, false, Rho_Program ) :- !,
+        apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
+        Program_New = [if(Cond, Sigma1, Rho_Program_Sigma2)],
+        apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+        Rho_Program = Rho_Program_Tmp.
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
+                   true, false, Rho_Program ) :- !,
+        apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
+        Program_New = [Program | if(Cond, Sigma1, Rho_Program_Sigma2)],
+        apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+        Rho_Program = Rho_Program_Tmp.
+
+%%  Sigma2 is nondeterministic.  %%
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], [],
+                   false, true, Rho_Program ) :- !,
+        apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
+        Rho_Program = [if(Cond, Rho_Program_Sigma1, Sigma2)].
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], Program,
+                   false, true, Rho_Program ) :- !,
+        apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
+        Rho_Program = [Program | if(Cond, Rho_Program_Sigma1, Sigma2)].
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], [],
+                   false, true, Rho_Program ) :- !,
+        apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
+        Program_New = [if(Cond, Rho_Program_Sigma1, Sigma2)],
+        apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+        Rho_Program = Rho_Program_Tmp.
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
+                   false, true, Rho_Program ) :- !,
+        apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
+        Program_New = [Program | if(Cond, Rho_Program_Sigma1, Sigma2)],
+        apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+        Rho_Program = Rho_Program_Tmp.
+
+%%  Both Sigma1 and Sigma2 are nondeterministic.  %%
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], [],
+                   false, false, Rho_Program ) :- !,
+        apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
+        apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
+        Rho_Program = [if(Cond, Rho_Program_Sigma1, Rho_Program_Sigma2)].
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2)], Program,
+                   false, false, Rho_Program ) :- !,
+        apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
+        apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
+        Rho_Program = [Program |
+                       if(Cond, Rho_Program_Sigma1, Rho_Program_Sigma2)].
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], [],
+                   false, false, Rho_Program ) :- !,
+        apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
+        apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
+        Program_New = [if(Cond, Rho_Program_Sigma1, Rho_Program_Sigma2)],
+        apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+        Rho_Program = Rho_Program_Tmp.
+
+apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
+                   false, false, Rho_Program ) :- !,
+        apply_rho( Sigma1, [], Rho_Program_Sigma1 ),
+        apply_rho( Sigma2, [], Rho_Program_Sigma2 ),
+        Program_New = [Program |
+                       if(Cond, Rho_Program_Sigma1, Rho_Program_Sigma2)],
+        apply_rho( Omega, Program_New, Rho_Program_Tmp ),
+        Rho_Program = Rho_Program_Tmp.
 
 
-/* ----------------------------------------------------------
-                        tau_prime_H                             
----------------------------------------------------------- */
 
-/** tau_prime_H integrates the arbitrary program omega
- *  following the first nondet statement into the set of
- *  nondeterministic choices:
- *  solve([alpha; nondet(p_1,...,p_n); omega], H, rew)
- *  === tau_prime_H ===>
- *  solve([alpha; nondet(q_1,...,q_m)], H, rew).
- */
+% ---------------------------------------------------------- %
+%                       Tau_Prime_H                          %
+% ---------------------------------------------------------- %
 
+%  Tau_Prime_H integrates the arbitrary program omega
+%  following the first nondet statement into the set of
+%  nondeterministic choices:
+%  solve([alpha; nondet(p_1,...,p_n); omega], H, rew)
+%  === tau_prime_H ===>
+%  solve([alpha; nondet(q_1,...,q_m)], H, rew).
+
+:- mode apply_tau_prime_H(++, ++, -).
 apply_tau_prime_H( [solve(Prog, Horizon, _RewardFunction)], Program,
                    Tau_Prime_H_Program ) :- !,
-        apply_tau_prime_H( [Prog], Horizon, Program, Tau_Prime_H_Program ). 
+        apply_tau_prime_H( Prog, Horizon, Program, Tau_Prime_H_Program ). 
 
-/** omega = ... */
+%  In the following, for each possible expression in omega,
+%  we use four clauses for differentiating between the following four
+%  cases:
+%  1) OmegaPrime  = [] and Prog  = []
+%  2) OmegaPrime  = [] and Prog \= []
+%  3) OmegaPrime \= [] and Prog  = []
+%  4) OmegaPrime \= [] and Prog \= [].
+%
+%  This is necessary, because we use the | operator
+%  instead of append/3 (which has a time complexity of O(n^2)).
+%  When the first argument is the empty list, the two behave
+%  differently:
+%  append([], List, Result) -> Result=List
+%  Result=[[] | List]       -> Result=[[] | List]
+%  We want to achieve the first result, but with the | operator.
+%
+%  We could also use ( if -> then; else ) constructs inside one
+%  clause, but having different clauses is more efficient.
 
-/** Empty program (without nondeterministic choice in solve context) */
+
+%%%  omega = ...  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%  Empty program (without any nondeterministic choice in solve context)  %
+apply_tau_prime_H( [], _Horizon, [], Tau_Prime_H_Program ) :- !,
+        Tau_Prime_H_Program = [].
+
 apply_tau_prime_H( [], _Horizon, Program, Tau_Prime_H_Program ) :- !,
-%        printf(stdout, "Encountered Empty Program.\n", []),
         Tau_Prime_H_Program = Program.
 
-/** Star and pickBest are implicitly translated into nondet statements.
- *  Here they are then directly integrated into the nondeterministic
- *  decision set.
- */
+%  Star and pickBest are implicitly translated into nondet statements.
+%  Here they are then directly integrated into the nondeterministic
+%  decision set.
 
-/** Star */
-/** Note that rho had postponed the expansion of the star that appeared as first
- *  nondeterministic statement, by putting it inside the nondeterministic set,
- *  together with the program Omega.
- *  Also note that, at this point, the nondeterministic set only consists of the
- *  "star". */
-apply_tau_prime_H( [{Star} | Omega_Prime], Horizon, Program, Tau_Prime_H_Program ) :- 
-         ( \+ string(Star) -> /** if Star is not a string yet,
-                                * convert it to one */
-                              term_string(Star, StarString)
-         ;
-                              /** else simply rename it */
-                              StarString = Star
-         ),
-         /** Test, if Star = "star(Alpha)" */
-         substring( StarString, 1, 4, "star" ),
-         !,
-%         printf( stdout, "Encountered star in nondeterministic choice set.\n", []),
-%         printf( stdout, "StarString: %w\n", [StarString]),
+%%%  Star  %%%
+%  Note that Rho had postponed the expansion of the star that appeared as first
+%  nondeterministic statement, by putting it inside the nondeterministic set.
+%  Also note that, at this point, the nondeterministic set only consists of the
+%  "star".
+apply_tau_prime_H( [{Star}], Horizon, [], Tau_Prime_H_Program ) :- 
+        ( \+ string(Star) -> 
+            %  If Star is not a string yet,
+            %  convert it to one.
+            term_string(Star, StarString)
+        ;
+            %  Else simply rename it.
+            StarString = Star
+        ),
+        %  Test, if Star = "star(Alpha)".
+        substring( StarString, 1, 4, "star" ),
+        !,
 
-         /** cut out argument of star */
-         string_length(StarString, StarLength),
-         ReducedStarLength is (StarLength - 6),
-         substring( StarString, 6, ReducedStarLength, AlphaString ),
-%         printf( stdout, "Alpha: %w\n", [AlphaString]),
-         term_string(Alpha, AlphaString),
+        %  Cut out argument of star.
+        string_length(StarString, StarLength),
+        ReducedStarLength is (StarLength - 6),
+        substring( StarString, 6, ReducedStarLength, AlphaString ),
+        term_string(Alpha, AlphaString),
          
-         /** Construct a list Tau_Prime_H_Program_Tmp of all possible programs
-          *  [Alpha; Omega_Prime],
-          *  [Alpha; Alpha; Omega_Prime],
-          *  ...,
-          *  [Alpha^k; Omega_Prime],
-          *  where k is the first length of the Alpha sequence that is longer
-          *  than the horizon. */
-         Program_Initial = [],
-%         printf( stdout, "expand_alpha(%w, %w, %w, [], Star_Program )\n",
-%                 [Alpha, Omega, Horizon] ),
-         horizon_consumption(Alpha, Consume),
-         expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program_Initial,
-                       Star_Program ),
-%         printf( stdout, "Star_Program: %w\n", [Star_Program] ),
+        %  Construct a list Tau_Prime_H_Program_Tmp of all possible programs
+        %  [Alpha],
+        %  [Alpha; Alpha],
+        %  ...,
+        %  [Alpha^k],
+        %  where k is the first length of the Alpha sequence that is longer
+        %  than the horizon.
+        horizon_consumption(Alpha, Consume),
+        expand_alpha( Alpha, Consume, [], Horizon, Star_Program ),
 
-         /** Add the choice of Alpha^0 in the beginning.
-          *  Omega_Prime is appended (implicitely) to the empty program as Omega_Prime
-          *  must be executed afterwards. */
-         list_to_string( Omega_Prime, Omega_PrimeS ),
-         comma_to_semicolon( Omega_PrimeS, Omega_PrimeTmp ),
-%         printf( stdout, "Omega_Prime with semicolon: %w\n", [Omega_PrimeTmp] ),
-         string_to_list( Omega_PrimeTmp, Omega_PrimeTmpList ),
-         append( Omega_PrimeTmpList, Star_Program, Star_Program_Tmp ),
-%         printf( stdout, "Star_Program and Alpha^0: %w\n", [Star_Program_Tmp] ),
+        %  Add the choice of Alpha^0 in the beginning.
+        Star_Program_Tmp = [[] | Star_Program],
 
-         list_to_string( Star_Program_Tmp, Star_P_List ),
-%         printf( stdout, "Star_P_List: %w\n", [Star_P_List] ),
-%         printf( stdout, "Omega_Prime: %w\n", [Omega_Prime] ),
-         apply_tau_prime_H( [{Star_P_List} | []], Horizon, Program, Tau_Prime_H_Program ).
+        list_to_string( Star_Program_Tmp, Star_P_List ),
+        apply_tau_prime_H( [{Star_P_List}], Horizon, [],
+                           Tau_Prime_H_Program ).
 
-/** This is the case, where a star comes after the first nondeterministic statement */
+apply_tau_prime_H( [{Star}], Horizon, Program,
+                   Tau_Prime_H_Program ) :- 
+        ( \+ string(Star) -> 
+            %  If Star is not a string yet,
+            %  convert it to one.
+            term_string(Star, StarString)
+        ;
+            %  Else simply rename it.
+            StarString = Star
+        ),
+        %  Test, if Star = "star(Alpha)".
+        substring( StarString, 1, 4, "star" ),
+        !,
+
+        %  Cut out argument of star.
+        string_length(StarString, StarLength),
+        ReducedStarLength is (StarLength - 6),
+        substring( StarString, 6, ReducedStarLength, AlphaString ),
+        term_string(Alpha, AlphaString),
+         
+        %  Construct a list Tau_Prime_H_Program_Tmp of all possible programs
+        %  [Alpha],
+        %  [Alpha; Alpha],
+        %  ...,
+        %  [Alpha^k],
+        %  where k is the first length of the Alpha sequence that is longer
+        %  than the horizon.
+        horizon_consumption(Alpha, Consume),
+        expand_alpha( Alpha, Consume, [], Horizon, Star_Program ),
+
+        %  Add the choice of Alpha^0 in the beginning.
+        Star_Program_Tmp = [[] | Star_Program],
+
+        list_to_string( Star_Program_Tmp, Star_P_List ),
+        apply_tau_prime_H( [{Star_P_List}], Horizon, Program,
+                           Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{Star} | Omega_Prime], Horizon, [],
+                   Tau_Prime_H_Program ) :- 
+        ( \+ string(Star) -> 
+            %  If Star is not a string yet,
+            %  convert it to one.
+            term_string(Star, StarString)
+        ;
+            %  Else simply rename it.
+            StarString = Star
+        ),
+        %  Test, if Star = "star(Alpha)".
+        substring( StarString, 1, 4, "star" ),
+        !,
+%        printf( stdout, "Encountered star in nondet. choice set.\n", []),
+%        printf( stdout, "StarString: %w\n", [StarString]),
+
+        %  Cut out argument of star.
+        string_length(StarString, StarLength),
+        ReducedStarLength is (StarLength - 6),
+        substring( StarString, 6, ReducedStarLength, AlphaString ),
+        term_string(Alpha, AlphaString),
+         
+        %  Construct a list Tau_Prime_H_Program_Tmp of all possible programs
+        %  [Alpha; Omega_Prime],
+        %  [Alpha; Alpha; Omega_Prime],
+        %  ...,
+        %  [Alpha^k; Omega_Prime],
+        %  where k is the first length of the Alpha sequence that is longer
+        %  than the horizon.
+        horizon_consumption(Alpha, Consume),
+        expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Star_Program ),
+
+        %  Add the choice of Alpha^0 in the beginning.
+        %  Omega_Prime is appended (implicitely) to the empty program,
+        %  because Omega_Prime must be executed afterwards.
+        list_to_string( Omega_Prime, Omega_PrimeS ),
+        comma_to_semicolon( Omega_PrimeS, Omega_PrimeTmp ),
+        string_to_list( Omega_PrimeTmp, Omega_PrimeTmpList ),
+        append( Omega_PrimeTmpList, Star_Program, Star_Program_Tmp ),
+
+        list_to_string( Star_Program_Tmp, Star_P_List ),
+%        printf( stdout, "Star_P_List: %w\n", [Star_P_List] ),
+%        printf( stdout, "Omega_Prime: %w\n", [Omega_Prime] ),
+        apply_tau_prime_H( [{Star_P_List}], Horizon, [],
+                           Tau_Prime_H_Program ).
+
+%  Note that Rho had postponed the expansion of the star that appeared as first
+%  nondeterministic statement, by putting it inside the nondeterministic set.
+%  Also note that, at this point, the nondeterministic set only consists of the
+%  "star".
+apply_tau_prime_H( [{Star} | Omega_Prime], Horizon, Program,
+                   Tau_Prime_H_Program ) :- 
+        ( \+ string(Star) -> 
+            %  If Star is not a string yet,
+            %  convert it to one.
+            term_string(Star, StarString)
+        ;
+            %  Else simply rename it.
+            StarString = Star
+        ),
+        %  Test, if Star = "star(Alpha)".
+        substring( StarString, 1, 4, "star" ),
+        !,
+%        printf( stdout, "Encountered star in nondet. choice set.\n", []),
+%        printf( stdout, "StarString: %w\n", [StarString]),
+
+        %  Cut out argument of star.
+        string_length(StarString, StarLength),
+        ReducedStarLength is (StarLength - 6),
+        substring( StarString, 6, ReducedStarLength, AlphaString ),
+        term_string(Alpha, AlphaString),
+         
+        %  Construct a list Tau_Prime_H_Program_Tmp of all possible programs
+        %  [Alpha; Omega_Prime],
+        %  [Alpha; Alpha; Omega_Prime],
+        %  ...,
+        %  [Alpha^k; Omega_Prime],
+        %  where k is the first length of the Alpha sequence that is longer
+        %  than the horizon.
+        horizon_consumption(Alpha, Consume),
+        expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Star_Program ),
+
+        %  Add the choice of Alpha^0 in the beginning.
+        %  Omega_Prime is appended (implicitely) to the empty program,
+        %  because Omega_Prime must be executed afterwards.
+        list_to_string( Omega_Prime, Omega_PrimeS ),
+        comma_to_semicolon( Omega_PrimeS, Omega_PrimeTmp ),
+        string_to_list( Omega_PrimeTmp, Omega_PrimeTmpList ),
+        append( Omega_PrimeTmpList, Star_Program, Star_Program_Tmp ),
+
+        list_to_string( Star_Program_Tmp, Star_P_List ),
+%        printf( stdout, "Star_P_List: %w\n", [Star_P_List] ),
+%        printf( stdout, "Omega_Prime: %w\n", [Omega_Prime] ),
+        apply_tau_prime_H( [{Star_P_List}], Horizon, Program,
+                           Tau_Prime_H_Program ).
+
+%%%  This is the case, where a star comes *after* the first  %%%
+%%%  nondeterministic statement.                             %%%
+apply_tau_prime_H( [{P_List} | star(Alpha)], Horizon,
+                   [], Tau_Prime_H_Program ) :-
+        !, %  CUT is okay here, as we skip the step of converting star
+           %  into a nondet and again applying tau_prime_H to that nondet.
+           %  Instead we directly integrate the choices Alpha^0,...,Alpha^i
+           %  into the choice set.
+
+        %  Construct a list Star_Program of all possible programs
+        %  [Alpha],
+        %  [Alpha; Alpha],
+        %  ...,
+        %  [Alpha^k],
+        %  where k is the first length of the Alpha sequence that is longer
+        %  than the horizon.
+        %  TODO: Different to the star case before, the p_i in the P_List may
+        %  already consume horizon. To enhance performance this can be
+        %  considered when expanding Alpha. A naive approach would be to
+        %  subtract the minimal horizon consumption of all p_i.
+        horizon_consumption(Alpha, Consume),
+        expand_alpha( Alpha, Consume, [], Horizon, Star_Program ),
+
+        %  Add the choice of Alpha^0 in the beginning.
+        Star_Program_Tmp = [[] | Star_Program],
+         
+        %  Integrate the complete rest program into the nondeterministic set.
+        integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+
+        apply_tau_prime_H( [{P_List_New}], Horizon, [],
+                           Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | star(Alpha)], Horizon,
+                   Program, Tau_Prime_H_Program ) :-
+        !, %  CUT is okay here, as we skip the step of converting star
+           %  into a nondet and again applying tau_prime_H to that nondet.
+           %  Instead we directly integrate the choices Alpha^0,...,Alpha^i
+           %  into the choice set.
+
+        %  Construct a list Star_Program of all possible programs
+        %  [Alpha],
+        %  [Alpha; Alpha],
+        %  ...,
+        %  [Alpha^k],
+        %  where k is the first length of the Alpha sequence that is longer
+        %  than the horizon.
+        %  TODO: Different to the star case before, the p_i in the P_List may
+        %  already consume horizon. To enhance performance this can be
+        %  considered when expanding Alpha. A naive approach would be to
+        %  subtract the minimal horizon consumption of all p_i.
+        horizon_consumption(Alpha, Consume),
+        expand_alpha( Alpha, Consume, [], Horizon, Star_Program ),
+
+        %  Add the choice of Alpha^0 in the beginning.
+        Star_Program_Tmp = [[] | Star_Program],
+         
+        %  Integrate the complete rest program into the nondeterministic set.
+        integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+
+        apply_tau_prime_H( [{P_List_New}], Horizon, Program,
+                           Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | [star(Alpha) | Omega_Prime]], Horizon,
+                   [], Tau_Prime_H_Program ) :-
+        !, %  CUT is okay here, as we skip the step of converting star
+           %  into a nondet and again applying tau_prime_H to that nondet.
+           %  Instead we directly integrate the choices Alpha^0,...,Alpha^i
+           %  into the choice set.
+
+        %  Construct a list Star_Program of all possible programs
+        %  [Alpha; Omega_Prime],
+        %  [Alpha; Alpha; Omega_Prime],
+        %  ...,
+        %  [Alpha^k; Omega_Prime],
+        %  where k is the first length of the Alpha sequence that is longer
+        %  than the horizon.
+        %  TODO: Different to the star case before, the p_i in the P_List may
+        %  already consume horizon. To enhance performance this can be
+        %  considered when expanding Alpha. A naive approach would be to
+        %  subtract the minimal horizon consumption of all p_i.
+        horizon_consumption(Alpha, Consume),
+        expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Star_Program ),
+
+        %  Add the choice of Alpha^0 in the beginning.
+        %  Omega_Prime is appended (implicitely) to the empty program,
+        %  because Omega_Prime must be executed afterwards.
+        list_to_string( Omega_Prime, Omega_PrimeS ),
+        comma_to_semicolon( Omega_PrimeS, Omega_PrimeTmp ),
+        string_to_list( Omega_PrimeTmp, Omega_PrimeTmpList ),
+        append( Omega_PrimeTmpList, Star_Program, Star_Program_Tmp ),
+         
+        %  Integrate the complete rest program into the nondeterministic set.
+        integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+
+        apply_tau_prime_H( [{P_List_New}], Horizon, [],
+                           Tau_Prime_H_Program ).
+
 apply_tau_prime_H( [{P_List} | [star(Alpha) | Omega_Prime]], Horizon,
                    Program, Tau_Prime_H_Program ) :-
-         !, /** CUT is okay here, as we skip the step of converting star into a nondet
-             *  and again applying tau_prime_H to that nondet.
-             *  Instead we directly integrate the choices Alpha^0,...,Alpha^i into
-             *  the choice set. */
-%         printf( stdout, "Encountered star.\n", []),
+        !, %  CUT is okay here, as we skip the step of converting star
+           %  into a nondet and again applying tau_prime_H to that nondet.
+           %  Instead we directly integrate the choices Alpha^0,...,Alpha^i
+           %  into the choice set.
 
-         /** Construct a list Tau_Prime_H_Program_Tmp of all possible programs
-          *  [Alpha; Omega_Prime],
-          *  [Alpha; Alpha; Omega_Prime],
-          *  ...,
-          *  [Alpha^k; Omega_Prime],
-          *  where k is the first length of the Alpha sequence that is longer
-          *  than the horizon. */
-         /** TODO: Different to the star case before, the p_i in the P_List may
-          *  already consume horizon. To enhance performance this can be considered
-          *  when expanding Alpha. A naive approach would be to subtract the minimal
-          *  horizon consumption of all p_i. */
-         Program_Initial = [],
-         horizon_consumption(Alpha, Consume),
-         expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Program_Initial,
-                       Star_Program ),
-%         apply_tau_prime_H_aux( [{P_List} | [star(Alpha) | Omega_Prime]],
-%                                Horizon, Program_Initial, Tau_Prime_H_Program_Tmp ),
-         /** Add the choice of Alpha^0 in the beginning.
-          *  Omega_Prime is appended (implicitely) to the empty program as Omega_Prime
-          *  must be executed afterwards. */
-         list_to_string( Omega_Prime, Omega_PrimeS ),
-         comma_to_semicolon( Omega_PrimeS, Omega_PrimeTmp ),
-         string_to_list( Omega_PrimeTmp, Omega_PrimeTmpList ),
-         append( Omega_PrimeTmpList, Star_Program, Star_Program_Tmp ),
+        %  Construct a list Star_Program of all possible programs
+        %  [Alpha; Omega_Prime],
+        %  [Alpha; Alpha; Omega_Prime],
+        %  ...,
+        %  [Alpha^k; Omega_Prime],
+        %  where k is the first length of the Alpha sequence that is longer
+        %  than the horizon.
+        %  TODO: Different to the star case before, the p_i in the P_List may
+        %  already consume horizon. To enhance performance this can be
+        %  considered when expanding Alpha. A naive approach would be to
+        %  subtract the minimal horizon consumption of all p_i.
+        horizon_consumption(Alpha, Consume),
+        expand_alpha( Alpha, Consume, Omega_Prime, Horizon, Star_Program ),
+
+        %  Add the choice of Alpha^0 in the beginning.
+        %  Omega_Prime is appended (implicitely) to the empty program,
+        %  because Omega_Prime must be executed afterwards.
+        list_to_string( Omega_Prime, Omega_PrimeS ),
+        comma_to_semicolon( Omega_PrimeS, Omega_PrimeTmp ),
+        string_to_list( Omega_PrimeTmp, Omega_PrimeTmpList ),
+        append( Omega_PrimeTmpList, Star_Program, Star_Program_Tmp ),
          
-         /** Integrate the complete rest program into the nondeterministic set. */
-         integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+        %  Integrate the complete rest program into the nondeterministic set.
+        integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
 
-         apply_tau_prime_H( [{P_List_New} | []], Horizon, Program, Tau_Prime_H_Program ).
+        apply_tau_prime_H( [{P_List_New}], Horizon, Program,
+                           Tau_Prime_H_Program ).
 
-/** PickBest */
-apply_tau_prime_H( [{P_List} | [pickBest(F, Domain, Delta) | Omega_Prime]], Horizon,
-                   Program, Tau_Prime_H_Program ) :-
+%%%  PickBest  %%%
+apply_tau_prime_H( [{P_List} | pickBest(F, Domain, Delta)], 
+                   Horizon, [], Tau_Prime_H_Program ) :-
         !, 
         findall( Delta_New,
-                 /** Domain will be a list, correct? */
+                 %  Domain will be a list, correct?
                  ( member(Value, Domain), 
                    replace_term( Delta, F, Value, Delta_New ) ),
                  Instantiated_Progs ),
-%        printf( stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
-%        list_to_string(Instantiated_Progs, Instantiated_Progs_String),
-         integrate({P_List}, Instantiated_Progs, {P_List_New}), 
-         apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program, Tau_Prime_H_Program ).
+        integrate({P_List}, Instantiated_Progs, {P_List_New}), 
+        apply_tau_prime_H( [{P_List_New}], Horizon, [],
+                           Tau_Prime_H_Program ).
 
-apply_tau_prime_H( [{P_List} | []], Horizon, [], Tau_Prime_H_Program ) :- !,
-        apply_tau_prime_H( [{P_List} | []], Horizon, [DUMMY], Tau_Prime_H_Program_Tmp ),
-        Tau_Prime_H_Program_Tmp = [DUMMY | Tau_Prime_H_Program].
+apply_tau_prime_H( [{P_List} | pickBest(F, Domain, Delta)], 
+                   Horizon, Program, Tau_Prime_H_Program ) :-
+        !, 
+        findall( Delta_New,
+                 %  Domain will be a list, correct?
+                 ( member(Value, Domain), 
+                   replace_term( Delta, F, Value, Delta_New ) ),
+                 Instantiated_Progs ),
+        integrate({P_List}, Instantiated_Progs, {P_List_New}), 
+        apply_tau_prime_H( [{P_List_New}], Horizon, Program,
+                           Tau_Prime_H_Program ).
 
-/** Empty program (with nondeterministic choice in solve context) */
-apply_tau_prime_H( [{P_List} | []], _Horizon, Program, Tau_Prime_H_Program ) :- !,
-%        printf(stdout, "Encountered Empty Program.\n", []),
-        /** To enhance readability we put in some brackets
-         *  around the programs to choose from */
+apply_tau_prime_H( [{P_List} | [pickBest(F, Domain, Delta) | Omega_Prime]], 
+                   Horizon, [], Tau_Prime_H_Program ) :-
+        !, 
+        findall( Delta_New,
+                 %  Domain will be a list, correct?
+                 ( member(Value, Domain), 
+                   replace_term( Delta, F, Value, Delta_New ) ),
+                 Instantiated_Progs ),
+        integrate({P_List}, Instantiated_Progs, {P_List_New}), 
+        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, [],
+                           Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | [pickBest(F, Domain, Delta) | Omega_Prime]], 
+                   Horizon, Program, Tau_Prime_H_Program ) :-
+        !, 
+        findall( Delta_New,
+                 %  Domain will be a list, correct?
+                 ( member(Value, Domain), 
+                   replace_term( Delta, F, Value, Delta_New ) ),
+                 Instantiated_Progs ),
+        integrate({P_List}, Instantiated_Progs, {P_List_New}), 
+        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
+                           Tau_Prime_H_Program ).
+
+%%%  Empty program (with nondeterministic choice in solve context)  %%%
+apply_tau_prime_H( [{P_List}], _Horizon, [], Tau_Prime_H_Program ) :-
+        !,
+        %  To enhance readability we put in some brackets
+        %  around the programs to choose from
         concat_string(["[", P_List, "]"], Tmp1),
         replace_string(Tmp1, " ", "", Tmp2 ),
         replace_string(Tmp2, ",", "], [", Tmp3 ),
-        /** Before integration, we exchanged commas in tests,
-         *  while statements, and if statements by placeholders.
-         *  Now substitute them back. */
+        %  Before integration, we had exchanged commas in tests,
+        %  while-statements, and if-statements by placeholders.
+        %  Now we substitute them back.
         replace_string(Tmp3, "__COMMA__", ",", P_List_Clean),
-        /** TODO: sort P_List */
-        Program_New = [ Program | nondet(P_List_Clean) ],
+        %  TODO: sort P_List
+        Program_New = [nondet([P_List_Clean])],
         Tau_Prime_H_Program = Program_New.
 
-/** Conditional */
-apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
-                   Horizon, [], Tau_Prime_H_Program ) :- !,
-        apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
-                           Horizon, [DUMMY], Tau_Prime_H_Program_Tmp ),
-        Tau_Prime_H_Program_Tmp = [DUMMY | Tau_Prime_H_Program].
+apply_tau_prime_H( [{P_List}], _Horizon, Program, Tau_Prime_H_Program ) :-
+        !,
+        %  To enhance readability we put in some brackets
+        %  around the programs to choose from
+        concat_string(["[", P_List, "]"], Tmp1),
+        replace_string(Tmp1, " ", "", Tmp2 ),
+        replace_string(Tmp2, ",", "], [", Tmp3 ),
+        %  Before integration, we had exchanged commas in tests,
+        %  while-statements, and if-statements by placeholders.
+        %  Now we substitute them back.
+        replace_string(Tmp3, "__COMMA__", ",", P_List_Clean),
+        %  TODO: sort P_List
+        Program_New = [Program | nondet([P_List_Clean])],
+        Tau_Prime_H_Program = Program_New.
 
-apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
-                   Horizon, Program, Tau_Prime_H_Program ) :- !,
-%        printf( stdout, "integrate({%w}, %w, P_List_New1) ", [P_List, [? | (Cond)]]), 
+%%%  Conditional  %%%
+apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
+                   Horizon, [], Tau_Prime_H_Program ) :- !,
         integrate({P_List}, [?(Cond)], {P_List_New1}), 
-%        printf( stdout, "P_List_New1: %w", [P_List_New1]), 
         integrate({P_List}, [?(not(Cond))], {P_List_New2}),
-%        printf( stdout, "P_List_New2: %w", [P_List_New2]),
-        apply_tau_prime_H( [{P_List_New1} | [Sigma1 | Omega_Prime]], Horizon, Program,
-                           Tau_Prime_H_Program1 ),
-        apply_tau_prime_H( [{P_List_New2} | [Sigma2 | Omega_Prime]], Horizon, Program,
-                           Tau_Prime_H_Program2 ),
-        /** cut away nondet() in resulting programs */
+        apply_tau_prime_H( [{P_List_New1} | Sigma1], Horizon,
+                           [], Tau_Prime_H_Program1 ),
+        apply_tau_prime_H( [{P_List_New2} | Sigma2], Horizon, 
+                           [], Tau_Prime_H_Program2 ),
+        %  Cut away nondet() in resulting programs.
         list_to_string( Tau_Prime_H_Program1, P_String1 ),
         string_length( P_String1, Length1 ),
         ReducedLength1 is (Length1 - 10),
@@ -615,241 +1153,496 @@ apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
         string_length( P_String2, Length2 ),
         ReducedLength2 is (Length2 - 10),
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
-        join_prog_lists( {Final_P_String1}, {Final_P_String2}, {P_String_Joined} ),
-        /** TODO: sort P_String_Joined */
-        Program_New = [ Program | nondet(P_String_Joined) ],
+        join_prog_lists( {Final_P_String1}, {Final_P_String2},
+                         {P_String_Joined} ),
+        %  TODO: sort P_String_Joined
+        Tau_Prime_H_Program = [nondet(P_String_Joined)].
+
+apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
+                   Horizon, Program, Tau_Prime_H_Program ) :- !,
+        integrate({P_List}, [?(Cond)], {P_List_New1}), 
+        integrate({P_List}, [?(not(Cond))], {P_List_New2}),
+        apply_tau_prime_H( [{P_List_New1} | Sigma1], Horizon,
+                           Program, Tau_Prime_H_Program1 ),
+        apply_tau_prime_H( [{P_List_New2} | Sigma2], Horizon, 
+                           Program, Tau_Prime_H_Program2 ),
+        %  Cut away nondet() in resulting programs.
+        list_to_string( Tau_Prime_H_Program1, P_String1 ),
+        string_length( P_String1, Length1 ),
+        ReducedLength1 is (Length1 - 10),
+        substring( P_String1, 9, ReducedLength1, Final_P_String1),
+        list_to_string( Tau_Prime_H_Program2, P_String2 ),
+        string_length( P_String2, Length2 ),
+        ReducedLength2 is (Length2 - 10),
+        substring( P_String2, 9, ReducedLength2, Final_P_String2),
+        join_prog_lists( {Final_P_String1}, {Final_P_String2},
+                         {P_String_Joined} ),
+        %  TODO: sort P_String_Joined
+        Program_New = [Program | nondet(P_String_Joined)],
         Tau_Prime_H_Program = Program_New.
+
+apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
+                   Horizon, [], Tau_Prime_H_Program ) :- !,
+        integrate({P_List}, [?(Cond)], {P_List_New1}), 
+        integrate({P_List}, [?(not(Cond))], {P_List_New2}),
+        apply_tau_prime_H( [{P_List_New1} | [Sigma1 | Omega_Prime]], Horizon,
+                           [], Tau_Prime_H_Program1 ),
+        apply_tau_prime_H( [{P_List_New2} | [Sigma2 | Omega_Prime]], Horizon, 
+                           [], Tau_Prime_H_Program2 ),
+        %  Cut away nondet() in resulting programs.
+        list_to_string( Tau_Prime_H_Program1, P_String1 ),
+        string_length( P_String1, Length1 ),
+        ReducedLength1 is (Length1 - 10),
+        substring( P_String1, 9, ReducedLength1, Final_P_String1),
+        list_to_string( Tau_Prime_H_Program2, P_String2 ),
+        string_length( P_String2, Length2 ),
+        ReducedLength2 is (Length2 - 10),
+        substring( P_String2, 9, ReducedLength2, Final_P_String2),
+        join_prog_lists( {Final_P_String1}, {Final_P_String2},
+                         {P_String_Joined} ),
+        %  TODO: sort P_String_Joined
+        Tau_Prime_H_Program = [nondet(P_String_Joined)].
+
+apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
+                   Horizon, Program, Tau_Prime_H_Program ) :- !,
+        integrate({P_List}, [?(Cond)], {P_List_New1}), 
+        integrate({P_List}, [?(not(Cond))], {P_List_New2}),
+        apply_tau_prime_H( [{P_List_New1} | [Sigma1 | Omega_Prime]], Horizon,
+                           Program, Tau_Prime_H_Program1 ),
+        apply_tau_prime_H( [{P_List_New2} | [Sigma2 | Omega_Prime]], Horizon, 
+                           Program, Tau_Prime_H_Program2 ),
+        %  Cut away nondet() in resulting programs.
+        list_to_string( Tau_Prime_H_Program1, P_String1 ),
+        string_length( P_String1, Length1 ),
+        ReducedLength1 is (Length1 - 10),
+        substring( P_String1, 9, ReducedLength1, Final_P_String1),
+        list_to_string( Tau_Prime_H_Program2, P_String2 ),
+        string_length( P_String2, Length2 ),
+        ReducedLength2 is (Length2 - 10),
+        substring( P_String2, 9, ReducedLength2, Final_P_String2),
+        join_prog_lists( {Final_P_String1}, {Final_P_String2},
+                         {P_String_Joined} ),
+        %  TODO: sort P_String_Joined
+        Program_New = [Program | nondet(P_String_Joined)],
+        Tau_Prime_H_Program = Program_New.
+
+%  Shortcut, if else-branch is not provided.
+apply_tau_prime_H( [{P_List} | if(Cond, Sigma)],
+                   Horizon, [], Tau_Prime_H_Program ) :- !,
+        apply_tau_prime_H( [{P_List} | if(Cond, Sigma, [])],
+                           Horizon, [], Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | if(Cond, Sigma)],
+                   Horizon, Program, Tau_Prime_H_Program ) :- !,
+        apply_tau_prime_H( [{P_List} | if(Cond, Sigma, [])],
+                           Horizon, Program, Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | [if(Cond, Sigma) | Omega_Prime]],
+                   Horizon, [], Tau_Prime_H_Program ) :- !,
+        apply_tau_prime_H( [{P_List} | [if(Cond, Sigma, []) | Omega_Prime]],
+                           Horizon, [], Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | [if(Cond, Sigma) | Omega_Prime]],
                    Horizon, Program, Tau_Prime_H_Program ) :- !,
         apply_tau_prime_H( [{P_List} | [if(Cond, Sigma, []) | Omega_Prime]],
                            Horizon, Program, Tau_Prime_H_Program ).
 
-/** Loop */
-apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
-                   Horizon, Program, Tau_Prime_H_Program ) :- !,
-%         printf( stdout, "Loop encountered\n", [] ),
-         Program_Initial = [],
+%%%  Loop  %%%
+apply_tau_prime_H( [{P_List} | while(Cond, Sigma)],
+                   Horizon, [], Tau_Prime_H_Program ) :- !,
          Alpha = [?(Cond) | Sigma],
-         /** Use neg as negation, because not destroys the brackets around the
-          *  condition. Correct? */
-         Ending = [?(neg(Cond));Omega_Prime],
-         /** Construct a list of all sequences of condition tests and Sigma. Also
-          *  append the failing condition and Omega_Prime to each program in
-          *  the list. */
+         %  Use neg as negation, because not destroys the brackets around the
+         %  condition. Correct?
+         Ending = [?(neg(Cond))],
+         %  Construct a list of all sequences of condition tests and Sigma.
+         %  Also append the failing condition and Omega_Prime to each
+         %  program in the list.
          horizon_consumption(Alpha, Consume),
-         expand_alpha( Alpha, Consume, Ending, Horizon, Program_Initial, Star_Program ),
-%         printf( stdout, "Star_Program: %w\n", [Star_Program] ),
+         expand_alpha( Alpha, Consume, Ending, Horizon, Star_Program ),
          term_string( Cond, CondS ),
          concat_string( ["?(neg(", CondS, "))"], NegCondTestS ),
-         /** Add the choice of [?(not(Cond)); Omega_Prime] in the beginning. */
+         %  Add the choice of [?(not(Cond))] in the beginning.
+         Star_Program_Tmp = [[NegCondTestS] | Star_Program],
+         %  Integrate the complete rest program into the nondeterministic set.
+         integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+
+         apply_tau_prime_H( [{P_List_New}], Horizon, [],
+                            Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | while(Cond, Sigma)],
+                   Horizon, Program, Tau_Prime_H_Program ) :- !,
+         Alpha = [?(Cond) | Sigma],
+         %  Use neg as negation, because not destroys the brackets around the
+         %  condition. Correct?
+         Ending = [?(neg(Cond))],
+         %  Construct a list of all sequences of condition tests and Sigma.
+         %  Also append the failing condition and Omega_Prime to each
+         %  program in the list.
+         horizon_consumption(Alpha, Consume),
+         expand_alpha( Alpha, Consume, Ending, Horizon, Star_Program ),
+         term_string( Cond, CondS ),
+         concat_string( ["?(neg(", CondS, "))"], NegCondTestS ),
+         %  Add the choice of [?(not(Cond)); Omega_Prime] in the beginning.
+         Star_Program_Tmp = [[NegCondTestS] | Star_Program],
+         %  Integrate the complete rest program into the nondeterministic set.
+         integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+
+         apply_tau_prime_H( [{P_List_New}], Horizon, Program,
+                            Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
+                   Horizon, [], Tau_Prime_H_Program ) :- !,
+         Alpha = [?(Cond) | Sigma],
+         %  Use neg as negation, because not destroys the brackets around the
+         %  condition. Correct?
+         Ending = [?(neg(Cond));Omega_Prime],
+         %  Construct a list of all sequences of condition tests and Sigma.
+         %  Also append the failing condition and Omega_Prime to each
+         %  program in the list.
+         horizon_consumption(Alpha, Consume),
+         expand_alpha( Alpha, Consume, Ending, Horizon, Star_Program ),
+         term_string( Cond, CondS ),
+         concat_string( ["?(neg(", CondS, "))"], NegCondTestS ),
+         %  Add the choice of [?(not(Cond)); Omega_Prime] in the beginning.
          list_to_string( Omega_Prime, Omega_PrimeS ),
          concat_string( [NegCondTestS, ";", Omega_PrimeS], Tmp1S ),
          string_to_list( Tmp1S, Tmp2 ),
-         Star_Program_Tmp = [ Tmp2 | Star_Program ],
-         /** Integrate the complete rest program into the nondeterministic set. */
+         Star_Program_Tmp = [Tmp2 | Star_Program],
+         %  Integrate the complete rest program into the nondeterministic set.
          integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
 
-         apply_tau_prime_H( [{P_List_New} | []], Horizon, Program, Tau_Prime_H_Program ).
+         apply_tau_prime_H( [{P_List_New} | []], Horizon, [],
+                            Tau_Prime_H_Program ).
 
-/** Nondeterministic Choice */
+apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
+                   Horizon, Program, Tau_Prime_H_Program ) :- !,
+         Alpha = [?(Cond) | Sigma],
+         %  Use neg as negation, because not destroys the brackets around the
+         %  condition. Correct?
+         Ending = [?(neg(Cond));Omega_Prime],
+         %  Construct a list of all sequences of condition tests and Sigma.
+         %  Also append the failing condition and Omega_Prime to each
+         %  program in the list.
+         horizon_consumption(Alpha, Consume),
+         expand_alpha( Alpha, Consume, Ending, Horizon, Star_Program ),
+         term_string( Cond, CondS ),
+         concat_string( ["?(neg(", CondS, "))"], NegCondTestS ),
+         %  Add the choice of [?(not(Cond)); Omega_Prime] in the beginning.
+         list_to_string( Omega_Prime, Omega_PrimeS ),
+         concat_string( [NegCondTestS, ";", Omega_PrimeS], Tmp1S ),
+         string_to_list( Tmp1S, Tmp2 ),
+         Star_Program_Tmp = [Tmp2 | Star_Program],
+         %  Integrate the complete rest program into the nondeterministic set.
+         integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+
+         apply_tau_prime_H( [{P_List_New}], Horizon, Program,
+                            Tau_Prime_H_Program ).
+
+%%%  Nondeterministic Choice  %%%
+apply_tau_prime_H( [{P_List} | nondet(ArgList)], Horizon,
+                   [], Tau_Prime_H_Program ) :- !,
+        integrate( {P_List}, ArgList, {P_List_New} ), 
+        apply_tau_prime_H( [{P_List_New}], Horizon, [],
+                           Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | nondet(ArgList)], Horizon,
+                   Program, Tau_Prime_H_Program ) :- !,
+        integrate( {P_List}, ArgList, {P_List_New} ), 
+        apply_tau_prime_H( [{P_List_New}], Horizon, Program,
+                           Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | [nondet(ArgList) | Omega_Prime]], Horizon,
+                   [], Tau_Prime_H_Program ) :- !,
+        integrate( {P_List}, ArgList, {P_List_New} ), 
+        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, [],
+                           Tau_Prime_H_Program ).
+
 apply_tau_prime_H( [{P_List} | [nondet(ArgList) | Omega_Prime]], Horizon,
                    Program, Tau_Prime_H_Program ) :- !,
-        %printf( stdout, "nondet encountered\n", []),
-        integrate({P_List}, ArgList, {P_List_New}), 
-        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program, Tau_Prime_H_Program ).
+        integrate( {P_List}, ArgList, {P_List_New} ), 
+        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
+                           Tau_Prime_H_Program ).
 
-/** Test Action, Primitive Action, or Stochastic Action */
+%%%  Test Action, Primitive Action, or Stochastic Action  %%%
+apply_tau_prime_H( [{P_List} | Term], Horizon, [],
+                   Tau_Prime_H_Program ) :- !,
+        integrate( {P_List}, [Term], {P_List_New} ),
+        apply_tau_prime_H( [{P_List_New}], Horizon, [],
+                           Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | Term], Horizon, Program,
+                   Tau_Prime_H_Program ) :- !,
+        integrate( {P_List}, [Term], {P_List_New} ),
+        apply_tau_prime_H( [{P_List_New}], Horizon, Program,
+                           Tau_Prime_H_Program ).
+
+apply_tau_prime_H( [{P_List} | [Term | Omega_Prime]], Horizon, [],
+                   Tau_Prime_H_Program ) :- !,
+        integrate( {P_List}, [Term], {P_List_New} ),
+        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, [],
+                           Tau_Prime_H_Program ).
+
 apply_tau_prime_H( [{P_List} | [Term | Omega_Prime]], Horizon, Program,
                    Tau_Prime_H_Program ) :- !,
-%        printf(stdout, "Encountered Primitive Action.\n", []),
-%        printf(stdout, "Integrating %w into %w.\n", [Term, {P_List}]),
-        integrate({P_List}, [Term], {P_List_New}),
-%        printf(stdout, "New Program List: %w.\n", [{P_List_New}]),
-        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program, Tau_Prime_H_Program ).
+        integrate( {P_List}, [Term], {P_List_New} ),
+        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
+                           Tau_Prime_H_Program ).
 
+%%%  Conditional (before nondeterministic choice)  %%%
+apply_tau_prime_H( [if(Cond, Sigma1, Sigma2)], Horizon, _Program,
+                   Tau_Prime_H_Program ) :- !,
+        %  As Sigma1 or Sigma2 might contain nondeterministic programs,
+        %  we have to apply tau_prime_H to them.
+        %  TODO: For optimisation, we could test, if they contain { }
+        %  and otherwise just skip them.
+        apply_tau_prime_H( Sigma1, Horizon, [], Tau_Prime_H_Program_Sigma1 ),
+        apply_tau_prime_H( Sigma2, Horizon, [], Tau_Prime_H_Program_Sigma2 ),
+        Tau_Prime_H_Program = [if(Cond, Tau_Prime_H_Program_Sigma1,
+                                        Tau_Prime_H_Program_Sigma2)].
+
+%%%  Conditional (before nondeterministic choice)  %%%
 apply_tau_prime_H( [if(Cond, Sigma1, Sigma2) | Omega], Horizon, Program,
                    Tau_Prime_H_Program ) :- !,
-        /** As Sigma1 or Sigma2 might contain nondeterministic programs,
-         *  we have to apply tau_prime_H to them.
-         *  TODO: For optimisation, we could test, if they contain { }
-         *  and otherwise just skip them. */
-%        printf( stdout, "apply_tau_prime_H( %w, %w, [], Tau_Prime_H_Program_Sigma1)\n", [Sigma1, Horizon]),
+        %  As Sigma1 or Sigma2 might contain nondeterministic programs,
+        %  we have to apply tau_prime_H to them.
+        %  TODO: For optimisation, we could test, if they contain { }
+        %  and otherwise just skip them.
         apply_tau_prime_H( Sigma1, Horizon, [], Tau_Prime_H_Program_Sigma1 ),
-%        printf( stdout, "Tau_Prime_H_Program_Sigma1: %w\n", [Tau_Prime_H_Program_Sigma1]),
         apply_tau_prime_H( Sigma2, Horizon, [], Tau_Prime_H_Program_Sigma2 ),
         apply_tau_prime_H( Omega, Horizon, Program, Tau_Prime_H_Program_Omega ),
-        Tau_Prime_H_Program = [ if(Cond, Tau_Prime_H_Program_Sigma1,
-                                          Tau_Prime_H_Program_Sigma2) |
-                                Tau_Prime_H_Program_Omega ].
+        Tau_Prime_H_Program = [if(Cond, Tau_Prime_H_Program_Sigma1,
+                                        Tau_Prime_H_Program_Sigma2) |
+                               Tau_Prime_H_Program_Omega].
 
-/** A single action or proc */
-apply_tau_prime_H( [Alpha | []], _Horizon, _Program,
+%  Ignore (but store) everything before the first nondet.
+%  That means, ignore everything not starting with a
+%  set of programs.
+%  Note, that if- and while-statements containing solve-
+%  statements have been handled differently before.
+
+%%%  Test Action, Primitive Action, Stochastic Action, or proc  %%%
+%%%  (before nondeterministic choice)                           %%%
+apply_tau_prime_H( [Alpha], _Horizon, _Program,
                    Tau_Prime_H_Program ) :- !,
-        Tau_Prime_H_Program = Alpha.
+        Tau_Prime_H_Program = [Alpha].
 
-/** Ignore (but store) everything before the first nondet,
- *  that means, ignore everything not starting with a
- *  set of programs.
- *  Note that if and while statements containing solve
- *  statements have been handled differently before. */
 apply_tau_prime_H( [Alpha | Omega], Horizon, Program,
-                   Tau_Prime_H_Program ) :- !,
-%        printf(stdout, "Encountered alpha = %w.\n", [Alpha]),
-%        printf(stdout, "apply_tau_prime_H( %w, %w, %w, %w ).\n",
-%                       [[{P_List} | Omega], Horizon, Program,
-%                       Tau_Prime_H_Program]),
-        apply_tau_prime_H( Omega, Horizon, Program, Tau_Prime_H_Program_Nondet ),
-        Tau_Prime_H_Program = [ Alpha | Tau_Prime_H_Program_Nondet ].
+                   Tau_Prime_H_Program ) :-
+        apply_tau_prime_H( Omega, Horizon, Program,
+                           Tau_Prime_H_Program_Nondet ),
+        Tau_Prime_H_Program = [Alpha | Tau_Prime_H_Program_Nondet].
 
 
          
-/* ----------------------------------------------------------
-                            tau                             
----------------------------------------------------------- */
+% ---------------------------------------------------------- %
+%                            Tau                             %
+% ---------------------------------------------------------- %
 
-/** tau pulls out the deterministic program alpha that
- * comes before the first nondeterministic statement
- * (nondet, pickBest, star) in the solve context:
- * solve([alpha; nondet(q_1,...,q_m)], H, rew)
- * === tau ===>
- * alpha; solve([nondet(q_1,...,q_m)], H, rew).
- */
+%  Tau pulls out the deterministic program alpha that
+%  comes before the first nondeterministic statement
+%  (nondet/pickBest/star) in the solve context:
+%  solve([alpha; nondet(q_1,...,q_m)], H, rew)
+%  === tau ===>
+%  alpha; solve([nondet(q_1,...,q_m)], H, rew).
 
-/** Empty Program */
+%%%  Empty Program  %%%
+:- mode apply_tau(++, -).
 apply_tau(solve([], _Horizon, _RewardFunction), Tau_Program ) :- !,
-%        printf(stdout, "Empty solve reached!\n", []),
         Tau_Program = [].
 
-/** Zero Horizon */
+%%%  Zero Horizon  %%%
 apply_tau(solve(_Anything, Horizon, _RewardFunction), Tau_Program ) :-
-        /* DO NEVER PUT A CUT HERE, OR THE NONDET WILL NOT BE RE-TRIED */ 
-%        printf(stdout, "CHECKING HORIZON, Horizon: %w\n", [Horizon]),
+        %%  DO NEVER PUT A CUT HERE, OR THE NONDET WILL NOT BE RE-TRIED!  %%
         Horizon =< 0,
-        /** use CUT to say: Horizon > 0 in all following clauses */
-        /** TODO: doesn't work... why? */
+        %  If the horizon is less or equal 0, we end the recursion here.
         !,
-%        printf(stdout, "Horizon less/equal 0\n", []),
         Tau_Program = [].
-%        printf(stdout, "Tau_Program: %w\n", [Tau_Program]).
 
-/** Nondeterministic Choice */
+%%%  Nondeterministic Choice  %%%
 apply_tau(solve([nondet(P_List)], Horizon, RewardFunction), Tau_Program ) :- !, 
-%        printf(stdout, "nondet encountered!\n", []),
-        Tau_Program = [solve([nondet([P_List])], Horizon, RewardFunction)].
+        Tau_Program = [solve([nondet(P_List)], Horizon, RewardFunction)].
 
-/** Conditional */
-apply_tau(solve([if(Cond, Sigma1, Sigma2) | Omega], Horizon, RewardFunction),
+%%%  Conditional  %%%
+apply_tau(solve([if(Cond, Sigma1, Sigma2)], Horizon, RewardFunction),
           Tau_Program ) :- !,
-%        printf(stdout, "if condition encountered, Horizon: %w\n", [Horizon]),
-%        printf(stdout, "apply_tau(solve([%w | Omega], %w, RewardFunction), %w )\n",
-%               [Sigma1, Horizon, Tau_Program_Sigma1]),
-        apply_tau(solve([Sigma1 | Omega], Horizon, RewardFunction), Tau_Program_Sigma1),
-%        printf(stdout, "\n ********* Tau_Program_Sigma1: %w\n", [Tau_Program_Sigma1]),
-        apply_tau(solve([Sigma2 | Omega], Horizon, RewardFunction), Tau_Program_Sigma2),
+        apply_tau(solve(Sigma1, Horizon, RewardFunction),
+                  Tau_Program_Sigma1),
+        apply_tau(solve(Sigma2, Horizon, RewardFunction),
+                  Tau_Program_Sigma2),
         ( (Tau_Program_Sigma1 = [], Tau_Program_Sigma2 = [] ) ->
-                /** optimise readability by leaving away if-clause */
-                Tau_Program = []
+           %  Optimise readability by leaving away if-clause.
+           Tau_Program = []
         ;
-                list_to_string(Tau_Program_Sigma1, Sigma1_Tmp),
-                list_to_string(Tau_Program_Sigma2, Sigma2_Tmp),
-                /** replace the " around the strings by [] */
-                remove_character( Sigma1_Tmp, "\"", Sigma1_Final ),
-                remove_character( Sigma2_Tmp, "\"", Sigma2_Final ),
+           list_to_string(Tau_Program_Sigma1, Sigma1_Tmp),
+           list_to_string(Tau_Program_Sigma2, Sigma2_Tmp),
+           %  Replace the " around the strings by [].
+           remove_character( Sigma1_Tmp, "\"", Sigma1_Final ),
+           remove_character( Sigma2_Tmp, "\"", Sigma2_Final ),
 
-                /** put together both sub-results */
-                term_string(Cond, CondString),
-                concat_string( ["if( ", CondString, ", [", Sigma1_Final,
-                                "], [", Sigma2_Final, "] )"], FinalString ),
-                string_to_list(FinalString, Tau_Program)
+           %  Put together both sub-results.
+           term_string(Cond, CondString),
+           concat_string( ["if( ", CondString, ", [", Sigma1_Final,
+                           "], [", Sigma2_Final, "] )"], FinalString ),
+           string_to_list(FinalString, Tau_Program)
         ).
 
-apply_tau(solve([if(Cond, Sigma) | Omega], Horizon, RewardFunction), Tau_Program ) :- !,
+apply_tau(solve([if(Cond, Sigma1, Sigma2) | Omega], Horizon, RewardFunction),
+          Tau_Program ) :- !,
+        apply_tau(solve([Sigma1 | Omega], Horizon, RewardFunction),
+                  Tau_Program_Sigma1),
+        apply_tau(solve([Sigma2 | Omega], Horizon, RewardFunction),
+                  Tau_Program_Sigma2),
+        ( (Tau_Program_Sigma1 = [], Tau_Program_Sigma2 = [] ) ->
+           %  Optimise readability by leaving away if-clause.
+           Tau_Program = []
+        ;
+           list_to_string(Tau_Program_Sigma1, Sigma1_Tmp),
+           list_to_string(Tau_Program_Sigma2, Sigma2_Tmp),
+           %  Replace the " around the strings by [].
+           remove_character( Sigma1_Tmp, "\"", Sigma1_Final ),
+           remove_character( Sigma2_Tmp, "\"", Sigma2_Final ),
+
+           %  Put together both sub-results.
+           term_string(Cond, CondString),
+           concat_string( ["if( ", CondString, ", [", Sigma1_Final,
+                           "], [", Sigma2_Final, "] )"], FinalString ),
+           string_to_list(FinalString, Tau_Program)
+        ).
+
+%  Shortcut, if else-branch is not provided.
+apply_tau(solve([if(Cond, Sigma)], Horizon, RewardFunction),
+          Tau_Program ) :- !,
+        apply_tau(solve([if(Cond, Sigma, [])], Horizon, RewardFunction),
+                  Tau_Program ).
+
+apply_tau(solve([if(Cond, Sigma) | Omega], Horizon, RewardFunction),
+          Tau_Program ) :- !,
         apply_tau(solve([if(Cond, Sigma, []) | Omega], Horizon, RewardFunction),
                   Tau_Program ).
 
-/** Loop */
-apply_tau(solve([while(Cond, Sigma) | Omega], Horizon, RewardFunction), Tau_Program ) :- !,
-%        printf(stdout, "loop before nondet encountered\n", []),
-        apply_tau(solve([Sigma | [while(Cond, Sigma) | Omega]], Horizon, RewardFunction),
-                  Tau_Program1),
+%%%  Loop  %%%
+%  The loop is expressed as if-statements.
+apply_tau(solve([while(Cond, Sigma)], Horizon, RewardFunction),
+          Tau_Program ) :- !,
+        apply_tau(solve([Sigma | while(Cond, Sigma)], Horizon,
+                  RewardFunction), Tau_Program1),
+        ( ( Tau_Program1 = [] ) ->
+           %  Optimise readability by leaving away if-clause. */
+           Tau_Program = []
+        ;
+           list_to_string(Tau_Program1, Tau1_Final),
+
+           %  Put together both sub-results.
+           term_string(Cond, CondString),
+           concat_string( ["if( ", CondString, ", [", Tau1_Final,
+                           "])"], FinalString ),
+           string_to_list(FinalString, Tau_Program)
+        ).
+
+apply_tau(solve([while(Cond, Sigma) | Omega], Horizon, RewardFunction),
+          Tau_Program ) :- !,
+        apply_tau(solve([Sigma | [while(Cond, Sigma) | Omega]], Horizon,
+                  RewardFunction), Tau_Program1),
         apply_tau(solve(Omega, Horizon, RewardFunction), Tau_Program2),
         ( (Tau_Program1 = [], Tau_Program2 = [] ) ->
-                /** optimise readability by leaving away if-clause */
-                Tau_Program = []
+           %  Optimise readability by leaving away if-clause. */
+           Tau_Program = []
         ;
-                list_to_string(Tau_Program1, Tau1_Final),
-                list_to_string(Tau_Program2, Tau2_Final),
+           list_to_string(Tau_Program1, Tau1_Final),
+           list_to_string(Tau_Program2, Tau2_Final),
 
-                /** put together both sub-results */
-                term_string(Cond, CondString),
-                concat_string( ["if( ", CondString, ", [", Tau1_Final,
-                                "], [", Tau2_Final, "] )"], FinalString ),
-                string_to_list(FinalString, Tau_Program)
+           %  Put together both sub-results.
+           term_string(Cond, CondString),
+           concat_string( ["if( ", CondString, ", [", Tau1_Final,
+                           "], [", Tau2_Final, "] )"], FinalString ),
+           string_to_list(FinalString, Tau_Program)
         ).
 
-/** Test Action */
+%%%  Test Action  %%%
+apply_tau(solve([?(Term)], _Horizon, _RewardFunction), Tau_Program ) :- !,
+        Tau_Program = [?(Term)].
+
 apply_tau(solve([?(Term) | Omega], Horizon, RewardFunction), Tau_Program ) :- !,
-%        printf(stdout, "test action encountered\n", []),
-        /** Note that the test action does not consume horizon. */
+        %  Note that the test action does not consume horizon.
         apply_tau(solve(Omega, Horizon, RewardFunction), Tau_Program_Tmp),
-        Tau_Program = [ ?(Term) | Tau_Program_Tmp ].
+        Tau_Program = [?(Term) | Tau_Program_Tmp].
 
-/** If the solve program contains a call to a proc, we have to follow that trail, and
- *  recursively make sure that the proc is purely deterministic before pulling it out.
- *  Otherwise we might loose a solve context. Consider this example:
- *  proc( procOne, [solve(procTwo, H, R)] ).
- *  proc( procTwo, [nondet[a,b]] ).
- *  The procTwo would be treated as a primitive action, pulled outside the solve
- *  and the solve would be deleted. */
-apply_tau(solve([ProcName | Omega], Horizon, RewardFunction), Tau_Program ) :- 
-%        printf( stdout, "\nEncountered Proc. ProcName: %w\n", [ProcName] ),
+%  If the solve program contains a call to a proc, we have to follow that trail,
+%  and recursively make sure that the proc is purely deterministic before
+%  pulling it out.
+%  Otherwise we might loose a solve context. Consider this example:
+%  proc( procOne, [solve(procTwo, H, R)] ).
+%  proc( procTwo, [nondet[a,b]] ).
+%  The procTwo would be treated as a primitive action, pulled outside the solve
+%  and the solve would be deleted.
+apply_tau(solve([ProcName], Horizon, RewardFunction), Tau_Program ) :- 
         proc( ProcName, ProcBody ), !,
-%        printf( stdout, "ProcBody: %w is deterministic is ", [ProcBody] ),
         is_deterministic( ProcBody, Result ),
-%        printf( stdout, "%w\n", [Result] ),
-        ( Result = true -> /** Proc is deterministic */
-                           horizon_consumption( ProcBody, Consume ),
-                           Horizon_New is (Horizon - Consume),
-                           apply_tau(solve(Omega, Horizon_New, RewardFunction),
-                                     Tau_Program_Tmp),
-                           ( Horizon > 0 ->
-                                     Tau_Program = [ ProcName | Tau_Program_Tmp ]
-                           ;
-                                     Tau_Program = Tau_Program_Tmp
-                           )
+        ( Result = true ->
+           %  Proc is deterministic.
+           ( Horizon > 0 ->
+              Tau_Program = [ProcName]
+           ;
+              Tau_Program = []
+           )
         ;
-                           /** Proc is nondeterministic */
-                           /** We leave Proc untouched, and do not extract potential
-                            *  deterministic parts. */
-                           Tau_Program = [solve([ProcName | Omega], Horizon, RewardFunction)]
+           %  Proc is nondeterministic.
+           %  We leave Proc untouched, and do not extract potential
+           %  deterministic parts.
+           Tau_Program = [solve([ProcName], Horizon, RewardFunction)]
         ).
 
-/** Primitive Action, Stochastic Action */
-apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program ) :- !,
-%        printf(stdout, "simple/stochastic action %w encountered\n", [Term]),
-        Horizon_New is (Horizon - 1),
-%        printf(stdout, "apply_tau(solve(%w, %w, RewardFunction), Tau_Program_Tmp)\n", [Omega, Horizon_New]),
-        apply_tau(solve(Omega, Horizon_New, RewardFunction), Tau_Program_Tmp),
-%        printf(stdout, "apply_tau(solve(Omega, %w, RewardFunction), Tau_Program_Tmp) ***SUCCEEDED***\n", [Horizon_New]),
-        ( Horizon > 0 ->
-              Tau_Program = [ Term | Tau_Program_Tmp ]
-        ;
-%              printf(stdout, "This should never happen, because of CUT above!\n", []),
+apply_tau(solve([ProcName | Omega], Horizon, RewardFunction), Tau_Program ) :- 
+        proc( ProcName, ProcBody ), !,
+        is_deterministic( ProcBody, Result ),
+        ( Result = true ->
+           %  Proc is deterministic.
+           horizon_consumption( ProcBody, Consume ),
+           Horizon_New is (Horizon - Consume),
+           apply_tau(solve(Omega, Horizon_New, RewardFunction),
+                     Tau_Program_Tmp),
+           ( Horizon > 0 ->
+              Tau_Program = [ProcName | Tau_Program_Tmp]
+           ;
               Tau_Program = Tau_Program_Tmp
+           )
+        ;
+           %  Proc is nondeterministic.
+           %  We leave Proc untouched, and do not extract potential
+           %  deterministic parts.
+           Tau_Program = [solve([ProcName | Omega], Horizon, RewardFunction)]
+        ).
+
+%%%  Primitive Action, Stochastic Action  %%%
+apply_tau(solve([Term], Horizon, _RewardFunction), Tau_Program ) :-
+        ( Horizon > 0 ->
+           Tau_Program = [Term]
+        ;
+           Tau_Program = []
+        ).
+
+apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program ) :-
+        Horizon_New is (Horizon - 1),
+        apply_tau(solve(Omega, Horizon_New, RewardFunction), Tau_Program_Tmp),
+        ( Horizon > 0 ->
+           Tau_Program = [Term | Tau_Program_Tmp]
+        ;
+           Tau_Program = Tau_Program_Tmp
         ).
 
 % }}}
 
 
-/* ==========================================================
-   MAIN
-========================================================== */
-% {{{ MAIN
+% ========================================================== %
+%   Main                                                     %
+% ========================================================== %
+% {{{ Main
 % >>>>
 
+%:- mode iplpreprocess(++).
 iplpreprocess( File ) :- iplpreprocess( File, _NewFile, true, 0).
-/** TODO: Last needed? */
+
+%:- mode iplpreprocess(++, ?, ?, ++).
 iplpreprocess( File, NewFile, _Last, Level ) :-
 	printf("\n\t++ level             : %w\n", Level),
 	printf(  "\t++ loading           : %w\n", File),
@@ -870,17 +1663,17 @@ iplpreprocess( File, NewFile, _Last, Level ) :-
 	concat_string( [Path, "ipl_processed_", BaseName, ".pl"], NewFile),
 	open(TmpFile, write, Stream),
 	write_header(Stream),
-	/* -- <MAIN PART> -- */
+	%  -- <MAIN PART> --
         process_all_proc(Stream),
-	/* -- </MAIN PART> -- */
-	/* -- <LAST_FILE PART> -- */
+	%  -- </MAIN PART> --
+	% -- <LAST_FILE PART> --
 %	(
 %	  Last ->
 %	  generate_events_list( Stream )
 %	;
 %	  true
 %	),
-	/* -- </LAST_FILE PART> -- */
+	% -- </LAST_FILE PART> -- */
 %        read(FileStream, BufferVar),
 %        write(Stream, BufferVar),
 	close(Stream),
@@ -891,6 +1684,7 @@ iplpreprocess( File, NewFile, _Last, Level ) :-
 	printf("\t++ output written to : ", []),
 	printf("%w\n\n", [NewFile]), flush(output). 
 
+:- mode write_header(++).
 write_header(Stream) :-
 	printf(Stream, "/*******************************\n", []),
 	printf(Stream, "* file generated from ReadyLog *\n", []),
@@ -898,6 +1692,7 @@ write_header(Stream) :-
 	printf(Stream, "\n", []),
 	printf(Stream, ":- pragma(nodebug).\n", []).
 
+:- mode erase_rhomb(++, ++).
 erase_rhomb(FileIn, FileOut) :-
 	concat_string( ["tr -d '#' < ", FileIn, " > ", FileOut],
 		       TRString),
@@ -905,6 +1700,7 @@ erase_rhomb(FileIn, FileOut) :-
 	concat_string( ["rm ", FileIn], RMString),
 	system( RMString).
 
+:- mode run_all(++, ++).
 runall(M, M).
 runall(N, M) :-
 	N < M, !,
@@ -913,16 +1709,16 @@ runall(N, M) :-
 	Level is N - 3,
 	(
 	  N =:= M-1 ->
-	  /* notice when last file is processed: here some
-	  extra stuff is added */
+	  %  Notice when last file is processed: here some
+	  %  extra stuff may be added.
 	  iplpreprocess(FileName, NewFileName, true, Level)
 	;
 	  iplpreprocess(FileName, NewFileName, false, Level)
 	),
-	/* compile the lately processed output before
-	stepping over to next level */
-        /** TODO: Will be forgotten, if compiled here. Compile
-         *  in preprocessor instead! */
+	%  Compile the lately processed output before
+	%  stepping over to next level.
+        %  Will be forgotten, if compiled here. Compile
+        %  in preprocessor instead!
 %	compile(NewFileName),
 	N_next is N+1,
 	runall(N_next, M).
