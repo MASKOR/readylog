@@ -161,7 +161,7 @@ icpgo(E,H) :-
 
 /* (3) - program is final -> execution finished */ 
 icpgo(E,H) :-
-				%	printf("(3) icpgo( .., %w)\n", [H]), flush(output),
+	% printf("(3) icpgo( .., %w)\n", [H]), flush(output),
 	final(E,H),
 	(
 	  progression_enabled -> getval(zaehler,Zaehler) 
@@ -198,14 +198,23 @@ number of actions */
 icpxeq(H,[Act|H],H1) :- not senses(Act,_),
 	execute(Act,_,H),
 	%printColor( red, " ***** (2) icpxeq(%w,%w \n%b", [H,Act] ),
-	%% STF: fix exogf_Update-value-gehassel
-	( Act = exogf_Update -> %, HRest \= [s0]
-	    %% we want to save epf-values to be able to regress
-	    %% prim_fluents that depend on epfs ...
-	    process_epf( [Act|H], Hneu )
-	    ;
-	    Hneu = [Act|H]
-	),
+%  <DP was here>
+%  Saving the epf-values doesn't work for parameterised epfs as intended,
+%  because process_epf(_aux) doesn't evaluate each fluent with every possible
+%  parameter value. [Thus, this method doesn't work with the ReadyBots yet.]
+        ( save_epf_values ->
+	   %% STF: fix exogf_Update-value-gehassel
+	   ( Act = exogf_Update -> %, HRest \= [s0]
+	       %% we want to save epf-values to be able to regress
+	       %% prim_fluents that depend on epfs ...
+	       process_epf( [Act|H], Hneu )
+	       ;
+	       Hneu = [Act|H]
+	   )
+        ;
+           Hneu = [Act|H]
+        ),
+%  </DP was here>
 	length(Hneu, HL), getval(prgrat, PL),
 	(pe, HL >= PL ->
 	    incZaehler(Hneu),
@@ -338,11 +347,20 @@ update_current_val(H1,HH) :-
 	  NEFU > 0 ->
 	  Act = exogf_Update, 
 	  %HH = [Act|H2]
-	  HG = [Act|H2],
-	  %% we want to save epf-values to be able to regress
-	  %% prim_fluent that depend on epfs ...
-	  process_epf(HG,HH)
+%  <DP was here>
+%  Saving epf-values currently doesn't work with parameterised
+%  epfs. (To get a value for them one would need to evaluate
+%  for all possible parameters).
+          ( save_epf_values ->
+	     HG = [Act|H2],
+	     %% we want to save epf-values to be able to regress
+	     %% prim_fluent that depend on epfs ...
+	     process_epf(HG,HH)
+          ;
+             HH = [Act|H2]
+          )
           %,printColor( pink, " *** PROGRESSION FALL EINS \n H_alt: %w \n HG: %w \n H_neu: %w \n%b", [H1,HG,HH] )
+%  </DP was here>
 	;
 	  HH = H2
 	  %,printColor( pink, " *** PROGRESSION FALL ZWEI \n H_alt: %w \n H_neu: %w \n%b", [H1,HH] )

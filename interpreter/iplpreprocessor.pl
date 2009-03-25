@@ -1640,6 +1640,12 @@ apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program ) :-
 % >>>>
 
 %:- mode iplpreprocess(++).
+iplpreprocess( File ) :-
+        printf("iplpreprocess(%w): Is it just a Readybot?\n", [File]),
+        File = "-botname",
+        !,
+        printf("Oh, just a ReadyBot... nothing to iplpreprocess.\n", []).
+
 iplpreprocess( File ) :- iplpreprocess( File, _NewFile, true, 0).
 
 %:- mode iplpreprocess(++, ?, ?, ++).
@@ -1739,4 +1745,4 @@ autorun :-
 
 :- writeln("** loading iplpreprocessor.pl\t\t DONE").
 
-:- autorun.
+%:- autorun.

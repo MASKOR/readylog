@@ -100,7 +100,7 @@ proc( find_gold(Seed),
       [
          cout(" === INITIALISING DUNGEON === \n"),
 
-         %% initialise random configuration
+         %%  Initialise random (but reproducible) configuration.
          initialise_dungeon(Seed),
 
          cout(" === STARTING FIND_GOLD === \n"),
@@ -128,7 +128,7 @@ proc( find_gold(Seed),
                make_yourself_at_home,
                cout(" === FINISHED FIND_GOLD === \n")
              ],
-             [ %% else (if epf_gold_reachable = true)
+             [ %%  else (if epf_gold_reachable = true)
                if( epf_still_time = false,
                [
                  cout(" === I HAVE TO HURRY BACK HOME === \n"),
@@ -145,10 +145,9 @@ proc( find_gold(Seed),
                  make_yourself_at_home,
                  cout(" === FINISHED FIND_GOLD === \n")
                ],
-               %% epf_still_time = true
+               %%  epf_still_time = true
                [
                   cout( green, " *** found gold at %w,%w *** \n", [XG,YG] ),
-%                  goto_gold( XG, YG ),
                   grab_gold,
                   reset_visited,
                   while( neg( and([ epf_carry_gold = true,
@@ -157,14 +156,14 @@ proc( find_gold(Seed),
                                  ])
                             ),
                              [ carry_gold_home,
-                               exogf_Update]
+                               exogf_Update ]
                        ),
                   make_yourself_at_home,
                   cout(" === FINISHED FIND_GOLD === \n")
                ]
-               ) %% endif epf_still_time
+               ) %%  endif epf_still_time
              ]
-           ) %% endif epf_gold_reachable
+           ) %%  endif epf_gold_reachable
 
       ]
     ).
@@ -180,6 +179,9 @@ proc( search_gold,
                 [
                    % exogf_Update,
                    cout(red, " --- epf_gold_reachable = %w --- \n", [epf_gold_reachable]),
+%  Because the precondition axiom only allows the agent to shoot, if
+%  it will hill the wumpus, the following preconditions would be equivalent:
+%                   solve( [ if( epf_agent_arrow = true ),
                    solve( [ if( and([ epf_wumpus_alive = true,
                                       epf_agent_arrow = true
                                    ]),

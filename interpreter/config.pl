@@ -42,6 +42,21 @@ progression_enabled :- false. %true
 %pe :- false.
 pe :- true.
 :- setval(prgrat, 10).
+%  <DP was here>
+/** saving the epf-values to be able to regress prim_fluents that
+ *  depend on epfs. (Turn off, if you use parameterised epfs!)
+ */
+:- setval(save_epf_values, true).
+save_epf_values :- getval(save_epf_values, X), X=true.
+toggle_save_epf_values :- getval(save_epf_values, X),
+       (
+          X ->
+          setval(save_epf_values, false),
+          printf("save_epf_values turned OFF\n", [])
+       ;
+          setval(save_epf_values, true),
+          printf("save_epf_values turned ON\n", [])
+       ).
 
 /* einfache Projektion oder Progression waehrend der Projektion? */
 simple_projection :- not progression_enabled, !.

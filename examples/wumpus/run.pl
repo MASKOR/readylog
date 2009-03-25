@@ -82,7 +82,7 @@ dp_profile :- toggle_iplearn,
               icp( find_gold(3) ),
               reset_values.
 
-dp :- toggle_iplearn,
+dp :- %toggle_iplearn,
       vis_wumpus,
       initialise_shades,
       TotalRuns = 1200,
