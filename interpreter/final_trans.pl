@@ -414,6 +414,13 @@ transPr( pickBest(F, R, E), S, E_choice, S_choice, 1) :- !,
 	),
 	S_choice = [toss(BestValue)|S].
 
+%  <DP was here>
+transPr( [pickBestBindDomainVariables(E)|Rest], S, EE, SS, 1) :- !,
+        %  Execute pre-solve code that has been prepared
+        %  by rho-operator in the iplpreprocessor.
+        E,
+        transPr( Rest, S, EE, SS, 1).
+%  </DP was here>
 
 /* --------------------------------------------------------- */
 /*  applyPolicy                                              */

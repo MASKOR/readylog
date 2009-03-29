@@ -428,52 +428,82 @@ horizon_consumption([_Action | Rest], Consume) :-
 %  Determines recursively, if a proc is deterministic
 %  or contains nondeterministic statements or procedures.
 :- mode is_deterministic(++, -).
-is_deterministic( [], Result ) :- !, 
+is_deterministic( Program, Result ) :-
+        is_deterministic( Program, [], Result ).
+
+:- mode is_deterministic(++, ++, -).
+is_deterministic( [], _SeenProcs, Result ) :- !, 
         Result = true.
 
-is_deterministic( [ProcName | Rest], Result ) :-
+is_deterministic( [ProcName | Rest], SeenProcs, Result ) :-
         proc( ProcName, ProcBody ), !,
-        is_deterministic( ProcBody, ResultTmp ),
+        %  To avoid an endless loop due to recursive procs,
+        %  check, if we already have considered the current
+        %  proc.
+%        printf(stdout, "checking, if subproc %w is_deterministic...\n",
+%              [ProcName]), flush(stdout),
+%        printf(stdout, "SeenProcs: %w\n", [SeenProcs]), flush(stdout),
+        ( memberchk( ProcName, SeenProcs ) ->
+        %  Or maybe we should try unifying the argument list?
+        %  member( ProcName(Args), SeenProcs ) ->
+%           printf(stdout, "%w has already been considered.\n", [ProcName]),
+%           flush(stdout),
+           ResultTmp = true
+        ;
+           SeenProcsNew = [ProcName | SeenProcs],
+           %  Or for unification
+           %  SeenProcsNew = [SeenProcs | ProcName([args])]
+           is_deterministic( ProcBody, SeenProcsNew, ResultTmp )
+        ),
         ( ResultTmp = false -> 
+%                printf(stdout, "... no, it isn't\n", []), flush(stdout),
                 Result = false
         ;
-                is_deterministic( Rest, Result )
+%                printf(stdout, "... yes, it is\n", []), flush(stdout),
+                is_deterministic( Rest, SeenProcsNew, Result )
         ).
 
-is_deterministic( [if(_Cond, Sigma1, Sigma2) | Rest], Result ) :- !,
-        is_deterministic( [Sigma1], ResultTmp1 ),
-        is_deterministic( [Sigma2], ResultTmp2 ),
+is_deterministic( [if(_Cond, Sigma1, Sigma2) | Rest], SeenProcs, Result ) :- !,
+        is_deterministic( Sigma1, SeenProcs, ResultTmp1 ),
+        is_deterministic( Sigma2, SeenProcs, ResultTmp2 ),
         ( (ResultTmp1 = false; ResultTmp2 = false) -> 
                 Result = false
         ;
-                is_deterministic( Rest, Result )
+                is_deterministic( Rest, SeenProcs, Result )
         ).
 
-is_deterministic( [if(Cond, Sigma) | Rest], Result ) :- !,
-        is_deterministic( [if(Cond, Sigma, []) | Rest], Result ).
+is_deterministic( [if(Cond, Sigma) | Rest], SeenProcs, Result ) :- !,
+        is_deterministic( [if(Cond, Sigma, []) | Rest], SeenProcs, Result ).
 
-
-is_deterministic( [while(_Cond, Sigma) | Rest], Result ) :- !,
+is_deterministic( [while(_Cond, Sigma) | Rest], SeenProcs, Result ) :- !,
 %        printf(stdout, "While! Sigma=%w\n", [Sigma]),
-        is_deterministic( [Sigma], ResultTmp ),
+        is_deterministic( [Sigma], SeenProcs, ResultTmp ),
 %        printf(stdout, "While result: %w\n", [ResultTmp]),
         ( ResultTmp = false -> 
                 Result = false
         ;
-                is_deterministic( Rest, Result )
+                is_deterministic( Rest, SeenProcs, Result )
         ).
         
-is_deterministic( [nondet(_Args) | _Rest], Result ) :- !,
+is_deterministic( [nondet(_Args) | _Rest], _SeenProcs, Result ) :- !,
         Result = false.
 
-is_deterministic( [pickBest(_Args) | _Rest], Result ) :- !,
+is_deterministic( [pickBest(_Args1, _Args2, _Args3) | _Rest], _SeenProcs,
+                  Result ) :- !,
         Result = false.
 
-is_deterministic( [star(_Args) | _Rest], Result ) :- !,
+is_deterministic( [star(_Args) | _Rest], _SeenProcs, Result ) :- !,
         Result = false.
 
-is_deterministic( [_Term | Rest], Result ) :-
-        is_deterministic( Rest, Result ).
+is_deterministic( [_Term | Rest], SeenProcs, Result ) :- !,
+        is_deterministic( Rest, SeenProcs, Result ).
+
+is_deterministic( Prog, SeenProcs, Result ) :-
+%        Prog \= [_Action],
+        not(is_list(Prog)),
+%        printf(stdout, "is_deterministic( [%w], SeenProcs,
+%               Result)\n", [Prog, CurrentProc]),
+        is_deterministic( [Prog], SeenProcs, Result ).
 
 % ---------------------------------------------------------- %
 %   Manipulation of Nondeterministic Program Sets/Lists      %

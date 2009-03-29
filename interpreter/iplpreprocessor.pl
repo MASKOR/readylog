@@ -43,6 +43,11 @@
 :- ensure_loaded("../../utils/utils.pl").
 :- ensure_loaded('iplutils.pl').
 
+%  Needed for converting var names to unique strings.
+%  We will use this to bind domain variables for pickBest.
+:- lib(var_name).
+local_var(L) :- set_var_name(L, "IPLPreVar").
+
 % }}}
 
 % ---------------------------------------------------------- %
@@ -58,6 +63,12 @@
 process_proc( [], Processed ) :- !,
         Processed = [].
 
+process_proc( Proc, Processed ) :-
+        not(is_list(Proc)),
+        !,
+        NewProc = [Proc],
+        process_proc( NewProc, Processed ).
+        
 process_proc( [if(Cond, Sigma1, Sigma2) | RestProgram], Processed ) :-
         %  Test, if Sigma1 is a nondeterministic program. If so, we must
         %  first transform this subprogram.
@@ -91,6 +102,7 @@ process_proc( [while(Cond, Sigma) | RestProgram], Processed ) :- !,
         term_string( Sigma, SigmaS ),
         ( substring( SigmaS, "solve", _Pos ) ->
            %  While contains a solve context.
+           flush(stdout),
            process_proc( Sigma, ProcessedSigma ),
            process_proc( RestProgram, ProcessedRest ),
            Processed = [ while(Cond, ProcessedSigma) | ProcessedRest ]
@@ -102,7 +114,9 @@ process_proc( [while(Cond, Sigma) | RestProgram], Processed ) :- !,
 
 process_proc( [solve(Prog, Horizon, RewardFunction) | RestProgram],
               Processed ) :- !,
-%        printf(stdout, "\n*** Encountered solve. ***\n", []),
+%        printf(stdout, "\n*** Encountered solve ***\n", []),
+%        printf(stdout, "\n*** with Horizon %w. ***\n", [Horizon]),
+%        printf(stdout, "\n*** and Prog %w. ***\n", [Prog]),
         process_solve( Prog, Horizon, RewardFunction, ProcessedSolve ),
 %        printf(stdout, "\n*** Rest_Program: %w. ***\n", [RestProgram]),
         process_proc( RestProgram, ProcessedRest ),
@@ -186,12 +200,135 @@ process_all_proc_aux([(ProcName, ProcBody)|List_rest], Stream) :-
 %  if iplearning is active.
 :- mode process_proc_aux(++, ++, ++).
 process_proc_aux( ProcName, ProcBody, Stream ) :-        
-        printf(Stream, "ipl_proc( %w, ", [ProcName]),
-        %  Make the arguments of cout strings again.
-        fix_couts( ProcBody, ProcBodyNew ),
-        process_proc( ProcBodyNew, Processed ),
-        %  Write the transformed proc to the file.
-        printf( Stream, "%w ).\n", [Processed] ).
+        set_variables( ProcName ),
+%%%  Probably due to a mistake in set_variables/1,
+%%%  there had appeared a problem that parameterised
+%%%  procs were considered twice - once with the
+%%%  Prolog variable name, and once with the local var
+%%%  name. However, this problem doesn't appear now any
+%%%  more. If it should return, uncomment the lines marked
+%%%  with "%%-%%" and remove the full stop.
+%%-%%        %  Do not consider parameterised procs more than
+%%-%%        %  once. Only process those with local vars in
+%%-%%        %  the argument list.
+%%-%%        contains_only_local_vars(ProcName, Result),
+%%-%%        ( Result = true ->
+           printf(Stream, "ipl_proc( %w ).\n", [ProcName]),
+           printf(Stream, "ipl_proc( %w, ", [ProcName]),
+           %  Make the arguments of cout strings again.
+           fix_couts( ProcBody, ProcBodyNew ),
+           set_variables( ProcBodyNew ),
+           process_proc( ProcBodyNew, Processed ),
+           %  Write the transformed proc to the file.
+           printf( Stream, "%w ).\n", [Processed] ).
+%%-%%        ;
+%%-%%           printf( stdout, "Skipping Proc %w\n", [ProcName]), flush(stdout)
+%%-%%        ).
+
+%  Give unique (and referable) string names to variables.
+%  We search for all variables in some depth-first fashion:
+%  We look at the first term, its first argument, the next
+%  argument, ..., its last argument, and then at the next
+%  term... until we find a var.
+:- mode set_variables(++, -).
+set_variables( [] ).
+
+set_variables( List ) :-
+        is_list(List), !,
+        List = [Term | Rest],
+        set_variables(Term),
+        set_variables(Rest).
+
+set_variables( Term ) :-
+        var( Term ),
+        !,
+        local_var(Term).
+
+set_variables( Term ) :-
+        Term =.. List,
+        length(List, 1), %  Term is a zero-arity functor.
+        var(List),
+        !,
+        ( 
+           local_var(List)
+        ;
+           %  This is the case, when X already is set as local_var.
+           true
+        ).
+
+set_variables( Term ) :-
+        Term =.. List,
+        length(List, 1), %  Term is a zero-arity functor.
+        !.
+
+set_variables( Term ) :-
+        Term =.. [Functor | _Args],
+        var(Functor),
+        !,
+        ( 
+           local_var(Functor)
+        ;
+           %  This is the case, when X already is set as local_var.
+           true
+        ). %  Do not consider _Args, as vars cannot be functors.
+
+set_variables( Term ) :-
+        Term =.. [_Functor | Args],
+        ( foreach(X, Args)
+          do
+             ( var(X) ->
+                ( 
+                  local_var(X)
+                ;
+                  %  This is the case, when X already is set as local_var.
+                  true
+                )
+             ;
+                set_variables(X)
+             )
+        ).
+
+%  Tests, if the proc name or proc, contains only local variables
+%  and no more Prolog vars.
+:- mode contains_only_local_vars(++, -).     
+contains_only_local_vars( Term, Result ) :-
+        %  Without the next line, we somehow get the error message
+        %  "instantiation fault in IPLPreVar#0 =.. List".
+        true,
+%        printf(stdout, "Term %w\n", [Term]), flush(stdout),
+        var(Term),
+        !,
+%        printf(stdout, "Term %w is var!\n", [Term]), flush(stdout),
+        ( get_var_name(Term, _VarName) ->
+           Result = true
+        ;
+%           printf(stdout, "Term %w is *NO* local var!\n", [Term]), flush(stdout),
+           Result = false
+        ).
+
+contains_only_local_vars( Term, Result ) :-
+        Term =.. List,
+        length(List, 1), %  Term is a zero-arity functor.
+        Result = true.
+
+contains_only_local_vars( Term, Result ) :-
+        Term =.. [_Functor | Args],
+        ( foreach(X, Args),
+          param(Result)
+          do
+             contains_only_local_vars(X, ResultTmp),
+             ( ResultTmp = false ->
+                Result = false
+             ;
+                true
+             )
+        ),
+        ( var(Result) ->
+           Result = true
+        ;
+           true
+        ).
+
 
 
 % --------------------------------------------------------- %
@@ -214,13 +351,22 @@ process_proc_aux( ProcName, ProcBody, Stream ) :-
 %  pulled out of the solve context, leading to
 %  alpha; solve(nondet(q_1,...,q_m), H, rew).
 :- mode process_solve(++, ++, ++, -).
-process_solve( [], _Horizon, _RewardFunction, Processed ) :-
+process_solve( [], _Horizon, _RewardFunction, Processed ) :- !,
         Processed = [].
+
+%  If the solve program is enclosed my more than one pair of brackets [],
+%  we flatten it.
+process_solve( Program, Horizon, RewardFunction, Processed ) :-
+        Program = [[NewProgram]], !,
+        process_solve( [NewProgram], Horizon, RewardFunction, Processed ).
 
 %  If the solve program only consists of a single action without [], we
 %  add those brackets.
 process_solve( Program, Horizon, RewardFunction, Processed ) :-
-        Program \= [_Action],
+%        Program \= [_Action],
+%        is_atom(Action),
+        not(is_list(Program)),
+        !,
         NewProgram = [Program],
         process_solve( NewProgram, Horizon, RewardFunction, Processed ).
 
@@ -230,14 +376,16 @@ process_solve( Program, Horizon, RewardFunction, Processed ) :-
 %  proc( procTwo, [nondet[a,b]] ).
 %  The procTwo would be treated as a primitive action, pulled outside the solve
 %  and the solve would be deleted. */
-process_solve( Program, Horizon, RewardFunction, Processed ) :-
+process_solve( Program, Horizon, RewardFunction, Processed ) :- 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%  solve([alpha; nondet(p_1,...,p_n); omega], H, rew)  %%%%%%%%%%%
 
         %%%  Rho  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %        printf(stdout, "\n", []),
 %        printf(stdout, "--- process_solve_begin -------------------\n", []),
-%        printf(stdout, "apply_rho(%w, [], Rho_Program)\n", [Program]),
+%        printf(stdout, "apply_rho([solve(%w, Horizon, RewardFunction)], ",
+%               [Program]),
+%        printf(stdout, "[], Rho_Program)\n", []),
         apply_rho( [solve(Program, Horizon, RewardFunction)],
                    [], Rho_Program ),
 %        printf(stdout, "Rho_Program: %w\n", [Rho_Program]),
@@ -255,11 +403,11 @@ process_solve( Program, Horizon, RewardFunction, Processed ) :-
         %%%  => solve([alpha; nondet(q_1,...,q_m)], H, rew)  %%%%%%%%%%%%%%%
 
         %%%  Tau  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%        printf(stdout, "apply_tau(solve(%w, %w, %w), Tau_Program))\n",
+%        printf(stdout, "\n apply_tau(solve(%w, %w, %w), Tau_Program)\n",
 %                       [Tau_Prime_H_Program, Horizon, RewardFunction]),
         apply_tau( solve(Tau_Prime_H_Program, Horizon, RewardFunction),
                          Tau_Program ),
-%        printf(stdout, "Tau_Program: %w", [Tau_Program]),
+%        printf(stdout, "\n Tau_Program: %w\n", [Tau_Program]),
 %        printf(stdout, "--- process_solve_end ---------------------\n", []),
 %        printf(stdout, "\n", []),
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -288,12 +436,21 @@ process_solve( Program, Horizon, RewardFunction, Processed ) :-
 apply_rho( [], Program, Rho_Program ) :- !,
         Rho_Program = Program.
 
-%%%  Prog is a single action without brackets. Add program brackets.  %%%
-apply_rho( [solve(Action, Horizon, RewardFunction)], Program,
+%%%  Prog is enclosed my more than one pair of brackets []. Flatten it.  %%%
+apply_rho( [solve(Prog, Horizon, RewardFunction)], Program,
            Rho_Program ) :- 
-        Action \= [_Prog],
+        Prog = [[NewProg]],
         !,
-        apply_rho( [solve([Action], Horizon, RewardFunction)], Program,
+        apply_rho( [solve(NewProg, Horizon, RewardFunction)], Program,
+                   Rho_Program ).
+
+%%%  Prog is a single action without brackets. Add program brackets.  %%%
+apply_rho( [solve(Prog, Horizon, RewardFunction)], Program,
+           Rho_Program ) :- 
+%        Prog \= [_Action],
+        not(is_list(Prog)),
+        !,
+        apply_rho( [solve([Prog], Horizon, RewardFunction)], Program,
                    Rho_Program ).
 
 apply_rho( [solve(Prog, Horizon, RewardFunction)], Program,
@@ -344,52 +501,82 @@ apply_rho( [{P_List} | Omega], Program, Rho_Program ) :- !,
         Rho_Program = [Program | [{P_List} | Omega]].
 
 %%%  PickBest  %%%
+%  As we don't know the Domain of the pickBest at preprocessing time,
+%  we introduce a hard-coded threshold for the domain size and
+%  introduce this many unbound variables. In front of the solve
+%  we add code to bind those variables to the domain at runtime.
+%  This pre-solve code is kept in mind during application of 
+%  tau_prime_H, and later, in tau_prime, pulled out of the solve.
+%  In the beginning of each nondeterministic choice we test if the
+%  variable is bound, which won't be the case if the previous
+%  variables already covered the Domain.
 apply_rho( [pickBest(F, Domain, Delta)], [], Rho_Program ) :- !,
-        findall( Delta_New,
-                 %  Domain will be a list, correct?
-                 ( member(Value, Domain), 
-                   replace_term( Delta, F, Value, Delta_New ) ),
-                 Instantiated_Progs ),
-%        printf(stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
-        list_to_string(Instantiated_Progs, Instantiated_Progs_String),
+        %  There are two possible cases:
+        %  1) Domain is var. That means, Domain is a variable specified
+        %     before somewhere in the current proc, or in some parameter
+        %     of the current proc, or it has been defined as a global
+        %     variable in some part of the agent code that we didn't
+        %     compile before the call of the iplpreprocessor (we don't
+        %     handle that here).
+        %  2) Domain is nonvar. Then Domain is directly instantiated
+        %     in the pickBest call, or it has been defined as a global
+        %     variable in the knowledge base.
+        ( var(Domain) ->
+%           printf(stdout, "\n pickBest! Domain %w is var\n", [Domain]),
+%           flush(stdout),
+           % Case 1) Try to find the Variable name in the proc argument
+           %         list, or in the proc body.
+           get_var_name(Domain, DomainS),
+%           printf(stdout, "\n DomainS: %w\n", [DomainS]), flush(stdout),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ;
+%           printf(stdout, "\n pickBest! Domain %w is *non*var\n", [Domain]),
+%           flush(stdout),
+           % Case 2) Easy case. Just work with the instantiated variable.
+           term_string(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ),
         %  End recursion to make sure that only the first nondeterministic
         %  statement is replaced.
-        Rho_Program = [{Instantiated_Progs_String}].
+        Rho_Program = [pickBestBindDomainVariables(PreSolveProg),
+                       {ChoiceList}].
 
 apply_rho( [pickBest(F, Domain, Delta)], Program, Rho_Program ) :- !,
-        findall( Delta_New,
-                 %  Domain will be a list, correct?
-                 ( member(Value, Domain), 
-                   replace_term( Delta, F, Value, Delta_New ) ),
-                 Instantiated_Progs ),
-%        printf(stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
-        list_to_string(Instantiated_Progs, Instantiated_Progs_String),
+        ( var(Domain) ->
+           get_var_name(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ;
+           term_string(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ),
         %  End recursion to make sure that only the first nondeterministic
         %  statement is replaced.
-        Rho_Program = [Program | {Instantiated_Progs_String}].
+        Rho_Program = [Program |
+                  [pickBestBindDomainVariables(PreSolveProg), {ChoiceList}]].
 
 apply_rho( [pickBest(F, Domain, Delta) | Omega], [], Rho_Program ) :- !,
-        findall( Delta_New,
-                 %  Domain will be a list, correct?
-                 ( member(Value, Domain), 
-                   replace_term( Delta, F, Value, Delta_New ) ),
-                 Instantiated_Progs ),
-%        printf(stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
-        list_to_string(Instantiated_Progs, Instantiated_Progs_String),
-        Program_New = [{Instantiated_Progs_String}],
+        ( var(Domain) ->
+           get_var_name(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ;
+           term_string(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ),
+        Program_New = [pickBestBindDomainVariables(PreSolveProg), {ChoiceList}],
         %  End recursion to make sure that only the first nondeterministic
         %  statement is replaced.
         Rho_Program = [Program_New | Omega].
 
 apply_rho( [pickBest(F, Domain, Delta) | Omega], Program, Rho_Program ) :- !,
-        findall( Delta_New,
-                 %  Domain will be a list, correct?
-                 ( member(Value, Domain), 
-                   replace_term( Delta, F, Value, Delta_New ) ),
-                 Instantiated_Progs ),
-%        printf(stdout, "Instantiated_Progs: %w.", [Instantiated_Progs]),
-        list_to_string(Instantiated_Progs, Instantiated_Progs_String),
-        Program_New = [Program | {Instantiated_Progs_String}],
+        ( var(Domain) ->
+           get_var_name(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ;
+           term_string(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ),
+        Program_New = [Program |
+                  [pickBestBindDomainVariables(PreSolveProg), {ChoiceList}]],
         %  End recursion to make sure that only the first nondeterministic
         %  statement is replaced.
         Rho_Program = [Program_New | Omega].
@@ -467,8 +654,11 @@ apply_rho( [if(Cond, Sigma) | Omega], Program, Rho_Program ) :- !,
 
 %%%  Loop  %%%
 apply_rho( [while(Cond, Sigma)], [], Rho_Program ) :- !,
+%        printf(stdout, "is_deterministic( %w, Result )\n", [Sigma]),
+        flush(stdout),
         is_deterministic( Sigma, Result ),
 %        printf( stdout, "Sigma is deterministic is %w.\n", [Result] ),
+%        flush(stdout),
         ( Result = true ->
            %  Skip while. 
            Rho_Program = [while(Cond, Sigma)]
@@ -480,6 +670,7 @@ apply_rho( [while(Cond, Sigma)], [], Rho_Program ) :- !,
 apply_rho( [while(Cond, Sigma)], Program, Rho_Program ) :- !,
         is_deterministic( Sigma, Result ),
 %        printf( stdout, "Sigma is deterministic is %w.\n", [Result] ),
+%        flush(stdout),
         ( Result = true ->
            %  Skip while. 
            Rho_Program = [Program | while(Cond, Sigma)]
@@ -491,6 +682,7 @@ apply_rho( [while(Cond, Sigma)], Program, Rho_Program ) :- !,
 apply_rho( [while(Cond, Sigma) | Omega], [], Rho_Program ) :- !,
         is_deterministic( Sigma, Result ),
 %        printf( stdout, "Sigma is deterministic is %w.\n", [Result] ),
+%        flush(stdout),
         ( Result = true ->
            %  Skip while. 
            Program_New = [while(Cond, Sigma)],
@@ -511,6 +703,7 @@ apply_rho( [while(Cond, Sigma) | Omega], [], Rho_Program ) :- !,
 apply_rho( [while(Cond, Sigma) | Omega], Program, Rho_Program ) :- !,
         is_deterministic( Sigma, Result ),
 %        printf( stdout, "Sigma is deterministic is %w.\n", [Result] ),
+%        flush(stdout),
         ( Result = true ->
            %  Skip while. 
            Program_New = [Program | while(Cond, Sigma)],
@@ -531,7 +724,20 @@ apply_rho( [while(Cond, Sigma) | Omega], Program, Rho_Program ) :- !,
 %%%  Nondeterministic Choice  %%%
 apply_rho( [nondet(ProgList)], [], Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
-        list_to_string(ProgList, ReducedString),
+        %  Replace all commas inside the programs by placeholders,
+        %  so that we won't mix up consecutive actions and alternative
+        %  programs later.
+        ( foreach(Prog, ProgList),
+          foreach(NewProgS, NewProgList)
+          do
+             term_string(Prog, ProgTmpS),
+             replace_character( ProgTmpS, ",", "__COMMA__", NewProgSNoComma ),
+%             string_to_list(NewProgSNoComma, NewProg)
+             NewProgS = NewProgSNoComma
+        ),
+        list_to_string(NewProgList, ReducedStringTmp),
+        %  Remove superfluous ".
+        replace_character( ReducedStringTmp, "\"", "", ReducedString ),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
         %  End recursion to make sure that only the first nondet
         %  is replaced.       
@@ -539,7 +745,20 @@ apply_rho( [nondet(ProgList)], [], Rho_Program ) :- !,
 
 apply_rho( [nondet(ProgList)], Program, Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
-        list_to_string(ProgList, ReducedString),
+        %  Replace all commas inside the programs by placeholders,
+        %  so that we won't mix up consecutive actions and alternative
+        %  programs later.
+        ( foreach(Prog, ProgList),
+          foreach(NewProgS, NewProgList)
+          do
+             term_string(Prog, ProgTmpS),
+             replace_character( ProgTmpS, ",", "__COMMA__", NewProgSNoComma ),
+%             string_to_list(NewProgSNoComma, NewProg)
+             NewProgS = NewProgSNoComma
+        ),
+        list_to_string(NewProgList, ReducedStringTmp),
+        %  Remove superfluous ".
+        replace_character( ReducedStringTmp, "\"", "", ReducedString ),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
         %  End recursion to make sure that only the first nondet
         %  is replaced.       
@@ -547,7 +766,20 @@ apply_rho( [nondet(ProgList)], Program, Rho_Program ) :- !,
 
 apply_rho( [nondet(ProgList) | Omega], [], Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
-        list_to_string(ProgList, ReducedString),
+        %  Replace all commas inside the programs by placeholders,
+        %  so that we won't mix up consecutive actions and alternative
+        %  programs later.
+        ( foreach(Prog, ProgList),
+          foreach(NewProgS, NewProgList)
+          do
+             term_string(Prog, ProgTmpS),
+             replace_character( ProgTmpS, ",", "__COMMA__", NewProgSNoComma ),
+%             string_to_list(NewProgSNoComma, NewProg)
+             NewProgS = NewProgSNoComma
+        ),
+        list_to_string(NewProgList, ReducedStringTmp),
+        %  Remove superfluous ".
+        replace_character( ReducedStringTmp, "\"", "", ReducedString ),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
         %  End recursion to make sure that only the first nondet
         %  is replaced.       
@@ -555,7 +787,20 @@ apply_rho( [nondet(ProgList) | Omega], [], Rho_Program ) :- !,
 
 apply_rho( [nondet(ProgList) | Omega], Program, Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
-        list_to_string(ProgList, ReducedString),
+        %  Replace all commas inside the programs by placeholders,
+        %  so that we won't mix up consecutive actions and alternative
+        %  programs later.
+        ( foreach(Prog, ProgList),
+          foreach(NewProgS, NewProgList)
+          do
+             term_string(Prog, ProgTmpS),
+             replace_character( ProgTmpS, ",", "__COMMA__", NewProgSNoComma ),
+%             string_to_list(NewProgSNoComma, NewProg)
+             NewProgS = NewProgSNoComma
+        ),
+        list_to_string(NewProgList, ReducedStringTmp),
+        %  Remove superfluous ".
+        replace_character( ReducedStringTmp, "\"", "", ReducedString ),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
         Program_New = [Program | {ReducedString}],
         %  End recursion to make sure that only the first nondet
@@ -567,14 +812,19 @@ apply_rho( [Term], [], Rho_Program ) :- !,
         Rho_Program = [Term].
 
 apply_rho( [Term], Program, Rho_Program ) :- !,
-        Rho_Program = [Program | Term].
+        Rho_Program = [Program, Term].
 
 apply_rho( [Term | Omega], [], Rho_Program ) :- !,
-        apply_rho( Omega, [Term], Rho_Program ).
+        apply_rho( Omega, Term, Rho_Program ).
 
 apply_rho( [Term | Omega], Program, Rho_Program ) :- !,
-        Program_New = [Program | Term],
+        Program_New = [Program, Term],
         apply_rho( Omega, Program_New, Rho_Program ).
+
+apply_rho( Term, Program, Rho_Program ) :-
+%        Term \= [_Action],
+        not(is_list(Term)),
+        apply_rho( [Term], Program, Rho_Program ).
 
 
 %  Helper predicate for the application of rho to an if-expression.
@@ -698,6 +948,73 @@ apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
         apply_rho( Omega, Program_New, Rho_Program_Tmp ),
         Rho_Program = Rho_Program_Tmp.
 
+%  Creates the pre-solve code that binds the domain variables
+%  for pickBest at runtime,
+%  and creates a string ChoiceList for the nondet that will
+%  replace the pickBest call.
+:- mode create_pickBest_choice_list(++, ++, ++, -, -).
+create_pickBest_code(F, Domain, Delta, PreSolveProg, ChoiceList) :-
+        pickBestDomainThreshold(Threshold),
+%        printf(stdout, "pickBestDomainThreshold is %w\n", [Threshold]),
+%        flush(stdout),
+        %  Create a helper list of strings
+        %  VariableList = [PickBestVar1, PickBestVar2, ...,
+        %                  PickBestVarpickBestDomainThreshold] 
+        ( for(I, 1, Threshold),
+          foreach(I, IntegerList)
+          do
+             true
+        ),
+        findall( PickBestVariable,
+                 ( member(Iterator, IntegerList),
+                   term_string(Iterator, IteratorS),
+                   concat_strings("PickBestVar", IteratorS, PickBestVariable)
+                 ),
+                 VariableList ),
+%        printf(stdout, "VariableList: %w\n", [VariableList]),
+        create_pickBest_pre_solve_code( Domain, VariableList, PreSolveProg ),
+%        printf(stdout, "PreSolveProg (as String): %w\n", [PreSolveProg]),
+        term_string( Delta, DeltaS ),
+        replace_character( DeltaS, ",", "__COMMA__", DeltaSNoComma ),
+        term_string( F, FS),
+        findall( Delta_New,
+                 ( member(PickBestVar, VariableList),
+                   replace_string( DeltaSNoComma, FS, PickBestVar, Delta_Tmp ),
+                   concat_string(["?(nonvar(", PickBestVar,"))__COMMA__ ",
+                                  Delta_Tmp],
+                                 Delta_New)
+                 ),
+                 InstantiatedProgs ),
+%        printf(stdout, "InstantiatedProgs: %w.\n", [InstantiatedProgs]),
+        list_to_string(InstantiatedProgs, InstantiatedProgsString),
+        %  Remove superfluous ".
+        remove_character( InstantiatedProgsString, "\"", 
+                          ChoiceList ).
+
+%  Creates the code segment that will be put into the transformed
+%  proc before the solve statement, in order to bind the
+%  pickBest variables to the Domain, which is only known at
+%  runtime.
+:- mode create_pickBest_pre_solve_code(++, ++, -).
+create_pickBest_pre_solve_code( Domain, VariableList,
+                                PreSolveProg ) :-
+   %  Make a copy of the real domain, as we want to remove
+   %  elements from it without touching the original domain.
+   findall( InstantiatorString,
+            ( member(PickBestVar, VariableList),
+              concat_string([PickBestVar, "::PickBestDomain, ",
+                             "indomain(", PickBestVar, "), ",
+                             "dvar_remove_element(PickBestDomain, ",
+                             PickBestVar, ")"],
+                            InstantiatorString)
+            ),
+            PreSolveProgramList ),
+    list_to_string( PreSolveProgramList, PreSolveProgramListS ),
+    concat_string(["[dom_copy(", Domain, ", PickBestDomain), ", 
+                  PreSolveProgramListS, "]"],
+                  PreSolveProgTmp),
+    %  Remove superfluous ".
+    remove_character( PreSolveProgTmp, "\"", PreSolveProg ).
 
 
 % ---------------------------------------------------------- %
@@ -748,6 +1065,22 @@ apply_tau_prime_H( [], _Horizon, Program, Tau_Prime_H_Program ) :- !,
 %  Star and pickBest are implicitly translated into nondet statements.
 %  Here they are then directly integrated into the nondeterministic
 %  decision set.
+
+%%%  pickBest  %%%
+%  As we didn't know the domain of pickBest when applying Rho, we now
+%  have to store the deterministic code that should bind the variables
+%  at runtime. Therefore, we now keep this code as an argument for the
+%  predicate pickBestBindDomainVariables/1 (defined in final_trans.pl)
+%  and attach it after the application of tau_prime_H.
+%  Later, tau_prime will treat it as usual deterministic code
+%  and pull it out of the solve context.
+%  Note, that Omega_Prime is never empty, as it contains the
+%  nondeterministic choice {}.
+apply_tau_prime_H( [pickBestBindDomainVariables(PreSolveProg) | Omega_Prime],
+                   Horizon, [], Tau_Prime_H_Program ) :-  !,
+        apply_tau_prime_H( Omega_Prime, Horizon, [], Tau_Prime_H_Program_Tmp ),
+        Tau_Prime_H_Program = [ pickBestBindDomainVariables(PreSolveProg) |
+                                Tau_Prime_H_Program_Tmp ].
 
 %%%  Star  %%%
 %  Note that Rho had postponed the expansion of the star that appeared as first
@@ -1414,6 +1747,20 @@ apply_tau_prime_H( [if(Cond, Sigma1, Sigma2) | Omega], Horizon, Program,
                                         Tau_Prime_H_Program_Sigma2) |
                                Tau_Prime_H_Program_Omega].
 
+%%%  Loop (before nondeterministic choice)  %%%
+apply_tau_prime_H( [while(Cond, Sigma)], Horizon, _Program,
+                    Tau_Prime_H_Program ) :- !,
+        apply_tau_prime_H( Sigma, Horizon, [], Tau_Prime_H_Program_Sigma ),
+        Tau_Prime_H_Program = [while(Cond, Tau_Prime_H_Program_Sigma)].
+
+apply_tau_prime_H( [while(Cond, Sigma) | Omega], Horizon, Program,
+                    Tau_Prime_H_Program ) :- !,
+        apply_tau_prime_H( Sigma, Horizon, [], Tau_Prime_H_Program_Sigma ),
+        apply_tau_prime_H( Omega, Horizon, Program, Tau_Prime_H_Program_Omega ),
+        Tau_Prime_H_Program = [while(Cond, Tau_Prime_H_Program_Sigma) |
+                               Tau_Prime_H_Program_Omega].
+
+
 %  Ignore (but store) everything before the first nondet.
 %  That means, ignore everything not starting with a
 %  set of programs.
@@ -1445,8 +1792,21 @@ apply_tau_prime_H( [Alpha | Omega], Horizon, Program,
 %  === tau ===>
 %  alpha; solve([nondet(q_1,...,q_m)], H, rew).
 
-%%%  Empty Program  %%%
 :- mode apply_tau(++, -).
+%%%  Program with double brackets  %%%
+apply_tau(solve([[Program]], Horizon, RewardFunction), Tau_Program ) :- !, 
+%        printf(stdout, "\n DOUBLE BRACKETS!!!!! \n", []), flush(stdout),
+        apply_tau(solve([Program], Horizon, RewardFunction), Tau_Program ).
+
+apply_tau(solve(Program, Horizon, RewardFunction), Tau_Program ) :-
+        %  If the proc is parameterised with the horizon, then Horizon
+        %  will be not initialised. Instead of backtracking for all calls
+        %  to the proc, we will simply fix a pessimistic horizon of 1.
+        var(Horizon),
+        !,
+        apply_tau(solve(Program, 1, RewardFunction), Tau_Program ).
+
+%%%  Empty Program  %%%
 apply_tau(solve([], _Horizon, _RewardFunction), Tau_Program ) :- !,
         Tau_Program = [].
 
@@ -1535,7 +1895,10 @@ apply_tau(solve([while(Cond, Sigma)], Horizon, RewardFunction),
            %  Put together both sub-results.
            term_string(Cond, CondString),
            concat_string( ["if( ", CondString, ", [", Tau1_Final,
-                           "])"], FinalString ),
+                           "])"], FinalStringTmp ),
+           %  Remove superfluous ".
+           remove_character( FinalStringTmp, "\"", 
+                             FinalString ),
            string_to_list(FinalString, Tau_Program)
         ).
 
@@ -1554,7 +1917,10 @@ apply_tau(solve([while(Cond, Sigma) | Omega], Horizon, RewardFunction),
            %  Put together both sub-results.
            term_string(Cond, CondString),
            concat_string( ["if( ", CondString, ", [", Tau1_Final,
-                           "], [", Tau2_Final, "] )"], FinalString ),
+                           "], [", Tau2_Final, "] )"], FinalStringTmp ),
+           %  Remove superfluous ".
+           remove_character( FinalStringTmp, "\"", 
+                             FinalString ),
            string_to_list(FinalString, Tau_Program)
         ).
 
@@ -1578,6 +1944,8 @@ apply_tau(solve([?(Term) | Omega], Horizon, RewardFunction), Tau_Program ) :- !,
 apply_tau(solve([ProcName], Horizon, RewardFunction), Tau_Program ) :- 
         proc( ProcName, ProcBody ), !,
         is_deterministic( ProcBody, Result ),
+ %       printf(stdout, "is_deterministic( %w, %w )\n", [ProcBody, Result]),
+ %       flush(stdout),
         ( Result = true ->
            %  Proc is deterministic.
            ( Horizon > 0 ->
@@ -1595,6 +1963,8 @@ apply_tau(solve([ProcName], Horizon, RewardFunction), Tau_Program ) :-
 apply_tau(solve([ProcName | Omega], Horizon, RewardFunction), Tau_Program ) :- 
         proc( ProcName, ProcBody ), !,
         is_deterministic( ProcBody, Result ),
+%        printf(stdout, "is_deterministic( %w, %w )\n", [ProcBody, Result]),
+%        flush(stdout),
         ( Result = true ->
            %  Proc is deterministic.
            horizon_consumption( ProcBody, Consume ),
@@ -1613,6 +1983,23 @@ apply_tau(solve([ProcName | Omega], Horizon, RewardFunction), Tau_Program ) :-
            Tau_Program = [solve([ProcName | Omega], Horizon, RewardFunction)]
         ).
 
+%  Binding the variables doesn't cost any horizon.
+apply_tau(solve([pickBestBindDomainVariables(PreSolveProg), nondet(ChoiceList)],
+                Horizon, RewardFunction), Tau_Program ) :-
+        apply_tau(solve([nondet(ChoiceList)], Horizon, RewardFunction),
+                  Tau_Program_Tmp),
+        Tau_Program = [pickBestBindDomainVariables(PreSolveProg) |
+                       Tau_Program_Tmp].
+
+apply_tau(solve([[pickBestBindDomainVariables(PreSolveProg), nondet(ChoiceList)]
+                | _Omega],
+                Horizon, RewardFunction), Tau_Program ) :-
+        %  Forget about Omega (e.g., when converting while to ifs).
+        apply_tau(solve([nondet(ChoiceList)], Horizon, RewardFunction),
+                  Tau_Program_Tmp),
+        Tau_Program = [pickBestBindDomainVariables(PreSolveProg) |
+                       Tau_Program_Tmp].
+
 %%%  Primitive Action, Stochastic Action  %%%
 apply_tau(solve([Term], Horizon, _RewardFunction), Tau_Program ) :-
         ( Horizon > 0 ->
@@ -1620,6 +2007,7 @@ apply_tau(solve([Term], Horizon, _RewardFunction), Tau_Program ) :-
         ;
            Tau_Program = []
         ).
+
 
 apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program ) :-
         Horizon_New is (Horizon - 1),
@@ -1639,16 +2027,20 @@ apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program ) :-
 % {{{ Main
 % >>>>
 
-%:- mode iplpreprocess(++).
-iplpreprocess( File ) :-
-        printf("iplpreprocess(%w): Is it just a Readybot?\n", [File]),
-        File = "-botname",
-        !,
-        printf("Oh, just a ReadyBot... nothing to iplpreprocess.\n", []).
+:- mode iplpreprocess(++).
+%iplpreprocess( File ) :-
+%        printf("iplpreprocess(%w): Is it just a Readybot?\n", [File]),
+%        File = "-botname",
+%        !,
+%        printf("Oh, just a ReadyBot... nothing to iplpreprocess.\n", []).
 
 iplpreprocess( File ) :- iplpreprocess( File, _NewFile, true, 0).
 
-%:- mode iplpreprocess(++, ?, ?, ++).
+:- mode iplpreprocess(++, ?, ?, ++).
+iplpreprocess( "-botname", _NewFile, _Last, _Level ) :-
+        !,
+        printf("Oh, just a ReadyBot... nothing to iplpreprocess.\n", []).
+
 iplpreprocess( File, NewFile, _Last, Level ) :-
 	printf("\n\t++ level             : %w\n", Level),
 	printf(  "\t++ loading           : %w\n", File),
@@ -1745,4 +2137,4 @@ autorun :-
 
 :- writeln("** loading iplpreprocessor.pl\t\t DONE").
 
-%:- autorun.
+:- autorun.

@@ -115,5 +115,9 @@ iplTrainingPhase :- getval(iplTrainingPhase, X), X=true.
  *  the different solve contexts (values). */
 %:- local reference(solveHashTable).
 :- hash_create(SolveHashTable), setval(solveHashTable, SolveHashTable).
+
+/** Constant defining the maximum domain size for a pickBest. */
+pickBestDomainThreshold(10).
+ 
 % </DP was here>
 
