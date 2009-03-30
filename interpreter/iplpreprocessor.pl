@@ -179,9 +179,13 @@ process_proc_if_aux( [if(Cond, Sigma1, Sigma2) | RestProgram], true, true,
 %  transformed ipl_procs into the file Stream.
 :- mode process_all_proc(++).
 process_all_proc( Stream ) :-
+%        set_flag(syntax_option, not(doubled_quote_is_quote)),
+%        set_flag(syntax_option, not(nl_in_quotes)),
         findall( (ProcName, ProcBody),
                  proc(ProcName, ProcBody),
                  ProcList), !,
+%        set_flag(syntax_option, not(doubled_quote_is_quote)),
+%        set_flag(syntax_option, not(nl_in_quotes)),
         process_all_proc_aux(ProcList, Stream).
 
 %  Recurse through the list of all procs, and
@@ -213,12 +217,19 @@ process_proc_aux( ProcName, ProcBody, Stream ) :-
 %%-%%        %  the argument list.
 %%-%%        contains_only_local_vars(ProcName, Result),
 %%-%%        ( Result = true ->
-           printf(Stream, "ipl_proc( %w ).\n", [ProcName]),
+%           printf(Stream, "ipl_proc( %w ).\n", [ProcName]),
            printf(Stream, "ipl_proc( %w, ", [ProcName]),
            %  Make the arguments of cout strings again.
            fix_couts( ProcBody, ProcBodyNew ),
            set_variables( ProcBodyNew ),
-           process_proc( ProcBodyNew, Processed ),
+           process_proc( ProcBodyNew, ProcessedTmp ),
+           %  If the procedure body only contains a
+           %  single action, we remove the list brackets.
+           ( (is_list(ProcessedTmp), length(ProcessedTmp, 1)) ->
+                ProcessedTmp = [Processed]
+           ;
+                Processed = ProcessedTmp
+           ),
            %  Write the transformed proc to the file.
            printf( Stream, "%w ).\n", [Processed] ).
 %%-%%        ;
@@ -234,7 +245,11 @@ process_proc_aux( ProcName, ProcBody, Stream ) :-
 set_variables( [] ).
 
 set_variables( List ) :-
-        is_list(List), !,
+        is_list(List),
+        %  Avoid problems with List=[IPLPreVar0, IPLPreVar1].
+        List \= [_Action1 | []],
+        List \= [[] | _Action2],
+        !,
         List = [Term | Rest],
         set_variables(Term),
         set_variables(Rest).
@@ -732,16 +747,19 @@ apply_rho( [nondet(ProgList)], [], Rho_Program ) :- !,
           do
              term_string(Prog, ProgTmpS),
              replace_character( ProgTmpS, ",", "__COMMA__", NewProgSNoComma ),
-%             string_to_list(NewProgSNoComma, NewProg)
-             NewProgS = NewProgSNoComma
+             replace_character( NewProgSNoComma, "\"", "__QUOTE__",
+                                NewProgSClean ),
+             NewProgS = NewProgSClean
         ),
         list_to_string(NewProgList, ReducedStringTmp),
         %  Remove superfluous ".
         replace_character( ReducedStringTmp, "\"", "", ReducedString ),
+        replace_character( ReducedString, "__QUOTE__", "\"",
+                           ReducedStringClean ),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
         %  End recursion to make sure that only the first nondet
         %  is replaced.       
-        Rho_Program = [{ReducedString}].
+        Rho_Program = [{ReducedStringClean}].
 
 apply_rho( [nondet(ProgList)], Program, Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
@@ -753,16 +771,19 @@ apply_rho( [nondet(ProgList)], Program, Rho_Program ) :- !,
           do
              term_string(Prog, ProgTmpS),
              replace_character( ProgTmpS, ",", "__COMMA__", NewProgSNoComma ),
-%             string_to_list(NewProgSNoComma, NewProg)
-             NewProgS = NewProgSNoComma
+             replace_character( NewProgSNoComma, "\"", "__QUOTE__",
+                                NewProgSClean ),
+             NewProgS = NewProgSClean
         ),
         list_to_string(NewProgList, ReducedStringTmp),
         %  Remove superfluous ".
         replace_character( ReducedStringTmp, "\"", "", ReducedString ),
+        replace_character( ReducedString, "__QUOTE__", "\"",
+                           ReducedStringClean ),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
         %  End recursion to make sure that only the first nondet
         %  is replaced.       
-        Rho_Program = [Program | {ReducedString}].
+        Rho_Program = [Program | {ReducedStringClean}].
 
 apply_rho( [nondet(ProgList) | Omega], [], Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
@@ -774,16 +795,19 @@ apply_rho( [nondet(ProgList) | Omega], [], Rho_Program ) :- !,
           do
              term_string(Prog, ProgTmpS),
              replace_character( ProgTmpS, ",", "__COMMA__", NewProgSNoComma ),
-%             string_to_list(NewProgSNoComma, NewProg)
-             NewProgS = NewProgSNoComma
+             replace_character( NewProgSNoComma, "\"", "__QUOTE__",
+                                NewProgSClean ),
+             NewProgS = NewProgSClean
         ),
         list_to_string(NewProgList, ReducedStringTmp),
         %  Remove superfluous ".
         replace_character( ReducedStringTmp, "\"", "", ReducedString ),
+        replace_character( ReducedString, "__QUOTE__", "\"",
+                           ReducedStringClean ),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
         %  End recursion to make sure that only the first nondet
         %  is replaced.       
-        Rho_Program = [{ReducedString} | Omega].
+        Rho_Program = [{ReducedStringClean} | Omega].
 
 apply_rho( [nondet(ProgList) | Omega], Program, Rho_Program ) :- !,
 %        printf(stdout, "ProgList: %w.\n", [ProgList]),
@@ -795,14 +819,17 @@ apply_rho( [nondet(ProgList) | Omega], Program, Rho_Program ) :- !,
           do
              term_string(Prog, ProgTmpS),
              replace_character( ProgTmpS, ",", "__COMMA__", NewProgSNoComma ),
-%             string_to_list(NewProgSNoComma, NewProg)
-             NewProgS = NewProgSNoComma
+             replace_character( NewProgSNoComma, "\"", "__QUOTE__",
+                                NewProgSClean ),
+             NewProgS = NewProgSClean
         ),
         list_to_string(NewProgList, ReducedStringTmp),
         %  Remove superfluous ".
         replace_character( ReducedStringTmp, "\"", "", ReducedString ),
+        replace_character( ReducedString, "__QUOTE__", "\"",
+                           ReducedStringClean ),
 %        printf(stdout, "ReducedString: %w.\n", [ReducedString]),
-        Program_New = [Program | {ReducedString}],
+        Program_New = [Program | {ReducedStringClean}],
         %  End recursion to make sure that only the first nondet
         %  is replaced.       
         Rho_Program = [Program_New | Omega].
@@ -976,10 +1003,11 @@ create_pickBest_code(F, Domain, Delta, PreSolveProg, ChoiceList) :-
 %        printf(stdout, "PreSolveProg (as String): %w\n", [PreSolveProg]),
         term_string( Delta, DeltaS ),
         replace_character( DeltaS, ",", "__COMMA__", DeltaSNoComma ),
+        replace_character( DeltaSNoComma, "\"", "__QUOTE__", DeltaSClean ),
         term_string( F, FS),
         findall( Delta_New,
                  ( member(PickBestVar, VariableList),
-                   replace_string( DeltaSNoComma, FS, PickBestVar, Delta_Tmp ),
+                   replace_string( DeltaSClean, FS, PickBestVar, Delta_Tmp ),
                    concat_string(["?(nonvar(", PickBestVar,"))__COMMA__ ",
                                   Delta_Tmp],
                                  Delta_New)
@@ -989,7 +1017,9 @@ create_pickBest_code(F, Domain, Delta, PreSolveProg, ChoiceList) :-
         list_to_string(InstantiatedProgs, InstantiatedProgsString),
         %  Remove superfluous ".
         remove_character( InstantiatedProgsString, "\"", 
-                          ChoiceList ).
+                          ChoiceListTmp ),
+        replace_character( ChoiceListTmp, "__QUOTE__", "\"",
+                           ChoiceList ).
 
 %  Creates the code segment that will be put into the transformed
 %  proc before the solve statement, in order to bind the
@@ -2037,11 +2067,13 @@ apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program ) :-
 iplpreprocess( File ) :- iplpreprocess( File, _NewFile, true, 0).
 
 :- mode iplpreprocess(++, ?, ?, ++).
-iplpreprocess( "-botname", _NewFile, _Last, _Level ) :-
-        !,
-        printf("Oh, just a ReadyBot... nothing to iplpreprocess.\n", []).
-
 iplpreprocess( File, NewFile, _Last, Level ) :-
+        ( 
+          substring(File, ".pl", _Pos)
+        ;
+          substring(File, ".readylog", _Pos)
+        ),
+        !,
 	printf("\n\t++ level             : %w\n", Level),
 	printf(  "\t++ loading           : %w\n", File),
 	printf("\t-----------------------------------------\n", []),
@@ -2081,6 +2113,11 @@ iplpreprocess( File, NewFile, _Last, Level ) :-
 	printf("\n\t++ processing        : DONE (%w sec.)\n", [Tdiff]),
 	printf("\t++ output written to : ", []),
 	printf("%w\n\n", [NewFile]), flush(output). 
+
+iplpreprocess( File, _NewFile, _Last, _Level ) :-
+        printf("File: %w\n", [File]),
+        printf("Oh, just a ReadyBot... nothing to iplpreprocess.\n", []).
+
 
 :- mode write_header(++).
 write_header(Stream) :-
@@ -2137,4 +2174,4 @@ autorun :-
 
 :- writeln("** loading iplpreprocessor.pl\t\t DONE").
 
-:- autorun.
+%:- autorun.

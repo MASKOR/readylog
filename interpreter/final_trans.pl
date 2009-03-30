@@ -422,6 +422,7 @@ transPr( [pickBestBindDomainVariables(E)|Rest], S, EE, SS, 1) :- !,
         transPr( Rest, S, EE, SS, 1).
 %  </DP was here>
 
+
 /* --------------------------------------------------------- */
 /*  applyPolicy                                              */
 /* --------------------------------------------------------- */

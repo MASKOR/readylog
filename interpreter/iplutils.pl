@@ -47,46 +47,71 @@
 fix_couts( [], Fixed ) :- !,
         Fixed = [].
 
-fix_couts( [cout(V) | RestProgram], Fixed ) :- !,
-        fix_couts( RestProgram, FixedRest ),
-        term_string( V, VString ),
-        Fixed = [ cout(VString) | FixedRest ].
-
-fix_couts( [cout(F, V) | RestProgram], Fixed ) :- !,
-        fix_couts( RestProgram, FixedRest ),
-        term_string( F, FString ),
-        Fixed = [ cout(FString, V) | FixedRest ].
-
-fix_couts( [cout(Color, F, V) | RestProgram], Fixed ) :- !,
-        fix_couts( RestProgram, FixedRest ),
-        term_string( F, FString ),
-        Fixed = [ cout(Color, FString, V) | FixedRest ].
-
-fix_couts( [if(Cond, Sigma1, Sigma2) | RestProgram], Fixed ) :- !,
-        fix_couts( Sigma1, FixedSigma1 ),
-        fix_couts( Sigma2, FixedSigma2 ),
-        fix_couts( RestProgram, FixedRest ),
-        Fixed = [ if(Cond, FixedSigma1, FixedSigma2) | FixedRest ].
-
-fix_couts( [if(Cond, Sigma) | RestProgram], Fixed ) :-
-        fix_couts( [if(Cond, Sigma, []) | RestProgram], Fixed ).
-
-fix_couts( [while(Cond, Sigma) | RestProgram], Fixed ) :- !,
-        fix_couts( Sigma, FixedSigma ),
-        fix_couts( RestProgram, FixedRest ),
-        Fixed = [ while(Cond, FixedSigma) | FixedRest ].
-
 fix_couts( Program, Fixed ) :-
-        not(is_list(Program)),
-        %  Program is a single action.
+        is_list(Program),
         !,
-        Fixed = Program.
+        Program = [Term | Rest],
+        ( var(Term) ->
+           FixedTerm = Term
+        ;
+           fix_couts( Term, FixedTerm )
+        ),
+        fix_couts( Rest, FixedRest ),
+        Fixed = [FixedTerm | FixedRest].
 
-fix_couts( [Term | RestProgram], Fixed ) :-
-        fix_couts( RestProgram, FixedRest ),
-        %  TODO: remove additional outer [], when the program consists
-        %  of more than a single action.
-        Fixed = [Term | FixedRest].
+fix_couts( Term, Fixed ) :-
+        var(Term),
+        !,
+        Fixed = Term.
+
+fix_couts( Term, Fixed ) :-
+        Term =.. [Functor | Args],
+        Functor = cout,
+        !,
+%        printf(stdout, "\nfix_couts() Found a cout in Term = %w\n", [Term]),
+%        flush(stdout),
+        length(Args, NumArgs),
+        fix_couts_aux( Term, NumArgs, Fixed ).
+        
+fix_couts( Term, Fixed ) :-
+        Term =.. [Functor | Args],
+        not(length(Args, 0)),
+        !,
+        fix_couts( Args, FixedArgs ),
+        Fixed =.. [Functor | FixedArgs].
+
+fix_couts( Term, Fixed ) :-
+        Fixed = Term.
+
+
+:- mode fix_couts_aux(++, ++, -).
+fix_couts_aux( Term, 1, Fixed ) :- !,
+        arg(1, Term, V),
+        term_string( V, VString ),
+        replace_escape_chars( VString, VStringClean ),
+        Fixed = cout(VStringClean).
+
+fix_couts_aux( Term, 1, Fixed ) :- !,
+        arg(1, Term, F),
+        arg(2, Term, V),
+        term_string( F, FString ),
+        replace_escape_chars( FString, FStringClean ),
+        Fixed = cout(FStringClean, V).
+
+fix_couts_aux( Term, 3, Fixed ) :- 
+        arg(1, Term, Color),
+        arg(2, Term, F),
+        arg(3, Term, V),
+        term_string( F, FString ),
+        replace_escape_chars( FString, FStringClean ),
+        Fixed = cout(Color, FStringClean, V).
+
+
+%  Replaces newlines and tabulator chars in a string by escaped chars.
+:- mode replace_escape_chars(++, -).
+replace_escape_chars( String, Result ) :-
+        replace_character( String, "\n", "\\n", StringTmp ),
+        replace_character( StringTmp, "\t", "\\t", Result ).
 
 
 %  Replaces commas that separate consecutive actions by semicolons,

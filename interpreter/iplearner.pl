@@ -324,7 +324,8 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), Policy, Value,
         ( foreach(Fluent, FluentNames),
           param(NameStream)
           do
-             ground(Fluent),
+             %  TODO: How do we handle parameterised fluents?
+             nonvar(Fluent),
              ( is_cont_fluent(Fluent) ->
                 printf(NameStream, "%w: continuous.\n", [Fluent])
              ;
