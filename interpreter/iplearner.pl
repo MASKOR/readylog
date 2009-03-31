@@ -82,6 +82,36 @@ get_all_fluent_names(Result) :-
         subtract(FluentL, BuiltInL, ResultList),
         list_to_ord_set(ResultList, Result).
 
+
+%  Returns an ordered set Result of all fluent names of parameterless
+%  fluents and of *fully instantiated* parameterised exog_prim_fluents.
+:- mode ipl_get_all_fluent_names(-).
+ipl_get_all_fluent_names(Result) :-
+        not(param_exog_prim_fluents),
+        !,
+        %  Get all fluents.
+        get_all_fluent_names( Result ).
+
+ipl_get_all_fluent_names(Result) :-
+        %  Get all fluents.
+        get_all_fluent_names( AllFluents ),
+        %  Remove all exog_prim_fluents with parameters that are
+        %  not instantiated.
+        findall( NonGroundParamF,
+                 ( memberchk(NonGroundParamF, AllFluents),
+                   is_param_exog_prim_fluent(NonGroundParamF),
+                   not(ground(NonGroundParamF))
+                 ),
+                 NonGroundParamFluents ),
+        subtract( AllFluents, NonGroundParamFluents, GroundFluents ),
+        %  Add all parameterised from the list
+        %  param_exog_prim_fluent_calls. Those are all ground.
+        getval( param_exog_prim_fluent_calls, CalledFluents ),
+        ResultTmp = [GroundFluents, CalledFluents],
+        flatten( ResultTmp, ResultFlat ),
+        list_to_ord_set( ResultFlat, Result ).
+
+
 %  Returns an ordered set Result of all fluent values.
 %  Gets the current situation S as input.
 :- mode get_all_fluent_values(++, -).
@@ -132,6 +162,78 @@ get_all_fluent_values(S, Result) :-
         cputime(TQueryEnd),
         TQueryDiff is TQueryEnd - TQueryBegin,
         printf(stdout, "with success in %w sec.\n", [TQueryDiff]).
+
+
+%  Decide, whether we are in the pre-training phase, where we still collect
+%  param_exog_prim_fluent calls, or we are in the training phase, where we
+%  still collect training data and train the decision tree for the given
+%  solve-context, or we are in the consultation phase for this solve-context.
+:- mode determine_ipl_phase(++, -).
+determine_ipl_phase( _Solve, Phase ) :-
+        param_exog_prim_fluents,
+        ipl_pre_training_phase,
+        getval( last_change_to_fluent_calls, TLastChange ),
+        var( TLastChange ),
+        !,
+        Phase = "pre_train".
+
+determine_ipl_phase( _Solve, Phase ) :-
+        param_exog_prim_fluents,
+        ipl_pre_training_phase,
+        getval( last_change_to_fluent_calls, TLastChange ),
+        %  Since above clause failed, we know: nonvar( TLastChange )
+        cputime(TNow),
+        TDiff is (TNow - TLastChange),
+        getval( param_exog_prim_fluent_delta, CollectionDelta ),
+        (TDiff < CollectionDelta),
+        !,
+        printf(stdout, "Still collecting calls for parameterised ", []),
+        printf(stdout, "primitive exogeneous fluents. Solve is handled ", []),
+        printf(stdout, "via DT-planning.\n", []),
+        printf(stdout, "TLastChange: %w, TNow: %w, TDiff: %w\n", [TLastChange, TNow, TDiff]), flush(stdout),
+%        sleep(10),
+        Phase = "pre_train".
+
+determine_ipl_phase( _Solve, Phase ) :-
+        param_exog_prim_fluents,
+        ipl_pre_training_phase,
+        %  Since above clause failed, we know: (TDiff >= CollectionDelta)
+        !,
+        getval( param_exog_prim_fluent_calls, FluentCalls ),
+        length( FluentCalls, Calls ),
+        printf(stdout, "Triggering IPL Training Phase!\n", []),
+        printf(stdout, "We have collected %w calls for ", [Calls]),
+        printf(stdout, "parameterised exogeneous fluents.\n", []),
+        flush(stdout),
+%        sleep(10),
+        setval( ipl_pre_training_phase, false ),
+        Phase = "train".
+
+determine_ipl_phase( HashKey, Phase ) :-
+        getval(solve_hash_table, SolveHashTable),
+        not(hash_contains(SolveHashTable, HashKey)),
+        !,
+        %  solve context encountered for the first time.
+        Phase = "train".
+
+determine_ipl_phase( HashKey, Phase ) :-
+        %  solve context has been encountered before.
+%%        hypothesis_error(HashKey, Error),
+%%        getval( max_hypothesis_error, MaxError ),
+%%        ( Error > MaxError ),
+        !,
+        Phase = "train".
+
+determine_ipl_phase( _HashKey, Phase ) :-
+        %  Since above clause failed, we know: ( Error =< MaxError )
+        Phase = "consult".
+
+
+%  Creates a hash key for the solve context and its filenames.
+:- mode create_hash_key(++, -).
+create_hash_key( solve(Prog, Horizon, RewardFunction), HashKey ) :-
+        term_hash(solve(Prog, Horizon, RewardFunction), -1, 1000, HashKey),
+        printf(stdout, "solve has hash key %w.\n", [HashKey]).
 
 
 %  The predicate is true iff the given Stream gets ready for I/O in time 100.
@@ -208,7 +310,7 @@ quiet_skip( Stream, Pattern, String ) :-
 write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
                          Value, TermProb, PolicyTree, S ) :-
         %  Create a hash key for the solve context and its filenames.
-        getval(solveHashTable, SolveHashTable),
+        getval(solve_hash_table, SolveHashTable),
         term_hash(solve(Prog, Horizon, RewardFunction), -1, 1000, HashKey),
         printf(stdout, "solve has hash key %w.\n", [HashKey]),
         term_string(HashKey, HashKeyString),
@@ -218,7 +320,7 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
                 hash_set(SolveHashTable, HashKey,
                         solve(Prog, Horizon, RewardFunction)),
                 %  update "global" variable
-                setval(solveHashTable, SolveHashTable),
+                setval(solve_hash_table, SolveHashTable),
 
                 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
                 %  Construct a                       %
@@ -316,7 +418,7 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), Policy, Value,
         printf(NameStream, "or a set of discrete values\n", []),
         printf(NameStream, "| (notated as a comma-separated list).\n", []),
         printf(NameStream, "\n", []),
-        get_all_fluent_names(FluentNames),
+        ipl_get_all_fluent_names(FluentNames),
         %  As we are not given the domain for discrete fluents
         %  by the Readylog programmer, we simply declare the
         %  domain for discrete fluents as discrete with 1000

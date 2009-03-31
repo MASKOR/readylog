@@ -133,6 +133,17 @@ icpgolog(E) :-
             writeln("INDUCTIVE POLICY LEARNING DISABLED."),
             nl
         ),
+        (iplearn ->
+            (param_exog_prim_fluents ->
+                writeln("WORLD MODEL CONTAINS PARAMETERISED EXOG. FLUENTS."),
+                nl
+            ;
+                writeln("WORLD MODEL CONTAINS NO PARAMETERISED EXOG. FLUENTS."),
+                nl
+            )
+        ;
+            true
+        ),
         % </DP was here>
         icpgo(E, [s0]).
 
@@ -324,6 +335,16 @@ initialize :-
 
   % clean up exoQueue
   retract_all(exoQueue(_)), !,
+
+%  <DP was here>
+  ( iplearn ->
+     get_all_fluent_names(FluentNames),
+     contains_param_exog_prim_fluent(FluentNames, Result),
+     setval( param_exog_prim_fluents, Result )
+  ;
+     true
+  ),
+%  </DP was here>
   
   % if user provided an own init predicate, call it:
   (user_init ; true).
@@ -1472,6 +1493,36 @@ database for (direct access) exogenous fluent */
 %	exog_fluent_getValue(F, V, []).%,
 %	%printColor( cyan, " has_val [ exogf_Update ] for %w with val %w \n%b", [F, V]).
 
+%  <DP was here>
+/** If IPLearning is active, and there are parameterised exogeneous
+ *  primitive fluents in the world model, we need to keep book
+ *  of all the instantiated has_val calls to those fluents. If the
+ *  program has allowed these calls in the past, we know that it is
+ *  save to evaluate the fluents with the same calls, without causing
+ *  a segmentation fault. */
+has_val(F,_V,_S) :- iplearn, param_exog_prim_fluents,
+        is_param_exog_prim_fluent(F),
+        %  Check if the fluent is completely instantiated.
+        ground(F), 
+        getval(param_exog_prim_fluent_calls, CallList),
+        %  If it's not already in the call list...
+        not(memberchk(F, CallList)),
+        %  ... add this (instantiated) fluent to the call list.
+        NewCallList = [F | CallList],
+%	printf("\n\n ##### PARAM_EXOG_PRIM_FLUENT_CALLS: #####\n", []), flush(output),
+%	print_list(NewCallList), flush(output),
+%        length(NewCallList, NewCallListSize),
+%	printf("\n\n ##### Size of PARAM_EXOG_PRIM_FLUENT_CALLS: %w #####\n", [NewCallListSize]), flush(output),
+        %  Store the time of the last change to
+        %  the list param_exog_prim_fluent_calls.
+        cputime(ChangeTime),
+%	printf("\n\n ##### setval(last_change_to_fluent_calls, %w) #####\n", [ChangeTime]), flush(output),
+        setval(last_change_to_fluent_calls, ChangeTime),
+        setval(param_exog_prim_fluent_calls, NewCallList),
+        %  Force matching of the other clauses.
+        false.
+%  </DP was here>
+
 /** situation term of length one: look up the fluent value in the
 knowledge base created by progression or if the situation is [s0]
 use the initial value (if defined) */
@@ -1528,6 +1579,51 @@ sets_val(Act,F,V,H) :-
 	  F=..[_|Param], integers(Param) 
 	; true),  
 	holds(P,H), subf(V1,V,H).  
+
+
+%  <DP was here>
+/* ----------------------------------------------------------
+is_param_exog_prim_fluent(F):
+Tests if fluent F is an exogeneous primitive fluent that has
+any parameters.
+---------------------------------------------------------- */
+:- mode is_param_exog_prim_fluent(++).
+is_param_exog_prim_fluent(F) :-
+        exog_prim_fluent(F),
+        F =.. [_Functor | Args],
+        not(length(Args, 0)).
+
+
+/* ----------------------------------------------------------
+contains_param_exog_prim_fluent(List, Result):
+Tests if the List contains an exogeneous primitive fluent
+that has any parameters, and returns the Result as parameter.
+---------------------------------------------------------- */
+
+:- mode contains_param_exog_prim_fluent(++, -).
+contains_param_exog_prim_fluent([], Result) :- !,
+        Result = false.
+
+contains_param_exog_prim_fluent(F, Result) :-
+        not(is_list(F)),
+        is_param_exog_prim_fluent(F), !,
+        Result = true.
+
+contains_param_exog_prim_fluent(F, Result) :-
+        not(is_list(F)), !,
+        Result = false.
+
+contains_param_exog_prim_fluent(List, Result) :-
+        List = [F | _Rest],
+        contains_param_exog_prim_fluent(F, ResultF),
+        ResultF = true,
+        !,
+        Result = true.
+
+contains_param_exog_prim_fluent(List, Result) :-
+        List = [_F | Rest],
+        contains_param_exog_prim_fluent(Rest, Result).
+%  <DP was here>
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

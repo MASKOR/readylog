@@ -278,64 +278,43 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	statistics(times, [CPUT, SYST, RealT]), !,
         % <DP was here>
         ( iplearn ->
-            ( iplTrainingPhase ->
-                /* compute policy through DT planning */
-	        bestDoM(Prog, [clipOnline|S], Horizon, Policy,
-		        Value, TermProb, checkEvents, Tree, RewardFunction)
+            %  Determine, whether we are still preparing for the training phase,
+            %  or, for this solve, we are in the training phase or in the
+            %  consultation phase.
+            create_hash_key( solve(Prog, Horizon, RewardFunction), HashKey ),
+            determine_ipl_phase( HashKey, Phase),
+            ( (Phase = "pre_train" ; Phase = "train") ->
+                 %  Compute policy through DT planning.
+	         bestDoM(Prog, [clipOnline|S], Horizon, Policy,
+	         Value, TermProb, checkEvents, Tree, RewardFunction)
             ;
-/*	        bestDoM(Prog, [clipOnline|S], Horizon, PolicyConv,
-		        ValueConv, TermProbConv, checkEvents, TreeConv, RewardFunction),
-                printf("PolicyConv: %w\n", [PolicyConv]),
-                printf("ValueConv: %w\n", [ValueConv]),
-                printf("TermProbConv: %w\n", [TermProbConv]),
-                printf("TreeConv: %w\n", [TreeConv]),
-*/
-                /* consult learned decision tree to get policy */
-                consult_dtree(Prog, Horizon, RewardFunction, [clipOnline|S], 
-                              PolicyConsult, ValueConsult, TermProbConsult, TreeConsult,
-                              ConsultSuccess),
-                ( ConsultSuccess ->
-                     Policy = PolicyConsult,
-                     Value = ValueConsult,
-                     TermProb = TermProbConsult,
-                     Tree = TreeConsult
-                ;
-	             bestDoM(Prog, [clipOnline|S], Horizon, PolicyConv,
-		             ValueConv, TermProbConv, checkEvents, TreeConv, RewardFunction),
-                     Policy = PolicyConv,
-                     Value = ValueConv,
-                     TermProb = TermProbConv,
-                     Tree = TreeConv
-                )
-/*                printf("Policy: %w\n", [Policy]),
-                printf("Value: %w\n", [Value]),
-                printf("TermProb: %w\n", [TermProb]),
-                printf("Tree: %w\n", [Tree]),
-                ( PolicyConv \== Policy ->
-                    printf("*** Warning: PolicyConv != Policy!\n", [])
-                ;
-                    true
-                ),
-                ( ValueConv \== Value ->
-                    printf("*** Warning: ValueConv != Value!\n", [])
-                ;
-                    true
-                ),
-                ( TermProbConv \== TermProb ->
-                    printf("*** Warning: TermProbConv != TermProb!\n", [])
-                ;
-                    true
-                ),
-                ( PolicyConv \== Policy ->
-                    printf("*** Warning: TreeConv != Tree!\n", [])
-                ;
-                    true
-                )
-*/
+                 %  Phase = "consult"
+                 %  Consult learned decision tree to get policy.
+                 consult_dtree(Prog, Horizon, RewardFunction, [clipOnline|S], 
+                               PolicyConsult, ValueConsult, TermProbConsult,
+                               TreeConsult,
+                               ConsultSuccess),
+                 ( ConsultSuccess ->
+                      %  If the decision tree returned a valid policy, use it.
+                      Policy = PolicyConsult,
+                      Value = ValueConsult,
+                      TermProb = TermProbConsult,
+                      Tree = TreeConsult
+                 ;
+                      %  Otherwise, stick to DT planning.
+	              bestDoM(Prog, [clipOnline|S], Horizon, PolicyConv,
+		              ValueConv, TermProbConv, checkEvents, TreeConv,
+                              RewardFunction),
+                      Policy = PolicyConv,
+                      Value = ValueConv,
+                      TermProb = TermProbConv,
+                      Tree = TreeConv
+                 )
+
             )
         ;
-            /** inductive policy learning is turned off ->
-             *  compute policy through DT planning */
+            %  Inductive policy learning is turned off. ->
+            %  Compute policy through DT planning.
 	    bestDoM(Prog, [clipOnline|S], Horizon, Policy,
 		    Value, TermProb, checkEvents, Tree, RewardFunction)
         ),
@@ -364,15 +343,25 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
         % <DP was here>
         (
           iplearn -> 
-            ( iplTrainingPhase ->
-                write_learning_instance(solve(Prog, Horizon, RewardFunction),
-                                        Policy, Value, TermProb, Tree, [clipOnline|S]),
-                printf("Learning instance written successfully.\n", []),
+             printf("*********** PHASE: %w.\n", [Phase]),
+             ( Phase = "pre_train" ->
+                %  Use DT planning.
                 Policy_r = applyPolicy(Policy)
-            ;
-	        Policy_r = applyLearnedPolicy(Policy, solve(Prog, Horizon, RewardFunction), S)
-            )
+             ;
+               ( Phase = "train" ->
+                  write_learning_instance(solve(Prog, Horizon, RewardFunction),
+                                          Policy, Value, TermProb, Tree,
+                                          [clipOnline|S]),
+                  printf("Learning instance written successfully.\n", []),
+                  Policy_r = applyPolicy(Policy)
+               ;
+                  %  Phase = "consult" 
+	          Policy_r = applyLearnedPolicy(Policy, solve(Prog, Horizon,
+                                                RewardFunction), S)
+               )
+             )
         ;
+            %  Inductive policy learning is turned off.
             Policy_r = applyPolicy(Policy)
         ),
         % </DP was here>

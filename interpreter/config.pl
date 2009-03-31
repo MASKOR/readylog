@@ -107,17 +107,50 @@ toggle_iplearn :- getval(iplearn, X),
           printf("IPLearn turned ON\n", [])
        ).
 
+/** Is IPL still in pre-training phase (collecting calls for
+ *  parameterised exogeneous fluents) */
+:- setval(ipl_pre_training_phase, true).
+ipl_pre_training_phase :- getval(ipl_pre_training_phase, X), X=true.
+
 /** Is IPL still in training phase or already in consultation phase */
-:- setval(iplTrainingPhase, true).
-iplTrainingPhase :- getval(iplTrainingPhase, X), X=true.
+%:- setval(ipl_training_phase, true).
+%ipl_training_phase :- getval(ipl_training_phase, X), X=true.
+
+/** Constant giving a maximum threshold for the hypothesis error [0,1].
+ *  If the error of the decision tree of a solve context it below that
+ *  error, we switch to the consultation phase for that solve. */
+:- setval(max_hypothesis_error, 0.2).
 
 /** Create a hash table to store the filenames (keys) for
  *  the different solve contexts (values). */
-%:- local reference(solveHashTable).
-:- hash_create(SolveHashTable), setval(solveHashTable, SolveHashTable).
+%:- local reference(solve_hash_zable).
+:- hash_create(SolveHashTable), setval(solve_hash_table, SolveHashTable).
 
 /** Constant defining the maximum domain size for a pickBest. */
-pickBestDomainThreshold(10).
+pick_best_domain_size_max(10).
+
+/** Constant telling if there are parameterised exogeneous
+ *  primitive fluents (compounds containing vars) in the world model. */
+:- setval( param_exog_prim_fluents, false ).
+param_exog_prim_fluents :- getval(param_exog_prim_fluents, X), X=true.
+
+/** Global list that stores has_val calls to parameterised exogeneous
+ *  primitive fluents (compounds containing vars), whenever IPLearning
+ *  is active. */
+:- setval( param_exog_prim_fluent_calls, [] ).
+
+/** System time of the last change
+ *  to the list param_exog_prim_fluent_calls */
+:- setval( last_change_to_fluent_calls, _Uninstantiated ).
+
+/** Set the (heuristic) time difference, that we use to decide
+ *  when to start with the IPL training phase.
+ *  If the time of the last change to the list
+ *  param_exog_prim_fluent_calls has been over for
+ *  param_exog_prim_fluent_delta, then determine_ipl_phase/1
+ *  triggers the training phase. */
+:- setval( param_exog_prim_fluent_delta, 0.2 ).
+
  
 % </DP was here>
 

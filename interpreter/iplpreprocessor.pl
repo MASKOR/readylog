@@ -981,12 +981,12 @@ apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
 %  replace the pickBest call.
 :- mode create_pickBest_choice_list(++, ++, ++, -, -).
 create_pickBest_code(F, Domain, Delta, PreSolveProg, ChoiceList) :-
-        pickBestDomainThreshold(Threshold),
-%        printf(stdout, "pickBestDomainThreshold is %w\n", [Threshold]),
+        pick_best_domain_size(Threshold),
+%        printf(stdout, "pick_best_domain_size is %w\n", [Threshold]),
 %        flush(stdout),
         %  Create a helper list of strings
         %  VariableList = [PickBestVar1, PickBestVar2, ...,
-        %                  PickBestVarpickBestDomainThreshold] 
+        %                  PickBestVarpick_best_domain_size] 
         ( for(I, 1, Threshold),
           foreach(I, IntegerList)
           do
