@@ -282,7 +282,7 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
             %  or, for this solve, we are in the training phase or in the
             %  consultation phase.
             create_hash_key( solve(Prog, Horizon, RewardFunction), HashKey ),
-            determine_ipl_phase( HashKey, Phase),
+            determine_ipl_phase( HashKey, S, Phase),
             ( (Phase = "pre_train" ; Phase = "train") ->
                  %  Compute policy through DT planning.
 	         bestDoM(Prog, [clipOnline|S], Horizon, Policy,

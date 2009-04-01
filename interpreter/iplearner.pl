@@ -66,11 +66,8 @@ get_all_fluent_names(Result) :-
         %  Get all registers (which are fluents, too).
         findall(Reg, register(Reg), RegL),
         %  Define all built-in fluents.
-%        BuiltInTemp=[online, start, pll(_, _, _, _), pproj(_, _), 
-%                     lookahead(_, _, _, _), bel(_), ltp(_)],
-        %  TODO: Find out why useAbstraction messes up subf/hasval.
-        BuiltInTemp=[useAbstraction, online, start, pll(_, _, _, _),
-                    pproj(_, _), lookahead(_, _, _, _), bel(_), ltp(_)],
+        BuiltInTemp=[online, start, pll(_, _, _, _), pproj(_, _), 
+                     lookahead(_, _, _, _), bel(_), ltp(_)],
 %        ignore_fluents(IFL), 
 %        append(BuiltInTemp, IFL, BuiltIn),
         %  The list of all defined fluents.
@@ -86,19 +83,17 @@ get_all_fluent_names(Result) :-
 %  Returns an ordered set Result of all fluent names of parameterless
 %  fluents and of *fully instantiated* parameterised exog_prim_fluents.
 :- mode ipl_get_all_fluent_names(-).
-ipl_get_all_fluent_names(Result) :-
-        not(param_exog_prim_fluents),
+ipl_get_all_fluent_names(S, Result) :-
+        param_exog_prim_fluents,
+        ipl_pre_training_phase,
         !,
-        %  Get all fluents.
-        get_all_fluent_names( Result ).
-
-ipl_get_all_fluent_names(Result) :-
+        %  ipl_fluents still is the empty list.
         %  Get all fluents.
         get_all_fluent_names( AllFluents ),
         %  Remove all exog_prim_fluents with parameters that are
-        %  not instantiated.
+        %  not instantiated or that are not evaluable (not valid)
         findall( NonGroundParamF,
-                 ( memberchk(NonGroundParamF, AllFluents),
+                 ( member(NonGroundParamF, AllFluents),
                    is_param_exog_prim_fluent(NonGroundParamF),
                    not(ground(NonGroundParamF))
                  ),
@@ -107,8 +102,36 @@ ipl_get_all_fluent_names(Result) :-
         %  Add all parameterised from the list
         %  param_exog_prim_fluent_calls. Those are all ground.
         getval( param_exog_prim_fluent_calls, CalledFluents ),
-        ResultTmp = [GroundFluents, CalledFluents],
-        flatten( ResultTmp, ResultFlat ),
+        ResultTmp1 = [GroundFluents, CalledFluents],
+        flatten( ResultTmp1, ResultTmp1Flat ),
+        %  Only pick fluents that can be evaluated in
+        %  situation S.
+        findall( EvaluableF,
+                 ( member(EvaluableF, ResultTmp1Flat),
+                   is_valid_fluent(EvaluableF, S)
+                 ),
+                 ResultTmp2 ),
+        flatten( ResultTmp2, ResultFlat ),
+        list_to_ord_set( ResultFlat, Result ).
+
+ipl_get_all_fluent_names(_S, Result) :-
+        param_exog_prim_fluents,
+        !,
+        %  ipl_fluents is set already.
+        getval( ipl_fluents, Result ).
+
+ipl_get_all_fluent_names(S, Result) :-
+        % We know: not(param_exog_prim_fluents)
+        %  Get all fluents.
+        get_all_fluent_names( ResultTmp1Flat ),
+        %  Only pick fluents that can be evaluated in
+        %  situation S.
+        findall( EvaluableF,
+                 ( member(EvaluableF, ResultTmp1Flat),
+                   is_valid_fluent(EvaluableF, S)
+                 ),
+                 ResultTmp2 ),
+        flatten( ResultTmp2, ResultFlat ),
         list_to_ord_set( ResultFlat, Result ).
 
 
@@ -116,27 +139,21 @@ ipl_get_all_fluent_names(Result) :-
 %  Gets the current situation S as input.
 :- mode get_all_fluent_values(++, -).
 get_all_fluent_values(S, Result) :-
-        printf(stdout, "Querying all fluent values... ", []),
+        printf(stdout, "Querying all fluent values...\n", []),
         cputime(TQueryBegin),
-        get_all_fluent_names(Fluents),
+        ipl_get_all_fluent_names(S, Fluents),
         findall( ValFStringNoComma,
                  ( member(F, Fluents),
-                   %  Check if fluent is instantiated.
-                   ( ( ( nonvar(F)
-                         , F \= useAbstraction ) -> % TODO: Find out why
-                                                    % useAbstraction messes
-                                                    % up subf/hasval.
+                   %  Check if fluent is instantiated and we can evaluate it.
+                   ( is_valid_fluent(F, S) ->
                          ( exog_fluent(F) ->
-%                             printf(stdout,
-%                             "Fluent %w is an exogenous fluent...\n", [F]),
-                             exog_fluent_getValue(F, ValF, S)%,
-%                             printf(stdout, "and has value %w.\n", [ValF])
+%                           printf(stdout, "Fluent %w is an exogenous fluent...\n", [F]),
+                           exog_fluent_getValue(F, ValF, S)%,
+%                           printf(stdout, "and has value %w.\n", [ValF])
                          ;
-%                             printf(stdout,
-%                             "Fluent %w is *NOT* an exogenous fluent...\n",
-%                             [F]),
-                             subf(F, ValF, S)%,
-%                             printf(stdout, "and has value %w.\n", [ValF])
+%                           printf(stdout, "Fluent %w is *NOT* an exogenous fluent...\n", [F]),
+                           subf(F, ValF, S)%,
+%                           printf(stdout, "and has value %w.\n", [ValF])
                          ),
                          %  Replace commas, as C4.5 forbids them in
                          %  attribute values.
@@ -149,12 +166,11 @@ get_all_fluent_values(S, Result) :-
                          %  identifier by Prolog during later conversion.
                          replace_string(ValFStringTmp, "\"", "QUOTATION",
                                         ValFStringNoComma)
-                     ;
+                   ;
                          printf(stdout, "*** Warning: *** ", []),
-                         printf(stdout, "Fluent %w is not instantiated. ", [F]),
+                         printf(stdout, "Fluent %w is not valid. ", [F]),
                          printf(stdout, "Fluent is ignored.\n", []),
                          false
-                     )
                    )
                  ),
                  Result ),
@@ -162,14 +178,48 @@ get_all_fluent_values(S, Result) :-
         cputime(TQueryEnd),
         TQueryDiff is TQueryEnd - TQueryBegin,
         printf(stdout, "with success in %w sec.\n", [TQueryDiff]).
+                   
+
+%  Tests if fluent F is instantiated and we can evaluate it via subf/hasval
+%  in situation S.
+:- mode is_valid_fluent(++, ++).
+is_valid_fluent(F, S) :-
+        nonvar(F),
+        exog_fluent(F),
+        !,
+        exog_fluent_getValue(F, _ValF, S).
+
+is_valid_fluent(F, S) :-
+        nonvar(F),
+        exog_fluent(F),
+        subf(F, _ValF, S).
+                
+
+%  Decides, if fluent F is continuous, based on its value in situation S.
+:- mode is_continuous(++, ++).
+is_continuous( F, S ) :-
+        exog_fluent(F), !,
+        exog_fluent_getValue(F, ValF, S),
+        float(ValF).
+
+is_continuous( F, S ) :-
+        subf(F, ValF, S),
+        float(ValF).
+        
+
+%  Sets the global list of fluent names for IPLearning in situation S.
+:- mode set_ipl_fluent_names(++).
+set_ipl_fluent_names(S) :-
+        ipl_get_all_fluent_names( S, List ),
+        setval( ipl_fluents, List ).
 
 
 %  Decide, whether we are in the pre-training phase, where we still collect
 %  param_exog_prim_fluent calls, or we are in the training phase, where we
 %  still collect training data and train the decision tree for the given
 %  solve-context, or we are in the consultation phase for this solve-context.
-:- mode determine_ipl_phase(++, -).
-determine_ipl_phase( _Solve, Phase ) :-
+:- mode determine_ipl_phase(++, ++, -).
+determine_ipl_phase( _Solve, _S, Phase ) :-
         param_exog_prim_fluents,
         ipl_pre_training_phase,
         getval( last_change_to_fluent_calls, TLastChange ),
@@ -177,7 +227,7 @@ determine_ipl_phase( _Solve, Phase ) :-
         !,
         Phase = "pre_train".
 
-determine_ipl_phase( _Solve, Phase ) :-
+determine_ipl_phase( _Solve, _S, Phase ) :-
         param_exog_prim_fluents,
         ipl_pre_training_phase,
         getval( last_change_to_fluent_calls, TLastChange ),
@@ -191,10 +241,9 @@ determine_ipl_phase( _Solve, Phase ) :-
         printf(stdout, "primitive exogeneous fluents. Solve is handled ", []),
         printf(stdout, "via DT-planning.\n", []),
         printf(stdout, "TLastChange: %w, TNow: %w, TDiff: %w\n", [TLastChange, TNow, TDiff]), flush(stdout),
-%        sleep(10),
         Phase = "pre_train".
 
-determine_ipl_phase( _Solve, Phase ) :-
+determine_ipl_phase( _Solve, S, Phase ) :-
         param_exog_prim_fluents,
         ipl_pre_training_phase,
         %  Since above clause failed, we know: (TDiff >= CollectionDelta)
@@ -204,36 +253,44 @@ determine_ipl_phase( _Solve, Phase ) :-
         printf(stdout, "Triggering IPL Training Phase!\n", []),
         printf(stdout, "We have collected %w calls for ", [Calls]),
         printf(stdout, "parameterised exogeneous fluents.\n", []),
+        printf(stdout, "Creating the list of fluents for IPLearning... ", []),
+        set_ipl_fluent_names(S),
+        printf(stdout, "done.\n", []),
         flush(stdout),
-%        sleep(10),
         setval( ipl_pre_training_phase, false ),
         Phase = "train".
 
-determine_ipl_phase( HashKey, Phase ) :-
+determine_ipl_phase( HashKey, _S, Phase ) :-
         getval(solve_hash_table, SolveHashTable),
         not(hash_contains(SolveHashTable, HashKey)),
         !,
         %  solve context encountered for the first time.
         Phase = "train".
 
-determine_ipl_phase( HashKey, Phase ) :-
-        %  solve context has been encountered before.
+determine_ipl_phase( _HashKey, _S, Phase ) :-
+%%        %  solve context has been encountered before.
 %%        hypothesis_error(HashKey, Error),
 %%        getval( max_hypothesis_error, MaxError ),
 %%        ( Error > MaxError ),
         !,
         Phase = "train".
 
-determine_ipl_phase( _HashKey, Phase ) :-
+determine_ipl_phase( _HashKey, _S, Phase ) :-
         %  Since above clause failed, we know: ( Error =< MaxError )
         Phase = "consult".
 
 
-%  Creates a hash key for the solve context and its filenames.
+%  Creates a hash key for the solve context/the policies and their filenames.
 :- mode create_hash_key(++, -).
-create_hash_key( solve(Prog, Horizon, RewardFunction), HashKey ) :-
-        term_hash(solve(Prog, Horizon, RewardFunction), -1, 1000, HashKey),
+create_hash_key( Term, HashKey ) :-
+        Term =.. [solve | _Args],
+        !,
+        term_hash( Term, -1, 1000, HashKey),
         printf(stdout, "solve has hash key %w.\n", [HashKey]).
+
+create_hash_key( Term, HashKey ) :-
+        term_hash( Term, -1, 1000, HashKey),
+        printf(stdout, "Policy has hash key %w.\n", [HashKey]).
 
 
 %  The predicate is true iff the given Stream gets ready for I/O in time 100.
@@ -314,6 +371,17 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
         term_hash(solve(Prog, Horizon, RewardFunction), -1, 1000, HashKey),
         printf(stdout, "solve has hash key %w.\n", [HashKey]),
         term_string(HashKey, HashKeyString),
+        %  Create a hash key for the policy.
+        getval(policy_hash_table, PolicyHashTable),
+        term_hash(Policy, -1, 1000, PolicyHashKey),
+        printf(stdout, "Policy has hash key %w.\n", [PolicyHashKey]),
+        term_string(PolicyHashKey, PolicyHashKeyString),
+        ( not(hash_contains(PolicyHashTable, PolicyHashKey)) ->
+           %  Policy encountered for the first time.
+           hash_set(PolicyHashTable, PolicyHashKey, Policy)
+        ;
+           true
+        ),
         ( not(hash_contains(SolveHashTable, HashKey)) ->
                 %  solve context encountered for the first time.
                 printf(stdout, "First encounter of this solve context.\n", []),
@@ -331,8 +399,8 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
                 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
                 construct_names_file( solve(Prog, Horizon,
                                       RewardFunction),
-                                      Policy, Value, TermProb,
-                                      PolicyTree, HashKeyString,
+                                      PolicyHashKeyString, Value, TermProb,
+                                      PolicyTree, HashKeyString, S,
                                       ContextString, FluentNames,
                                       DecisionString ),
 
@@ -353,8 +421,9 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
                 %  ##### C4.5 .names file #######    %
                 %  Instantiates DecisionString.      %
                 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
-                continue_names_file( Policy, Value, TermProb, PolicyTree,
-                                     HashKeyString, DecisionString ),
+                continue_names_file( PolicyHashKeyString, Value, TermProb,
+                                     PolicyTree, HashKeyString,
+                                     DecisionString ),
 
                 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
                 %  Continue with                     %
@@ -367,9 +436,9 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
 %  Returns the ContextString, FluentNames, and DecisionString which are
 %  needed by construct_data_file/5.
 %  Helper predicate for write_learning_instance/6.
-:- mode construct_names_file(++, ++, ++, ++, ++, ++, -, -, -).
-construct_names_file( solve(Prog, Horizon, RewardFunction), Policy, Value,
-                      TermProb, PolicyTree, HashKeyString,
+:- mode construct_names_file(++, ++, ++, ++, ++, ++, ++, -, -, -).
+construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
+                      Value, TermProb, PolicyTree, HashKeyString, S,
                       ContextString, FluentNames, DecisionString ) :-
         concat_string(["solve_context_", HashKeyString, ".names"], FileName),
         open(FileName, write, NameStream),
@@ -391,10 +460,10 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), Policy, Value,
         printf(NameStream, "| separated by commas and terminated by ", []),
         printf(NameStream, "a fullstop.\n", []),
         printf(NameStream, "\n", []),
-        %  Replace commas, as C4.5 forbids them in class names.
-        term_string(Policy, PolicyString),
-        replace_string(PolicyString, ",", "\\,", PolicyStringNoComma),
-%        printf(NameStream, "%w", [PolicyStringNoComma]),
+%%%        %  Replace commas, as C4.5 forbids them in class names.
+%%%        term_string(Policy, PolicyString),
+%%%        replace_string(PolicyString, ",", "\\,", PolicyStringNoComma),
+%%%%        printf(NameStream, "%w", [PolicyStringNoComma]),
         term_string(Value, ValueString),
         term_string(TermProb, TermProbString),
         %  TODO: PolicyTreeString can get too big for
@@ -404,7 +473,8 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), Policy, Value,
 %%        term_string(PolicyTree, PolicyTreeString),
 %%        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
         PolicyTreeStringNoComma = "Tree",
-        concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
+%%%        concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
+        concat_string(["(", PolicyHashKeyString, " <Value_", ValueString, ">",
                        " <TermProb_", TermProbString, ">", 
                        " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
                        DecisionString),
@@ -418,35 +488,44 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), Policy, Value,
         printf(NameStream, "or a set of discrete values\n", []),
         printf(NameStream, "| (notated as a comma-separated list).\n", []),
         printf(NameStream, "\n", []),
-        ipl_get_all_fluent_names(FluentNames),
+        ipl_get_all_fluent_names(S, FluentNames),
         %  As we are not given the domain for discrete fluents
         %  by the Readylog programmer, we simply declare the
         %  domain for discrete fluents as discrete with 1000
         %  entries maximum
         ( foreach(Fluent, FluentNames),
-          param(NameStream)
+          param(NameStream, S)
           do
-             %  TODO: How do we handle parameterised fluents?
              nonvar(Fluent),
-             ( is_cont_fluent(Fluent) ->
-                printf(NameStream, "%w: continuous.\n", [Fluent])
+             % ( is_cont_fluent(Fluent) -> %  Not really what we are looking
+             %                                for. We will use our own test.
+             %                                (The test implies that we can
+             %                                evaluate the fluent.)
+             ( ( is_continuous(Fluent, S) ) ->
+                   printf(NameStream, "%w: continuous.\n", [Fluent])
              ;
-                ( is_prim_fluent(Fluent) ->
-                   printf(NameStream, "%w: discrete 1000.\n", [Fluent])
-                ;
-                   printf(NameStream, "%w: discrete 1000.\n", [Fluent]),
-                   printf(NameStream, "| WARNING: %w is neither ", [Fluent]),
-                   printf(NameStream, "cont nor prim!\n,", []),
-                   printf(stdout, "*** WARNING ***: %w is neither ", [Fluent]),
-                   printf(stdout, "cont nor prim!", [])
-                )
+                   ( is_prim_fluent(Fluent) ->
+                      %  Make sure that we can evaluate the fluent.
+                      ( exog_fluent(F) ->
+                         exog_fluent_getValue(F, _ValF, S)
+                      ;
+                         subf(F, _ValF, S)
+                      ),
+                      printf(NameStream, "%w: discrete 1000.\n", [Fluent])
+                   ;
+                      printf(NameStream, "%w: discrete 1000.\n", [Fluent]),
+                      printf(NameStream, "| WARNING: %w is neither ", [Fluent]),
+                      printf(NameStream, "cont nor prim!\n,", []),
+                      printf(stdout, "*** WARNING ***: %w is neither ", [Fluent]),
+                      printf(stdout, "cont nor prim!", [])
+                   )
              )
         ),
         close(NameStream).
 
 %  Creates the C4.5 .data file for the solve context with key HashKeyString.
 %  Needs the ContextString, FluentNames, and DecisionString from
-%  construct_names_file/9 as input.
+%  construct_names_file/10 as input.
 %  Helper predicate for write_learning_instance/6.
 :- mode construct_data_file(++, ++, ++, ++, ++).
 construct_data_file( S, HashKeyString, ContextString, FluentNames,
@@ -495,18 +574,18 @@ construct_data_file( S, HashKeyString, ContextString, FluentNames,
 %  Returns the DecisionString which is needed by continue_data_file/3
 %  Helper predicate for write_learning_instance/6.
 :- mode continue_names_file(++, ++, ++, ++, ++, ++).
-continue_names_file( Policy, Value, TermProb, PolicyTree, HashKeyString,
-                     DecisionString ) :-
+continue_names_file( PolicyHashKeyString, Value, TermProb, PolicyTree,
+                     HashKeyString, DecisionString ) :-
         concat_string(["solve_context_", HashKeyString, ".names"], FileName),
         %  Check, if the decision (policy) has been already declared.
         open(FileName, read, NameStreamRead),
         read_string(NameStreamRead, end_of_file, _Length, NameStreamString),
         close(NameStreamRead),
-        term_string(Policy, PolicyString),
-%        printf(stdout, "PolicyString: %w.\n", [PolicyString]),
-        %  replace commas in policy, as C4.5 forbids them in class names
-        replace_string(PolicyString, ",", "\\,",
-                       PolicyStringNoComma),
+%%%        term_string(Policy, PolicyString),
+%%%%        printf(stdout, "PolicyString: %w.\n", [PolicyString]),
+%%%        %  replace commas in policy, as C4.5 forbids them in class names
+%%%        replace_string(PolicyString, ",", "\\,",
+%%%                       PolicyStringNoComma),
         term_string(Value, ValueString),
         term_string(TermProb, TermProbString),
         %  TODO: PolicyTreeString can get too big for
@@ -516,7 +595,7 @@ continue_names_file( Policy, Value, TermProb, PolicyTree, HashKeyString,
 %%        term_string(PolicyTree, PolicyTreeString),
 %%        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
         PolicyTreeStringNoComma = "Tree",
-        concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
+        concat_string(["(", PolicyHashKeyString, " <Value_", ValueString, ">",
                        " <TermProb_", TermProbString, ">", 
                        " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
                        DecisionString),
@@ -802,7 +881,11 @@ extract_consultation_results( DecisionString,
 %         printf("TermProb: %w\n", [TermProb]),
 %         printf("Tree: %w\n", [Tree]),
 %         flush(stdout),
-         term_string(Policy, PolicyString),
+%%%         term_string(Policy, PolicyString),
+         %  Recover the policy from the hash table.
+         getval(policy_hash_table, PolicyHashTable),
+         term_string(PolicyHashKey, PolicyString),
+         hash_get(PolicyHashTable, PolicyHashKey, Policy),
          term_string(Value, ValueString),
          term_string(TermProb, TermProbString),
          term_string(Tree, TreeString).

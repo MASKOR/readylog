@@ -123,8 +123,16 @@ ipl_pre_training_phase :- getval(ipl_pre_training_phase, X), X=true.
 
 /** Create a hash table to store the filenames (keys) for
  *  the different solve contexts (values). */
-%:- local reference(solve_hash_zable).
+%:- local reference(solve_hash_table).
 :- hash_create(SolveHashTable), setval(solve_hash_table, SolveHashTable).
+
+/** Create a hash table to store the keys for
+ *  the different policies (values). */
+:- hash_create(PolicyHashTable), setval(policy_hash_table, PolicyHashTable).
+
+/** Global list that stores the fluent list that we use for training
+ *  the C4.5 decision tree. */
+:- setval( ipl_fluents, [] ).
 
 /** Constant defining the maximum domain size for a pickBest. */
 pick_best_domain_size_max(10).

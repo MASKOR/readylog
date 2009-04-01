@@ -1501,12 +1501,16 @@ database for (direct access) exogenous fluent */
  *  save to evaluate the fluents with the same calls, without causing
  *  a segmentation fault. */
 has_val(F,_V,_S) :- iplearn, param_exog_prim_fluents,
+        ipl_pre_training_phase,
         is_param_exog_prim_fluent(F),
         %  Check if the fluent is completely instantiated.
-        ground(F), 
+        ground(F),
+        %  (Still lets 'epf_ItemStatus(InventorySpot358)' pass)
+           F =.. [Functor | _Args],
+           Functor \= epf_ItemStatus, 
         getval(param_exog_prim_fluent_calls, CallList),
         %  If it's not already in the call list...
-        not(memberchk(F, CallList)),
+        not(member(F, CallList)),
         %  ... add this (instantiated) fluent to the call list.
         NewCallList = [F | CallList],
 %	printf("\n\n ##### PARAM_EXOG_PRIM_FLUENT_CALLS: #####\n", []), flush(output),
