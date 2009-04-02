@@ -130,6 +130,17 @@ ipl_pre_training_phase :- getval(ipl_pre_training_phase, X), X=true.
  *  the different policies (values). */
 :- hash_create(PolicyHashTable), setval(policy_hash_table, PolicyHashTable).
 
+/** Create hash tables to store the (average) Value, (average) TermProb, and
+ *  (debugging) Tree for a policy with the corresponding hash key. */
+:- hash_create(PolicyValueHashTable), setval(policy_value_hash_table,
+                                             PolicyValueHashTable).
+
+:- hash_create(PolicyTermprobHashTable), setval(policy_termprob_hash_table,
+                                                PolicyTermprobHashTable).
+
+:- hash_create(PolicyTreeHashTable), setval(policy_tree_hash_table,
+                                             PolicyTreeHashTable).
+
 /** Global list that stores the fluent list that we use for training
  *  the C4.5 decision tree. */
 :- setval( ipl_fluents, [] ).

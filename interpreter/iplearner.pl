@@ -220,6 +220,10 @@ set_ipl_fluent_names(S) :-
 %  solve-context, or we are in the consultation phase for this solve-context.
 :- mode determine_ipl_phase(++, ++, -).
 determine_ipl_phase( _Solve, _S, Phase ) :-
+        !,
+        Phase = "consult".
+
+determine_ipl_phase( _Solve, _S, Phase ) :-
         param_exog_prim_fluents,
         ipl_pre_training_phase,
         getval( last_change_to_fluent_calls, TLastChange ),
@@ -314,6 +318,13 @@ print_skip( Stream, _Pattern, String ) :-
         String = "".
 
 print_skip( Stream, Pattern, String ) :-
+        at_eof( Stream ), !,
+        printf("[print_skip] ***Error*** Got empty Stream %w ", [Stream]),
+        printf("while trying to skip!\n", []),
+        flush(stdout),
+        String = "".
+
+print_skip( Stream, Pattern, String ) :-
         stream_ready( out ),
         read_string(Stream, end_of_line, _, String),
         ( substring(String, Pattern, _) ->
@@ -330,7 +341,14 @@ print_skip( Stream, Pattern, String ) :-
 :- mode quiet_skip(++, ++, -).
 quiet_skip( Stream, _Pattern, String ) :-
         not stream_ready( out ), !,
-        printf("[print_skip] ***Error*** Got empty Stream %w ", [Stream]),
+        printf("[quiet_skip] ***Error*** Got empty Stream %w ", [Stream]),
+        printf("while trying to skip!\n", []),
+        flush(stdout),
+        String = "".
+
+quiet_skip( Stream, Pattern, String ) :-
+        at_eof( Stream ), !,
+        printf("[quiet_skip] ***Error*** Got empty Stream %w ", [Stream]),
         printf("while trying to skip!\n", []),
         flush(stdout),
         String = "".
@@ -373,7 +391,12 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
         term_string(HashKey, HashKeyString),
         %  Create a hash key for the policy.
         getval(policy_hash_table, PolicyHashTable),
-        term_hash(Policy, -1, 1000, PolicyHashKey),
+        %  Construct a Hash Key for the context "[Solve, Policy]".
+        %  The same Policy might appear in different solve contexts,
+        %  and might have very different values in different solves.
+        %  So we will keep apart policies from different solve contexts.
+        term_hash([solve(Prog, Horizon, RewardFunction), Policy], -1, 1000,
+                  PolicyHashKey),
         printf(stdout, "Policy has hash key %w.\n", [PolicyHashKey]),
         term_string(PolicyHashKey, PolicyHashKeyString),
         ( not(hash_contains(PolicyHashTable, PolicyHashKey)) ->
@@ -381,6 +404,38 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
            hash_set(PolicyHashTable, PolicyHashKey, Policy)
         ;
            true
+        ),
+        %  Add the (average) Value, (average) TermProb, and Tree for this
+        %  policy to the corresponding hash tables.
+        getval(policy_value_hash_table, PolicyValueHashTable),
+        ( hash_contains(PolicyValueHashTable, PolicyHashKey) ->
+           %  There is already an average value for this policy (for this
+           %  solve context).
+           hash_get(PolicyValueHashTable, PolicyHashKey, OldAvgValue),
+           NewAvgValue is ((OldAvgValue + Value) / 2),
+           hash_set(PolicyValueHashTable, PolicyHashKey, NewAvgValue)
+        ;
+           %  This is the first time that this policy is seen.
+           hash_set(PolicyValueHashTable, PolicyHashKey, Value)
+        ),
+        getval(policy_termprob_hash_table, PolicyTermprobHashTable),
+        ( hash_contains(PolicyTermprobHashTable, PolicyHashKey) ->
+           %  There is already an average termprob for this policy (for this
+           %  solve context).
+           hash_get(PolicyTermprobHashTable, PolicyHashKey, OldAvgTermprob),
+           NewAvgTermprob is ((OldAvgTermprob + TermProb) / 2),
+           hash_set(PolicyTermprobHashTable, PolicyHashKey, NewAvgTermprob)
+        ;
+           %  This is the first time that this policy is seen.
+           hash_set(PolicyTermprobHashTable, PolicyHashKey, TermProb)
+        ),
+        getval(policy_tree_hash_table, PolicyTreeHashTable),
+        ( hash_contains(PolicyTreeHashTable, PolicyHashKey) ->
+           %  There is already a tree for this policy.
+           true
+        ;
+           %  This is the first time that this policy is seen.
+           hash_set(PolicyTreeHashTable, PolicyHashKey, PolicyTree)
         ),
         ( not(hash_contains(SolveHashTable, HashKey)) ->
                 %  solve context encountered for the first time.
@@ -399,8 +454,7 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
                 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
                 construct_names_file( solve(Prog, Horizon,
                                       RewardFunction),
-                                      PolicyHashKeyString, Value, TermProb,
-                                      PolicyTree, HashKeyString, S,
+                                      PolicyHashKeyString, HashKeyString, S,
                                       ContextString, FluentNames,
                                       DecisionString ),
 
@@ -421,8 +475,7 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
                 %  ##### C4.5 .names file #######    %
                 %  Instantiates DecisionString.      %
                 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
-                continue_names_file( PolicyHashKeyString, Value, TermProb,
-                                     PolicyTree, HashKeyString,
+                continue_names_file( PolicyHashKeyString, HashKeyString,
                                      DecisionString ),
 
                 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
@@ -436,9 +489,9 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
 %  Returns the ContextString, FluentNames, and DecisionString which are
 %  needed by construct_data_file/5.
 %  Helper predicate for write_learning_instance/6.
-:- mode construct_names_file(++, ++, ++, ++, ++, ++, ++, -, -, -).
+:- mode construct_names_file(++, ++, ++, ++, -, -, -).
 construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
-                      Value, TermProb, PolicyTree, HashKeyString, S,
+                      HashKeyString, S,
                       ContextString, FluentNames, DecisionString ) :-
         concat_string(["solve_context_", HashKeyString, ".names"], FileName),
         open(FileName, write, NameStream),
@@ -460,23 +513,26 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
         printf(NameStream, "| separated by commas and terminated by ", []),
         printf(NameStream, "a fullstop.\n", []),
         printf(NameStream, "\n", []),
+%%%        Deprecated... we store the policy in a hash table instead.
 %%%        %  Replace commas, as C4.5 forbids them in class names.
 %%%        term_string(Policy, PolicyString),
 %%%        replace_string(PolicyString, ",", "\\,", PolicyStringNoComma),
 %%%%        printf(NameStream, "%w", [PolicyStringNoComma]),
-        term_string(Value, ValueString),
-        term_string(TermProb, TermProbString),
+%%%        term_string(Value, ValueString),
+%%%        term_string(TermProb, TermProbString),
         %  TODO: PolicyTreeString can get too big for
         %        reasonable processing.
         %        We replace it by the placeholder "Tree", as
         %        it only is used for DT-debugging anyway.
 %%        term_string(PolicyTree, PolicyTreeString),
 %%        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
-        PolicyTreeStringNoComma = "Tree",
-%%%        concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
-        concat_string(["(", PolicyHashKeyString, " <Value_", ValueString, ">",
-                       " <TermProb_", TermProbString, ">", 
-                       " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
+%%%       PolicyTreeStringNoComma = "Tree",
+%%%       concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
+%%%       concat_string(["(", PolicyHashKeyString, " <Value_", ValueString, ">",
+%%%                      " <TermProb_", TermProbString, ">", 
+%%%                      " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
+%%%                      DecisionString),
+        concat_string(["Policy_", PolicyHashKeyString],
                        DecisionString),
         printf(NameStream, "%w", [DecisionString]),
         printf(NameStream, ".|append policies here|", []),
@@ -525,7 +581,7 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
 
 %  Creates the C4.5 .data file for the solve context with key HashKeyString.
 %  Needs the ContextString, FluentNames, and DecisionString from
-%  construct_names_file/10 as input.
+%  construct_names_file/7 as input.
 %  Helper predicate for write_learning_instance/6.
 :- mode construct_data_file(++, ++, ++, ++, ++).
 construct_data_file( S, HashKeyString, ContextString, FluentNames,
@@ -573,9 +629,8 @@ construct_data_file( S, HashKeyString, ContextString, FluentNames,
 %  Continues the C4.5 .names file for the solve context with key HashKeyString.
 %  Returns the DecisionString which is needed by continue_data_file/3
 %  Helper predicate for write_learning_instance/6.
-:- mode continue_names_file(++, ++, ++, ++, ++, ++).
-continue_names_file( PolicyHashKeyString, Value, TermProb, PolicyTree,
-                     HashKeyString, DecisionString ) :-
+:- mode continue_names_file(++, ++, ++).
+continue_names_file( PolicyHashKeyString, HashKeyString, DecisionString ) :-
         concat_string(["solve_context_", HashKeyString, ".names"], FileName),
         %  Check, if the decision (policy) has been already declared.
         open(FileName, read, NameStreamRead),
@@ -586,18 +641,18 @@ continue_names_file( PolicyHashKeyString, Value, TermProb, PolicyTree,
 %%%        %  replace commas in policy, as C4.5 forbids them in class names
 %%%        replace_string(PolicyString, ",", "\\,",
 %%%                       PolicyStringNoComma),
-        term_string(Value, ValueString),
-        term_string(TermProb, TermProbString),
+%%%        term_string(Value, ValueString),
+%%%        term_string(TermProb, TermProbString),
         %  TODO: PolicyTreeString can get too big for
         %        reasonable processing.
         %        We replace it by the placeholder "Tree", as
         %        it only is used for DT-debugging anyway.
 %%        term_string(PolicyTree, PolicyTreeString),
 %%        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
-        PolicyTreeStringNoComma = "Tree",
-        concat_string(["(", PolicyHashKeyString, " <Value_", ValueString, ">",
-                       " <TermProb_", TermProbString, ">", 
-                       " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
+%%%        PolicyTreeStringNoComma = "Tree",
+        %  TODO: Only learn the policy! Store some average values in memory
+        %  for each of them to provide for extract_consult_results!
+        concat_string(["Policy_", PolicyHashKeyString],
                        DecisionString),
         ( substring(NameStreamString, DecisionString, _Pos) ->
            printf(stdout, "Policy already declared.\n", [])
@@ -621,7 +676,7 @@ continue_names_file( PolicyHashKeyString, Value, TermProb, PolicyTree,
         ).
 
 %  Continues the C4.5 .data file for the solve context with key HashKeyString.
-%  Needs the DecisionString from continue_names_file/6 as input.
+%  Needs the DecisionString from continue_names_file/3 as input.
 %  Helper predicate for write_learning_instance/6.
 :- mode continue_data_file(++, ++, ++).
 continue_data_file( S, HashKeyString, DecisionString ) :-
@@ -690,7 +745,14 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
         printf(stdout, "Consulting %w...\n", [FullPath]),
         flush(stdout),
         %  Run the C4.5/Prolog interface as another process.
-        exec(["../../libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
+        ( exists('../../libraries/c45_lib/consultobj/ConsultObjectTest2') ->
+           ConsultObjectTest2 = 
+              "../../libraries/c45_lib/consultobj/ConsultObjectTest2"
+        ;
+           ConsultObjectTest2 =
+              "../libraries/c45_lib/consultobj/ConsultObjectTest2"
+        ),
+        exec([ConsultObjectTest2, "-f",
               FullPath],
              [in, out, err], Pid),
         %  Do the Loop
@@ -821,7 +883,33 @@ ask_c45_for_decision_aux( in, out, err, _S, _IndicatorString,
         ;
            true
         ).
-        
+
+
+%  From the classification DecisionString, extract the policy.
+%  The DecisionString is "Policy_x", where x is the hash key of
+%  the policy.
+:- mode extract_consultation_results(++, -, -, -, -).
+extract_consultation_results( DecisionString,
+                              Policy, Value, TermProb, Tree ) :-
+         %%%  Cut out hash key for Policy.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         length(DecisionString, DecisionLength),
+         substring(DecisionString, 8, DecisionLength, PolicyHashKeyString),
+         term_string(PolicyHashKey, PolicyHashKeyString),
+         %%%  Get the necessary information from the hash tables.  %%%%%%%%%
+         getval(policy_hash_table, PolicyHashTable),
+         hash_get(PolicyHashTable, PolicyHashKey, Policy),
+
+         getval(policy_value_hash_table, PolicyValueHashTable),
+         hash_get(PolicyValueHashTable, PolicyHashKey, Value),
+
+         getval(policy_termprob_hash_table, PolicyTermprobHashTable),
+         hash_get(PolicyTermprobHashTable, PolicyHashKey, TermProb),
+
+         getval(policy_tree_hash_table, PolicyTreeHashTable),
+         hash_get(PolicyTreeHashTable, PolicyHashKey, Tree).
+
+%% DEPRECATED %%
+/*        
 %  From the classification DecisionString, extract the policy, 
 %  its Value, TermProb, and Tree.
 %  They are encoded in the string by markers
@@ -837,7 +925,6 @@ extract_consultation_results( DecisionString,
          ValuePosLeft is (ValuePos - 2),
          substring(DecisionString, 1, ValuePosLeft, PolicyString),
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          %%%  Cut out Value.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          string_length(PolicyString, PolicyLength),
          string_length(DecisionString, DecisionStringLength),
@@ -889,5 +976,8 @@ extract_consultation_results( DecisionString,
          term_string(Value, ValueString),
          term_string(TermProb, TermProbString),
          term_string(Tree, TreeString).
+
+%% /DEPRECATED %%
+*/
 
 % }}}
