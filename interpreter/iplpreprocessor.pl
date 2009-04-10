@@ -981,7 +981,7 @@ apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
 %  replace the pickBest call.
 :- mode create_pickBest_choice_list(++, ++, ++, -, -).
 create_pickBest_code(F, Domain, Delta, PreSolveProg, ChoiceList) :-
-        pick_best_domain_size(Threshold),
+        getval( pick_best_domain_size, Threshold ),
 %        printf(stdout, "pick_best_domain_size is %w\n", [Threshold]),
 %        flush(stdout),
         %  Create a helper list of strings
@@ -1421,50 +1421,94 @@ apply_tau_prime_H( [{P_List} | [star(Alpha) | Omega_Prime]], Horizon,
 %%%  PickBest  %%%
 apply_tau_prime_H( [{P_List} | pickBest(F, Domain, Delta)], 
                    Horizon, [], Tau_Prime_H_Program ) :-
-        !, 
-        findall( Delta_New,
-                 %  Domain will be a list, correct?
-                 ( member(Value, Domain), 
-                   replace_term( Delta, F, Value, Delta_New ) ),
-                 Instantiated_Progs ),
-        integrate({P_List}, Instantiated_Progs, {P_List_New}), 
-        apply_tau_prime_H( [{P_List_New}], Horizon, [],
+        !,
+        %  Since we do not know the Domain of the pickBest,
+        %  we use the above trick from the application of rho
+        %  on pickBest being the first nondeterministic expression. 
+        ( var(Domain) ->
+           get_var_name(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ;
+           term_string(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ),
+        %  We integrate both choice lists.
+        integrate({P_List}, {ChoiceList}, {P_List_New}), 
+        %  We add the domain variable binding code in front.
+        Tau_Prime_H_Program_Tmp = [pickBestBindDomainVariables(PreSolveProg),
+                                   {P_List_New}],
+        %  And recurse, so that the pickBestBindDomainVariables pattern
+        %  is matched.
+        apply_tau_prime_H( Tau_Prime_H_Program_Tmp, Horizon, [],
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | pickBest(F, Domain, Delta)], 
                    Horizon, Program, Tau_Prime_H_Program ) :-
         !, 
-        findall( Delta_New,
-                 %  Domain will be a list, correct?
-                 ( member(Value, Domain), 
-                   replace_term( Delta, F, Value, Delta_New ) ),
-                 Instantiated_Progs ),
-        integrate({P_List}, Instantiated_Progs, {P_List_New}), 
-        apply_tau_prime_H( [{P_List_New}], Horizon, Program,
+        %  Since we do not know the Domain of the pickBest,
+        %  we use the above trick from the application of rho
+        %  on pickBest being the first nondeterministic expression. 
+        ( var(Domain) ->
+           get_var_name(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ;
+           term_string(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ),
+        %  We integrate both choice lists.
+        integrate({P_List}, {ChoiceList}, {P_List_New}), 
+        %  We add the domain variable binding code in front.
+        Tau_Prime_H_Program_Tmp = [pickBestBindDomainVariables(PreSolveProg),
+                                   {P_List_New}],
+        %  And recurse, so that the pickBestBindDomainVariables pattern
+        %  is matched.
+        apply_tau_prime_H( Tau_Prime_H_Program_Tmp, Horizon, Program,
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | [pickBest(F, Domain, Delta) | Omega_Prime]], 
                    Horizon, [], Tau_Prime_H_Program ) :-
         !, 
-        findall( Delta_New,
-                 %  Domain will be a list, correct?
-                 ( member(Value, Domain), 
-                   replace_term( Delta, F, Value, Delta_New ) ),
-                 Instantiated_Progs ),
-        integrate({P_List}, Instantiated_Progs, {P_List_New}), 
-        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, [],
+        %  Since we do not know the Domain of the pickBest,
+        %  we use the above trick from the application of rho
+        %  on pickBest being the first nondeterministic expression. 
+        ( var(Domain) ->
+           get_var_name(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ;
+           term_string(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ),
+        %  We integrate both choice lists.
+        integrate({P_List}, {ChoiceList}, {P_List_New}), 
+        %  We add the domain variable binding code in front.
+        Tau_Prime_H_Program_Tmp = [pickBestBindDomainVariables(PreSolveProg),
+                                   {P_List_New}, Omega_Prime],
+        %  And recurse, so that the pickBestBindDomainVariables pattern
+        %  is matched.
+        apply_tau_prime_H( Tau_Prime_H_Program_Tmp, Horizon, [],
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | [pickBest(F, Domain, Delta) | Omega_Prime]], 
                    Horizon, Program, Tau_Prime_H_Program ) :-
         !, 
-        findall( Delta_New,
-                 %  Domain will be a list, correct?
-                 ( member(Value, Domain), 
-                   replace_term( Delta, F, Value, Delta_New ) ),
-                 Instantiated_Progs ),
-        integrate({P_List}, Instantiated_Progs, {P_List_New}), 
-        apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
+        %  Since we do not know the Domain of the pickBest,
+        %  we use the above trick from the application of rho
+        %  on pickBest being the first nondeterministic expression. 
+        ( var(Domain) ->
+           get_var_name(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ;
+           term_string(Domain, DomainS),
+           create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
+        ),
+        %  We integrate both choice lists.
+        integrate({P_List}, {ChoiceList}, {P_List_New}), 
+        %  We add the domain variable binding code in front.
+        Tau_Prime_H_Program_Tmp = [pickBestBindDomainVariables(PreSolveProg),
+                                   {P_List_New}, Omega_Prime],
+        %  And recurse, so that the pickBestBindDomainVariables pattern
+        %  is matched.
+        apply_tau_prime_H( Tau_Prime_H_Program_Tmp, Horizon, Program,
                            Tau_Prime_H_Program ).
 
 %%%  Empty program (with nondeterministic choice in solve context)  %%%
@@ -1754,7 +1798,7 @@ apply_tau_prime_H( [{P_List} | [Term | Omega_Prime]], Horizon, Program,
 %%%  Conditional (before nondeterministic choice)  %%%
 apply_tau_prime_H( [if(Cond, Sigma1, Sigma2)], Horizon, _Program,
                    Tau_Prime_H_Program ) :- !,
-        %  As Sigma1 or Sigma2 might contain nondeterministic programs,
+        %  Since Sigma1 or Sigma2 might contain nondeterministic programs,
         %  we have to apply tau_prime_H to them.
         %  TODO: For optimisation, we could test, if they contain { }
         %  and otherwise just skip them.
@@ -1766,7 +1810,7 @@ apply_tau_prime_H( [if(Cond, Sigma1, Sigma2)], Horizon, _Program,
 %%%  Conditional (before nondeterministic choice)  %%%
 apply_tau_prime_H( [if(Cond, Sigma1, Sigma2) | Omega], Horizon, Program,
                    Tau_Prime_H_Program ) :- !,
-        %  As Sigma1 or Sigma2 might contain nondeterministic programs,
+        %  Since Sigma1 or Sigma2 might contain nondeterministic programs,
         %  we have to apply tau_prime_H to them.
         %  TODO: For optimisation, we could test, if they contain { }
         %  and otherwise just skip them.
@@ -1966,7 +2010,7 @@ apply_tau(solve([?(Term) | Omega], Horizon, RewardFunction), Tau_Program ) :- !,
 %  If the solve program contains a call to a proc, we have to follow that trail,
 %  and recursively make sure that the proc is purely deterministic before
 %  pulling it out.
-%  Otherwise we might loose a solve context. Consider this example:
+%  Otherwise we might lose a solve context. Consider this example:
 %  proc( procOne, [solve(procTwo, H, R)] ).
 %  proc( procTwo, [nondet[a,b]] ).
 %  The procTwo would be treated as a primitive action, pulled outside the solve
@@ -2022,10 +2066,15 @@ apply_tau(solve([pickBestBindDomainVariables(PreSolveProg), nondet(ChoiceList)],
                        Tau_Program_Tmp].
 
 apply_tau(solve([[pickBestBindDomainVariables(PreSolveProg), nondet(ChoiceList)]
-                | _Omega],
+                | Omega],
                 Horizon, RewardFunction), Tau_Program ) :-
-        %  Forget about Omega (e.g., when converting while to ifs).
-        apply_tau(solve([nondet(ChoiceList)], Horizon, RewardFunction),
+%  Not sure what I meant with the comment and program below :/
+%%        %  Forget about Omega (e.g., when converting while to ifs).
+%%        apply_tau(solve([nondet(ChoiceList)], Horizon, RewardFunction),
+%%                  Tau_Program_Tmp),
+%%        Tau_Program = [pickBestBindDomainVariables(PreSolveProg) |
+%%                       Tau_Program_Tmp].
+        apply_tau(solve([nondet(ChoiceList) | Omega], Horizon, RewardFunction),
                   Tau_Program_Tmp),
         Tau_Program = [pickBestBindDomainVariables(PreSolveProg) |
                        Tau_Program_Tmp].

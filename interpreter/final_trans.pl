@@ -300,6 +300,21 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
                       Value = ValueConsult,
                       TermProb = TermProbConsult,
                       Tree = TreeConsult
+/*
+                      %  Cut out the hash key string from the decision string
+                      %  "Policy_HashKey".
+                      append_strings("Policy_", PolicyHashKeyString,
+                                     PolicyConsult),
+                      term_string(PolicyHashKey, PolicyHashKeyString),
+                      hash_get(PolicyHashTable, PolicyHashKey, Policy),
+                      getval(policy_value_hash_table, PolicyValueHashTable),
+                      hash_get(PolicyValueHashTable, PolicyHashKey, Value),
+                      getval(policy_termprob_hash_table,
+                             PolicyTermprobHashTable),
+                      hash_get(PolicyTermprobHashTable, PolicyHashKey,
+                               TermProb),
+                      getval(policy_tree_hash_table, PolicyTreeHashTable),
+                      hash_get(PolicyTreeHashTable, PolicyHashKey, Tree)*/
                  ;
                       %  Otherwise, stick to DT planning.
 	              bestDoM(Prog, [clipOnline|S], Horizon, PolicyConv,

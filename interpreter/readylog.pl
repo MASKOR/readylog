@@ -128,13 +128,9 @@ icpgolog(E) :-
         % <DP was here>
         (iplearn ->
             writeln("INDUCTIVE POLICY LEARNING ENABLED."),
-            nl
-        ;
-            writeln("INDUCTIVE POLICY LEARNING DISABLED."),
-            nl
-        ),
-        (iplearn ->
-            (param_exog_prim_fluents ->
+            nl,
+            initialise_iplearner,
+            (getval(param_exog_prim_fluents, true) ->
                 writeln("WORLD MODEL CONTAINS PARAMETERISED EXOG. FLUENTS."),
                 nl
             ;
@@ -142,7 +138,8 @@ icpgolog(E) :-
                 nl
             )
         ;
-            true
+            writeln("INDUCTIVE POLICY LEARNING DISABLED."),
+            nl
         ),
         % </DP was here>
         icpgo(E, [s0]).
@@ -336,16 +333,6 @@ initialize :-
   % clean up exoQueue
   retract_all(exoQueue(_)), !,
 
-%  <DP was here>
-  ( iplearn ->
-     get_all_fluent_names(FluentNames),
-     contains_param_exog_prim_fluent(FluentNames, Result),
-     setval( param_exog_prim_fluents, Result )
-  ;
-     true
-  ),
-%  </DP was here>
-  
   % if user provided an own init predicate, call it:
   (user_init ; true).
 
@@ -1494,7 +1481,7 @@ database for (direct access) exogenous fluent */
 %	%printColor( cyan, " has_val [ exogf_Update ] for %w with val %w \n%b", [F, V]).
 
 %  <DP was here>
-/** If IPLearning is active, and there are parameterised exogeneous
+/** If IPLearning is active, and there are parameterised exogenous
  *  primitive fluents in the world model, we need to keep book
  *  of all the instantiated has_val calls to those fluents. If the
  *  program has allowed these calls in the past, we know that it is
@@ -1588,7 +1575,7 @@ sets_val(Act,F,V,H) :-
 %  <DP was here>
 /* ----------------------------------------------------------
 is_param_exog_prim_fluent(F):
-Tests if fluent F is an exogeneous primitive fluent that has
+Tests if fluent F is an exogenous primitive fluent that has
 any parameters.
 ---------------------------------------------------------- */
 :- mode is_param_exog_prim_fluent(++).
@@ -1600,7 +1587,7 @@ is_param_exog_prim_fluent(F) :-
 
 /* ----------------------------------------------------------
 contains_param_exog_prim_fluent(List, Result):
-Tests if the List contains an exogeneous primitive fluent
+Tests if the List contains an exogenous primitive fluent
 that has any parameters, and returns the Result as parameter.
 ---------------------------------------------------------- */
 

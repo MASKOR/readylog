@@ -51,11 +51,128 @@
 
 % }}}
 
+
+% ---------------------------------------------------------- %
+%  Initialisation                                            %
+% ---------------------------------------------------------- %
+
+initialise_iplearner :-
+%        get_flag(cwd, CWD),
+%        printf( stdout, "******* CURRENT WORKING DIR: %w\n", [CWD]),
+%        flush(stdout),
+        %  Constant telling if there are parameterised exogenous
+        %  primitive fluents (compounds containing vars) in the world model.
+        get_all_fluent_names(FluentNames),
+        contains_param_exog_prim_fluent(FluentNames, Result),
+        setval(param_exog_prim_fluents, Result),
+        printf(stdout, "setval(param_exog_prim_fluents, %w)\n", [Result]),
+        %  Constant giving a maximum threshold for the hypothesis error [0,1].
+        %  If the error of the decision tree of a solve context it below that
+        %  error, we switch to the consultation phase for that solve.
+        setval(max_hypothesis_error, 0.2),
+        %  Create a hash table to store the filenames (keys) for
+        %  the different solve contexts (values).
+        hash_create(SolveHashTable), setval(solve_hash_table, SolveHashTable),
+        %  If not already stored on disk, create a fresh hash table to store the keys
+        %  for the different policies (values).
+        ( not(exists('policies.hash')) ->
+           printf("policies.hash doesn't exists -> create fresh hash tables\n", []),
+           flush(stdout),
+           hash_create(PolicyHashTable), setval(policy_hash_table, PolicyHashTable),
+           %  Create hash tables to store the (average) Value, (average) TermProb,
+           %  and (debugging) Tree for a policy with the corresponding hash key.
+           hash_create(PolicyValueHashTable),
+           hash_create(PolicyTermprobHashTable),
+           hash_create(PolicyTreeHashTable)
+        ;
+           printf("policies.hash exists -> create hash tables from file\n", []),
+           flush(stdout),
+           %  Otherwise construct hash lists from the file.
+           create_hash_lists_from_files( PolicyHashTable,
+                                         PolicyValueHashTable,
+                                         PolicyTermprobHashTable,
+                                         PolicyTreeHashTable )
+        ),
+        setval(policy_hash_table, PolicyHashTable),
+        setval(policy_value_hash_table, PolicyValueHashTable),
+        setval(policy_termprob_hash_table, PolicyTermprobHashTable),
+        setval(policy_tree_hash_table, PolicyTreeHashTable),
+        %  Global list that stores the fluent list that we use for training
+        %  the C4.5 decision tree.
+        ( not(exists('ipl.fluents')) ->
+           printf("ipl.fluents doesn't exists -> setting ipl_fluents = []\n",
+                  []),
+           flush(stdout),
+           setval( ipl_fluents, [] ),
+           %  Is IPL still in pre-training phase (collecting calls for
+           %  parameterised exogenous fluents).
+           setval(ipl_pre_training_phase, true)
+        ;
+           printf("ipl.fluents exists -> initialising ipl_fluents from file\n",
+                   []),
+           printf("setting ipl_pre_training_phase = false\n", []),
+           flush(stdout),
+           initialise_ipl_fluents,
+           %  Is IPL still in pre-training phase (collecting calls for
+           %  parameterised exogenous fluents).
+           setval(ipl_pre_training_phase, false)
+        ),
+        %  Constant defining the maximum domain size for a pickBest.
+        setval( pick_best_domain_size_max, 10 ),
+        %  Global list that stores has_val calls to parameterised exogenous
+        %  primitive fluents (compounds containing vars), whenever IPLearning
+        %  is active.
+        setval( param_exog_prim_fluent_calls, [] ),
+        %  System time of the last change
+        %  to the list param_exog_prim_fluent_calls. 
+        setval( last_change_to_fluent_calls, _Uninstantiated ),
+        %  Set the (heuristic) time difference, that we use to decide
+        %  when to start with the IPL training phase.
+        %  If the time of the last change to the list
+        %  param_exog_prim_fluent_calls has been over for
+        %  param_exog_prim_fluent_delta, then determine_ipl_phase/1
+        %  triggers the training phase.
+        setval( param_exog_prim_fluent_delta, 0.5 ).
+        
+%  Shortcuts.
+param_exog_prim_fluents :- getval(param_exog_prim_fluents, X), X=true.
+
+ipl_pre_training_phase :- getval(ipl_pre_training_phase, X), X=true.
+
+
+
 % ---------------------------------------------------------- %
 %  Utilities                                                 %
 % ---------------------------------------------------------- %
 
-%  Returns an ordered set Result of all fluent names.
+%  Reads in the list of fluents that are relevant for IPL
+%  from the file "ipl.fluents" and initialises the
+%  global list ipl_fluents.
+initialise_ipl_fluents :-
+        printf(stdout, "Reading in ipl.fluents ... ", []),
+        flush(stdout),
+        open('ipl.fluents', read, Stream1),
+        read_string(Stream1, end_of_line, _, _),
+        read_string(Stream1, end_of_file, _, ByteList),
+        printf(stdout, "successfully.\n", []),
+        close(Stream1),
+        bytes_to_term(ByteList, Fluents),
+%        printf(stdout, "ipl.Fluents: %w\n", [Fluents]),
+        setval(ipl_fluents, Fluents).
+
+%        string_length(FS, FSLength),
+%        ReducedLength is (FSLength - 2),
+%        substring(FS, 2, ReducedLength, FSNoBrackets),
+%        split_string( FSNoBrackets, ",", " \t", FStringList),
+%        findall( X,
+%                 ( member(XS, FStringList),
+%                   term_string(X, XS)
+%                 ),
+%                 Fluents),
+%        printf(stdout, "ipl.Fluents: %w\n", [Fluents]),
+%        setval(ipl_fluents, Fluents).
+
+%  Returns an ordered set Result of all fluent names as Prolog terms.
 :- mode get_all_fluent_names(-).
 get_all_fluent_names(Result) :-
         %  Get all fluents.
@@ -80,8 +197,9 @@ get_all_fluent_names(Result) :-
         list_to_ord_set(ResultList, Result).
 
 
-%  Returns an ordered set Result of all fluent names of parameterless
-%  fluents and of *fully instantiated* parameterised exog_prim_fluents.
+%  Returns an ordered set Result of all fluents that are
+%  evaluable and have been projected to one dimension.
+%  The list contains the fluent names in byte form!
 :- mode ipl_get_all_fluent_names(-).
 ipl_get_all_fluent_names(S, Result) :-
         param_exog_prim_fluents,
@@ -104,11 +222,16 @@ ipl_get_all_fluent_names(S, Result) :-
         getval( param_exog_prim_fluent_calls, CalledFluents ),
         ResultTmp1 = [GroundFluents, CalledFluents],
         flatten( ResultTmp1, ResultTmp1Flat ),
-        %  Only pick fluents that can be evaluated in
-        %  situation S.
-        findall( EvaluableF,
-                 ( member(EvaluableF, ResultTmp1Flat),
-                   is_valid_fluent(EvaluableF, S)
+        findall( Fluents1D,
+                 ( member(EvaluableFT, ResultTmp1Flat),
+                   %  Transform fluent names to byte form.
+                   term_to_bytes(EvaluableFT, EvaluableFB),
+                   %  Only pick fluents that can be evaluated in
+                   %  situation S.
+                   is_valid_fluent(EvaluableFB, S),
+                   %  Substitute n scalar fluents for
+                   %  n-dimensional vectors.
+                   project_from_n_to_1(EvaluableFB, S, Fluents1D)
                  ),
                  ResultTmp2 ),
         flatten( ResultTmp2, ResultFlat ),
@@ -121,14 +244,19 @@ ipl_get_all_fluent_names(_S, Result) :-
         getval( ipl_fluents, Result ).
 
 ipl_get_all_fluent_names(S, Result) :-
-        % We know: not(param_exog_prim_fluents)
+        %  We know: not(param_exog_prim_fluents)
         %  Get all fluents.
         get_all_fluent_names( ResultTmp1Flat ),
-        %  Only pick fluents that can be evaluated in
-        %  situation S.
-        findall( EvaluableF,
-                 ( member(EvaluableF, ResultTmp1Flat),
-                   is_valid_fluent(EvaluableF, S)
+        findall( Fluents1D,
+                 ( member(EvaluableFT, ResultTmp1Flat),
+                   %  Transform fluent names to byte form.
+                   term_to_bytes(EvaluableFT, EvaluableFB),
+                   %  Only pick fluents that can be evaluated in
+                   %  situation S.
+                   is_valid_fluent(EvaluableFB, S),
+                   %  Substitute n scalar fluents for
+                   %  n-dimensional vectors.
+                   project_from_n_to_1(EvaluableFB, S, Fluents1D)
                  ),
                  ResultTmp2 ),
         flatten( ResultTmp2, ResultFlat ),
@@ -144,34 +272,46 @@ get_all_fluent_values(S, Result) :-
         ipl_get_all_fluent_names(S, Fluents),
         findall( ValFStringNoComma,
                  ( member(F, Fluents),
-                   %  Check if fluent is instantiated and we can evaluate it.
+                   %  Check if fluent is instantiated and we can
+                   %  evaluate it,
+                   %  or if it is a projection of an n-dimensional
+                   %  fluent; then we can evaluate it with
+                   %  get_value_from_n_dim_fluent/4.
                    ( is_valid_fluent(F, S) ->
-                         ( exog_fluent(F) ->
-%                           printf(stdout, "Fluent %w is an exogenous fluent...\n", [F]),
-                           exog_fluent_getValue(F, ValF, S)%,
-%                           printf(stdout, "and has value %w.\n", [ValF])
-                         ;
-%                           printf(stdout, "Fluent %w is *NOT* an exogenous fluent...\n", [F]),
-                           subf(F, ValF, S)%,
-%                           printf(stdout, "and has value %w.\n", [ValF])
-                         ),
-                         %  Replace commas, as C4.5 forbids them in
-                         %  attribute values.
-                         %  Note, that, in general, ValF is a list!
-                         term_string(ValF, ValFString),
-                         replace_string(ValFString, ",", "COMMA",
-                                        ValFStringTmp),
-                         %  Replace ", as they are part of the fluent value
-                         %  and otherwise would be interpreted as string
-                         %  identifier by Prolog during later conversion.
-                         replace_string(ValFStringTmp, "\"", "QUOTATION",
-                                        ValFStringNoComma)
+                      %  Check if the fluent is a projection of an
+                      %  n-dimensional fluent
+                      ( is_projected_fluent(F) ->
+                          get_value_from_n_dim_fluent(F, S, ValF)
+                      ;
+                          bytes_to_term(F, FT),
+                          %  Fluent is instantiated and 1-dimensional.
+                          ( exog_fluent(FT) ->
+%                             printf(stdout, "Fluent %w is an exogenous fluent...\n", [FT]),
+                             exog_fluent_getValue(FT, ValF, S)%,
+%                             printf(stdout, "and has value %w.\n", [ValF])
+                          ;
+%                             printf(stdout, "Fluent %w is *NOT* an exogenous fluent...\n", [FT]),
+                             subf(FT, ValF, S)%,
+%                             printf(stdout, "and has value %w.\n", [ValF])
+                          )
+                      )
                    ;
-                         printf(stdout, "*** Warning: *** ", []),
-                         printf(stdout, "Fluent %w is not valid. ", [F]),
-                         printf(stdout, "Fluent is ignored.\n", []),
-                         false
-                   )
+                      printf(stdout, "*** Warning: *** ", []),
+                      printf(stdout, "Fluent %w is not valid. ", [F]),
+                      printf(stdout, "Fluent is ignored.\n", []),
+                      false
+                   ),
+                   %  Replace commas, as C4.5 forbids them in
+                   %  attribute values.
+                   %  Note, that, in general, ValF is a list!
+                   term_string(ValF, ValFString),
+                   replace_string(ValFString, ",", "COMMA",
+                                  ValFStringTmp),
+                   %  Replace ", as they are part of the fluent value
+                   %  and otherwise would be interpreted as string
+                   %  identifier by Prolog during later conversion.
+                   replace_string(ValFStringTmp, "\"", "QUOTATION",
+                                  ValFStringNoComma)
                  ),
                  Result ),
 %        print_list(Result),
@@ -180,30 +320,59 @@ get_all_fluent_values(S, Result) :-
         printf(stdout, "with success in %w sec.\n", [TQueryDiff]).
                    
 
-%  Tests if fluent F is instantiated and we can evaluate it via subf/hasval
-%  in situation S.
+%  Tests if fluent F (in byte form!) is instantiated and we can evaluate
+%  it in situation S.
 :- mode is_valid_fluent(++, ++).
 is_valid_fluent(F, S) :-
-        nonvar(F),
-        exog_fluent(F),
+        %  Fluents that have been projected to one dimension
+        %  are valid.
+        is_projected_fluent(F),
         !,
-        exog_fluent_getValue(F, _ValF, S).
+        get_value_from_n_dim_fluent(F, S, _ValF).
 
 is_valid_fluent(F, S) :-
         nonvar(F),
-        exog_fluent(F),
-        subf(F, _ValF, S).
-                
+        bytes_to_term(F, FT),
+        exog_fluent(FT),
+        !,
+        exog_fluent_getValue(FT, _ValF, S).
 
-%  Decides, if fluent F is continuous, based on its value in situation S.
+is_valid_fluent(F, S) :-
+        nonvar(F),
+        bytes_to_term(F, FT),
+        exog_fluent(FT),
+        subf(FT, _ValF, S).
+        
+
+%  Checks if a fluent (in byte form!) has been projected to a scalar from
+%  an n-dimensional fluent.
+:- mode is_projected_fluent(++).
+is_projected_fluent(F) :-
+         bytes_to_term(F, ProjectedFluent),
+         ProjectedFluent = projected_fluent(_I, _N, _FluentND).
+
+
+%  Decides, if fluent F (in byte form!) is continuous,
+%  based on its value in situation S.
 :- mode is_continuous(++, ++).
 is_continuous( F, S ) :-
-        exog_fluent(F), !,
-        exog_fluent_getValue(F, ValF, S),
+        is_projected_fluent(F),
+        !,
+        %  Fluent has been projected to one dimension.
+        get_value_from_n_dim_fluent(F, S, ValF),
         float(ValF).
 
 is_continuous( F, S ) :-
-        subf(F, ValF, S),
+        nonvar(F),
+        bytes_to_term(F, FT),
+        exog_fluent(FT), !,
+        exog_fluent_getValue(FT, ValF, S),
+        float(ValF).
+
+is_continuous( F, S ) :-
+        nonvar(F),
+        bytes_to_term(F, FT),
+        subf(FT, ValF, S),
         float(ValF).
         
 
@@ -211,7 +380,143 @@ is_continuous( F, S ) :-
 :- mode set_ipl_fluent_names(++).
 set_ipl_fluent_names(S) :-
         ipl_get_all_fluent_names( S, List ),
-        setval( ipl_fluents, List ).
+        setval( ipl_fluents, List ),
+        %  Write ipl_fluents to file.
+        %  First convert the list to byte form. This is not human-readable,
+        %  but allows us to get valid terms from the string, even if
+        %  the string contains quotation marks or is a callable like
+        %  epf_fluent("Param1", param2).
+        term_to_bytes(List, ByteList),
+        open("ipl.fluents", write, Stream),
+        printf(Stream, "### IPL fluents: ###\n", []),
+        printf(Stream, "%w\n", [ByteList]),
+        close(Stream).
+                  
+
+%  Returns the dimension N of a fluent F (in byte form) in situation S.
+:- mode fluent_dimension(++, ++, -).
+fluent_dimension(F, S, N) :-
+        ( is_valid_fluent(F, S) ->
+           bytes_to_term(F, FT),
+           ( exog_fluent(FT) ->
+              exog_fluent_getValue(FT, ValF, S)
+           ;
+              subf(FT, ValF, S)
+           ),
+           fluent_dimension_aux(ValF, N)%,
+%           printf(stdout, "Dimension of Fluent %w is %w, its Val is: %w.\n",
+%                 [FT, N, ValF]), flush(stdout)
+        ;
+           printf(stdout, "Fluent: %w is not a valid fluent.\n", [F]),
+           flush(stdout),
+           N = 1
+        ).
+
+%  Helper predicate for fluent_dimension/3.
+%  Returns the dimension N of a fluent value ValF in situation S.
+:- mode fluent_dimension_aux(++, -).
+fluent_dimension_aux(ValF, N) :-
+        not(is_list(ValF)),
+        !,
+        N = 1.
+
+fluent_dimension_aux(ValF, N) :-
+        length(ValF, N).
+                      
+
+%  Returns a list of n scalar fluents Fluents1D (in byte form!),
+%  given a n-dimensional fluent FluentND (in byte form!) and a situation S.
+:- mode project_from_n_to_1(++, ++, -).
+project_from_n_to_1(FluentND, S, Fluents1D) :-
+        fluent_dimension(FluentND, S, N),
+        project_from_n_to_1_aux(FluentND, N, Fluents1D).
+
+%  Helper predicate for project_from_n_to_1/3
+%  Returns a list of n scalar fluent names Fluents1D,
+%  given a N-dimensional fluent FluentND.
+:- mode project_from_n_to_1_aux(++, ++, -).
+project_from_n_to_1_aux(FluentND, 1, Fluents1D) :- !,
+        %  Also convert 1D fluents to byte form.
+        Fluents1D = FluentND.
+
+project_from_n_to_1_aux(FluentND, N, Fluents1D) :-
+        ( count(I, 1, N),
+          foreach( Fluent1D, Fluents1D ),
+          param(FluentND, N)
+          do
+%            term_string(I, IS),
+%            term_string(N, NS),
+            %  Convert the fluent name of the n-dimensional fluent
+            %  to bytes, in order to be able to recover it later.
+%            term_string(FluentND, FluentNDS),
+%%            term_to_bytes(FluentND, FluentNDS),
+%            replace_character(FluentNDSRaw, "\"", "\\\"", FluentNDS),
+%            replace_character(FluentNDSRaw, "\"", "qUOTE", FluentNDS),
+%%            concat_string(["dim_", IS, "_of_", NS, "_", FluentNDS],
+%%                           Fluent1D)
+            Fluent1DTmp = projected_fluent(I, N, FluentND),
+            term_to_bytes(Fluent1DTmp, Fluent1D)
+        ).
+
+
+%  Evaluates a 1D fluent F (in byte form!) that it the result of the
+%  projection from a n-dimensional fluent.
+:- mode get_value_from_n_dim_fluent(++, ++, -).
+get_value_from_n_dim_fluent(F, S, ValF) :-
+        bytes_to_term(F, FT),
+        FT = projected_fluent(I, _N, FluentND),
+        %  Decipher name stem of n-dimensional fluent.
+        bytes_to_term(FluentND, FluentNDT),
+        get_value_from_n_dim_fluent(FluentNDT, I, S, ValF).
+
+
+%        term_string(F, FString),
+%        printf(stdout, "FString: %w.\n", [FString]),
+%        string_length(FString, FStringLength),
+%        substring(FString, OfPos, 4, "_of_"),
+%        OfPosRight is (OfPos + 4),
+%        CurrentDimLength is (OfPos - 6),
+%        substring(FString, 6, CurrentDimLength, CurrentDimS),
+%        printf(stdout, "CurrentDimS: %w.\n", [CurrentDimS]),
+%
+%        RestLength is (FStringLength - OfPosRight + 1),
+%        substring(FString, OfPosRight, RestLength, RestString),
+%        substring(RestString, BeforeStemPos, 1, "_"), !,  % Only match the
+%                                                          % finding of the
+%                                                          % pattern.
+%        StemBegin is (BeforeStemPos + 1),
+%        StemLength is (RestLength - StemBegin),
+%        substring(RestString, StemBegin, StemLength, FluentStemString),
+%        printf(stdout, "FluentStemString: %w.\n", [FluentStemString]),
+%        term_string(FluentStemStringString, FluentStemString),
+%        printf(stdout, "FluentStemStringString: %w.\n", [FluentStemStringString]),
+%        bytes_to_term(FluentStemStringString, FluentStem),
+%        printf(stdout, "FluentStem: %w.\n", [FluentStem]),
+%        term_string(CurrentDim, CurrentDimS),
+%        get_value_from_n_dim_fluent(FluentStem, CurrentDim, S, ValF).
+
+
+%  Queries the CurrentDim's dimension of the TotalDim-dimensional
+%  fluent FluentStem and returns the value of this entry.
+:- mode get_value_from_n_dim_fluent(++, ++, ++, -).
+get_value_from_n_dim_fluent(FluentStem, CurrentDim, S, ValF) :-
+        ( exog_fluent(FluentStem) ->
+           exog_fluent_getValue(FluentStem, ValFND, S)
+        ;
+           subf(FluentStem, ValFND, S)
+        ),
+        get_element(CurrentDim, ValFND, ValF).
+           
+
+%  Returns the I'th element from a List.        
+:- mode get_element(++, ++, -).
+get_element(1, List, Element) :- !,
+        List = [Element | _Tail].
+
+get_element(I, List, Element) :-
+        List = [_Head | Tail],
+        J is I - 1,
+        get_element(J, Tail, Element).
 
 
 %  Decide, whether we are in the pre-training phase, where we still collect
@@ -219,9 +524,9 @@ set_ipl_fluent_names(S) :-
 %  still collect training data and train the decision tree for the given
 %  solve-context, or we are in the consultation phase for this solve-context.
 :- mode determine_ipl_phase(++, ++, -).
-determine_ipl_phase( _Solve, _S, Phase ) :-
-        !,
-        Phase = "consult".
+%determine_ipl_phase( _Solve, _S, Phase ) :-
+%        !,
+%        Phase = "consult".
 
 determine_ipl_phase( _Solve, _S, Phase ) :-
         param_exog_prim_fluents,
@@ -242,7 +547,7 @@ determine_ipl_phase( _Solve, _S, Phase ) :-
         (TDiff < CollectionDelta),
         !,
         printf(stdout, "Still collecting calls for parameterised ", []),
-        printf(stdout, "primitive exogeneous fluents. Solve is handled ", []),
+        printf(stdout, "primitive exogenous fluents. Solve is handled ", []),
         printf(stdout, "via DT-planning.\n", []),
         printf(stdout, "TLastChange: %w, TNow: %w, TDiff: %w\n", [TLastChange, TNow, TDiff]), flush(stdout),
         Phase = "pre_train".
@@ -256,7 +561,7 @@ determine_ipl_phase( _Solve, S, Phase ) :-
         length( FluentCalls, Calls ),
         printf(stdout, "Triggering IPL Training Phase!\n", []),
         printf(stdout, "We have collected %w calls for ", [Calls]),
-        printf(stdout, "parameterised exogeneous fluents.\n", []),
+        printf(stdout, "parameterised exogenous fluents.\n", []),
         printf(stdout, "Creating the list of fluents for IPLearning... ", []),
         set_ipl_fluent_names(S),
         printf(stdout, "done.\n", []),
@@ -312,14 +617,15 @@ stream_ready( Stream ) :-
 :- mode print_skip(++, ++, -).
 print_skip( Stream, _Pattern, String ) :-
         not stream_ready( out ), !,
-        printf("[print_skip] ***Error*** Got empty Stream %w ", [Stream]),
+        printf("[print_skip] ***Error*** Stream '%w' is not ready for I/O ",
+               [Stream]),
         printf("while trying to skip!\n", []),
         flush(stdout),
         String = "".
 
-print_skip( Stream, Pattern, String ) :-
+print_skip( Stream, _Pattern, String ) :-
         at_eof( Stream ), !,
-        printf("[print_skip] ***Error*** Got empty Stream %w ", [Stream]),
+        printf("[print_skip] ***Error*** Got empty Stream '%w' ", [Stream]),
         printf("while trying to skip!\n", []),
         flush(stdout),
         String = "".
@@ -339,20 +645,21 @@ print_skip( Stream, Pattern, String ) :-
 %  Returns String of the line where pattern is found.
 %  Helper predicate for chatting with C4.5.
 :- mode quiet_skip(++, ++, -).
-quiet_skip( Stream, _Pattern, String ) :-
+/*quiet_skip( Stream, _Pattern, String ) :-
         not stream_ready( out ), !,
-        printf("[quiet_skip] ***Error*** Got empty Stream %w ", [Stream]),
+        printf("[quiet_skip] ***Error*** Stream '%w' is not ready for I/O ",
+               [Stream]),
         printf("while trying to skip!\n", []),
         flush(stdout),
         String = "".
 
-quiet_skip( Stream, Pattern, String ) :-
+quiet_skip( Stream, _Pattern, String ) :-
         at_eof( Stream ), !,
-        printf("[quiet_skip] ***Error*** Got empty Stream %w ", [Stream]),
+        printf("[quiet_skip] ***Error*** Got empty Stream '%w' ", [Stream]),
         printf("while trying to skip!\n", []),
         flush(stdout),
         String = "".
-
+*/
 quiet_skip( Stream, Pattern, String ) :-
         stream_ready( out ),
         read_string(Stream, end_of_line, _, String),
@@ -401,7 +708,12 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
         term_string(PolicyHashKey, PolicyHashKeyString),
         ( not(hash_contains(PolicyHashTable, PolicyHashKey)) ->
            %  Policy encountered for the first time.
-           hash_set(PolicyHashTable, PolicyHashKey, Policy)
+           hash_set(PolicyHashTable, PolicyHashKey, Policy),
+           setval(policy_hash_table, PolicyHashTable),
+           %  Store the hash table on hard disk for later retrieval.
+%           printf(stdout, "store_hash_list().\n", []),
+           store_hash_list(PolicyHashTable, 'policies.hash')%,
+%           printf(stdout, "succeeded in store_hash_list().\n", [])
         ;
            true
         ),
@@ -413,10 +725,13 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
            %  solve context).
            hash_get(PolicyValueHashTable, PolicyHashKey, OldAvgValue),
            NewAvgValue is ((OldAvgValue + Value) / 2),
-           hash_set(PolicyValueHashTable, PolicyHashKey, NewAvgValue)
+           hash_set(PolicyValueHashTable, PolicyHashKey, NewAvgValue),
+           store_hash_list(PolicyValueHashTable, 'values.hash')
         ;
            %  This is the first time that this policy is seen.
-           hash_set(PolicyValueHashTable, PolicyHashKey, Value)
+           hash_set(PolicyValueHashTable, PolicyHashKey, Value),
+           setval(policy_value_hash_table, PolicyValueHashTable),
+           store_hash_list(PolicyValueHashTable, 'values.hash')
         ),
         getval(policy_termprob_hash_table, PolicyTermprobHashTable),
         ( hash_contains(PolicyTermprobHashTable, PolicyHashKey) ->
@@ -424,10 +739,14 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
            %  solve context).
            hash_get(PolicyTermprobHashTable, PolicyHashKey, OldAvgTermprob),
            NewAvgTermprob is ((OldAvgTermprob + TermProb) / 2),
-           hash_set(PolicyTermprobHashTable, PolicyHashKey, NewAvgTermprob)
+           hash_set(PolicyTermprobHashTable, PolicyHashKey, NewAvgTermprob),
+           setval(policy_termprob_hash_table, PolicyTermprobHashTable),
+           store_hash_list(PolicyTermprobHashTable, 'termprobs.hash')
         ;
            %  This is the first time that this policy is seen.
-           hash_set(PolicyTermprobHashTable, PolicyHashKey, TermProb)
+           hash_set(PolicyTermprobHashTable, PolicyHashKey, TermProb),
+           setval(policy_termprob_hash_table, PolicyTermprobHashTable),
+           store_hash_list(PolicyTermprobHashTable, 'termprobs.hash')
         ),
         getval(policy_tree_hash_table, PolicyTreeHashTable),
         ( hash_contains(PolicyTreeHashTable, PolicyHashKey) ->
@@ -435,7 +754,9 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
            true
         ;
            %  This is the first time that this policy is seen.
-           hash_set(PolicyTreeHashTable, PolicyHashKey, PolicyTree)
+           hash_set(PolicyTreeHashTable, PolicyHashKey, PolicyTree),
+           setval(policy_tree_hash_table, PolicyTreeHashTable),
+           store_hash_list(PolicyTreeHashTable, 'trees.hash')
         ),
         ( not(hash_contains(SolveHashTable, HashKey)) ->
                 %  solve context encountered for the first time.
@@ -553,27 +874,58 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
           param(NameStream, S)
           do
              nonvar(Fluent),
+             bytes_to_term(Fluent, FluentTerm),
              % ( is_cont_fluent(Fluent) -> %  Not really what we are looking
              %                                for. We will use our own test.
              %                                (The test implies that we can
              %                                evaluate the fluent.)
              ( ( is_continuous(Fluent, S) ) ->
-                   printf(NameStream, "%w: continuous.\n", [Fluent])
-             ;
-                   ( is_prim_fluent(Fluent) ->
-                      %  Make sure that we can evaluate the fluent.
-                      ( exog_fluent(F) ->
-                         exog_fluent_getValue(F, _ValF, S)
-                      ;
-                         subf(F, _ValF, S)
-                      ),
-                      printf(NameStream, "%w: discrete 1000.\n", [Fluent])
+                   ( is_projected_fluent(Fluent) ->
+                         %  Decipher name stem of n-dimensional fluent.
+                         FluentTerm = projected_fluent(I, N, FluentND),
+                         bytes_to_term(FluentND, FluentNDT),
+                         term_string(FluentNDT, FluentNDTS),
+                         term_string(I, IS),
+                         term_string(N, NS),
+                         concat_string(["dim_", IS, "_of_", NS, "_",
+                                       FluentNDTS],
+                                       FluentNameForHumans),
+                         printf(NameStream, "%w: discrete 1000.\n",
+                               [FluentNameForHumans])
                    ;
-                      printf(NameStream, "%w: discrete 1000.\n", [Fluent]),
-                      printf(NameStream, "| WARNING: %w is neither ", [Fluent]),
-                      printf(NameStream, "cont nor prim!\n,", []),
-                      printf(stdout, "*** WARNING ***: %w is neither ", [Fluent]),
-                      printf(stdout, "cont nor prim!", [])
+                      printf(NameStream, "%w: continuous.\n", [FluentTerm])
+                   )
+             ;
+                   ( is_projected_fluent(Fluent) ->
+                         %  Decipher name stem of n-dimensional fluent.
+                         FluentTerm = projected_fluent(I, N, FluentND),
+                         bytes_to_term(FluentND, FluentNDT),
+                         term_string(FluentNDT, FluentNDTS),
+                         term_string(I, IS),
+                         term_string(N, NS),
+                         concat_string(["dim_", IS, "_of_", NS, "_",
+                                       FluentNDTS],
+                                       FluentNameForHumans),
+                         printf(NameStream, "%w: discrete 1000.\n",
+                               [FluentNameForHumans])
+                   ;   
+                      %  The fluent is in byte form... we make it human-
+                      %  readable now.
+                      ( is_prim_fluent(FluentTerm) ->
+                         %  Make sure that we can evaluate the fluent.
+                         ( exog_fluent(FluentTerm) ->
+                            exog_fluent_getValue(FluentTerm, _ValF, S)
+                         ;
+                            subf(FluentTerm, _ValF, S)
+                         ),
+                         printf(NameStream, "%w: discrete 1000.\n", [FluentTerm])
+                      ;
+                         printf(NameStream, "%w: discrete 1000.\n", [FluentTerm]),
+                         printf(NameStream, "| WARNING: %w is neither ", [FluentTerm]),
+                         printf(NameStream, "cont nor prim!\n,", []),
+                         printf(stdout, "*** WARNING ***: %w is neither ", [FluentTerm]),
+                         printf(stdout, "cont nor prim!", [])
+                      )
                    )
              )
         ),
@@ -654,7 +1006,13 @@ continue_names_file( PolicyHashKeyString, HashKeyString, DecisionString ) :-
         %  for each of them to provide for extract_consult_results!
         concat_string(["Policy_", PolicyHashKeyString],
                        DecisionString),
-        ( substring(NameStreamString, DecisionString, _Pos) ->
+        concat_string([DecisionString, ","],
+                       DecisionStringAndComma),
+        concat_string([DecisionString, "."],
+                       DecisionStringAndFullstop),
+        ( ( substring(NameStreamString, DecisionStringAndComma, _Pos)
+            ;
+            substring(NameStreamString, DecisionStringAndFullstop, _Pos) ) ->
            printf(stdout, "Policy already declared.\n", [])
         ;
            printf(stdout, "Declaring policy.\n", []),
@@ -687,6 +1045,132 @@ continue_data_file( S, HashKeyString, DecisionString ) :-
         fluent_values_to_string(FluentValues, FluentValuesString),
         printf(DataStream, "%w, %w\n", [FluentValuesString, DecisionString]),
         close(DataStream).
+
+
+%  Stores a HashList to the hard disk in a File.
+:- mode store_hash_list(++, ++).
+store_hash_list(HashList, Filename) :-
+        not(exists(Filename)),
+        !,
+        %  Create a new file.
+        hash_list(HashList, HashKeys, HashValues),
+        open(Filename, write, Stream),
+        printf(Stream, "### HashKeys: ###\n", []),
+        printf(Stream, "%w\n\n", [HashKeys]),
+        printf(Stream, "### HashValues: ###\n", []),
+        printf(Stream, "%w\n", [HashValues]),
+        close(Stream).
+
+store_hash_list(HashList, Filename) :-
+        % File already exists. Delete it and try again.
+        delete(Filename),
+        store_hash_list(HashList, Filename).
+
+
+%  Reads the data from the files, puts them
+%  into hash lists, and returns those lists.
+:- mode create_hash_lists_from_files(-, -, -, -).
+create_hash_lists_from_files( PolicyHashTable,
+                              PolicyValueHashTable,
+                              PolicyTermprobHashTable,
+                              PolicyTreeHashTable ) :-
+        printf(stdout, "Reading in policies.hash ... ", []),
+        flush(stdout),
+        open('policies.hash', read, Stream1),
+        read_string(Stream1, end_of_line, _, _),
+        read_string(Stream1, end_of_line, _, PolicyHashKeysS),
+        read_string(Stream1, end_of_line, _, _),
+        read_string(Stream1, end_of_line, _, _),
+        read_string(Stream1, end_of_line, _, PolicyHashValuesS),
+        printf(stdout, "successfully.\n", []),
+        close(Stream1),
+        printf(stdout, "Creating PolicyHashTable ... ", []),
+        hash_create( PolicyHashTable ),
+        printf(stdout, "successfully.\n", []), flush(stdout),
+        printf(stdout, "Instantiating PolicyHashTable ... ", []),
+        term_string(PolicyHashKeys, PolicyHashKeysS),
+        term_string(PolicyHashValues, PolicyHashValuesS),
+        hash_set_recursively( PolicyHashKeys, PolicyHashValues,
+                              PolicyHashTable ),
+        printf(stdout, "successfully.\n", []),
+        hash_create( PolicyValueHashTable ),
+        ( exists('values.hash') ->
+           printf(stdout, "Reading in values.hash ... ", []),
+           flush(stdout),
+           open('values.hash', read, Stream2),
+           read_string(Stream2, end_of_line, _, _),
+           read_string(Stream2, end_of_line, _, PolicyValueHashKeysS),
+           read_string(Stream2, end_of_line, _, _),
+           read_string(Stream2, end_of_line, _, _),
+           read_string(Stream2, end_of_line, _, PolicyValueHashValuesS),
+           close(Stream2),
+           printf(stdout, "successfully.\n", []),
+           term_string(PolicyValueHashKeys, PolicyValueHashKeysS),
+           term_string(PolicyValueHashValues, PolicyValueHashValuesS),
+           hash_set_recursively( PolicyValueHashKeys, PolicyValueHashValues,
+                                 PolicyValueHashTable )
+        ;
+           true
+        ),
+        hash_create( PolicyTermprobHashTable ),
+        ( exists('termprobs.hash') ->
+           printf(stdout, "Reading in termprobs.hash ... ", []),
+           flush(stdout),
+           open('termprobs.hash', read, Stream3),
+           read_string(Stream3, end_of_line, _, _),
+           read_string(Stream3, end_of_line, _, PolicyTermprobHashKeysS),
+           read_string(Stream3, end_of_line, _, _),
+           read_string(Stream3, end_of_line, _, _),
+           read_string(Stream3, end_of_line, _, PolicyTermprobHashValuesS),
+           close(Stream3),
+           printf(stdout, "successfully.\n", []),
+           term_string(PolicyTermprobHashKeys, PolicyTermprobHashKeysS),
+           term_string(PolicyTermprobHashValues, PolicyTermprobHashValuesS),
+           hash_set_recursively( PolicyTermprobHashKeys, PolicyTermprobHashValues,
+                                 PolicyTermprobHashTable )
+        ;
+           true
+        ),
+        hash_create( PolicyTreeHashTable ),
+        ( exists('trees.hash') ->
+           printf(stdout, "Reading in trees.hash ... ", []),
+           flush(stdout),
+           open('trees.hash', read, Stream4),
+           read_string(Stream4, end_of_line, _, _),
+           read_string(Stream4, end_of_line, _, PolicyTreeHashKeysS),
+           read_string(Stream4, end_of_line, _, _),
+           read_string(Stream4, end_of_line, _, _),
+           read_string(Stream4, end_of_line, _, PolicyTreeHashValuesS),
+           close(Stream4),
+           printf(stdout, "successfully.\n", []),
+           term_string(PolicyTreeHashKeys, PolicyTreeHashKeysS),
+           term_string(PolicyTreeHashValues, PolicyTreeHashValuesS),
+           hash_set_recursively( PolicyTreeHashKeys, PolicyTreeHashValues,
+                                 PolicyTreeHashTable )
+        ;
+           true
+
+        ).
+        
+
+%  Instantiates the HashTable by iterating through
+%  the lists of HashKeys and HashValues and setting each
+%  single pair.
+:- mode hash_set_recursively(++, ++, ?).
+hash_set_recursively( [], [], _HashTable ) :- !.
+
+hash_set_recursively( HashKeys, HashValues, HashTable ) :- 
+% printf(stdout, "hash_set_recursively( %w, %w, %w )\n", [HashKeys, HashValues, HashTable]), flush(stdout),
+% printf(stdout, "HashKeys: %w\n", [HashKeys]), flush(stdout),
+        HashKeys = [Key | RemainingKeys],
+% printf(stdout, "Key: %w\n", [Key]), flush(stdout),
+        HashValues = [Value | RemainingValues],
+% printf(stdout, "hash_set( %w, %w )\n", [Key, Value]), flush(stdout),
+        hash_set(HashTable, Key, Value),
+        hash_set_recursively(RemainingKeys, RemainingValues,
+                             HashTable).
+
+
 
 % }}}
 
@@ -744,15 +1228,29 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
         canonical_path_name(FileStem, FullPath),
         printf(stdout, "Consulting %w...\n", [FullPath]),
         flush(stdout),
-        %  Run the C4.5/Prolog interface as another process.
-        ( exists('../../libraries/c45_lib/consultobj/ConsultObjectTest2') ->
-           ConsultObjectTest2 = 
-              "../../libraries/c45_lib/consultobj/ConsultObjectTest2"
+        concat_string([FullPath, ".tree"], FullPathTree),
+        ( not(exists(FullPathTree)) ->
+            printf(stdout, "Error: %w not found!\n", [FullPathTree])
         ;
-           ConsultObjectTest2 =
-              "../libraries/c45_lib/consultobj/ConsultObjectTest2"
+            true
         ),
-        exec([ConsultObjectTest2, "-f",
+        %  Run the C4.5/Prolog interface as another process.
+     %   ( exists('../../libraries/c45_lib/consultobj/ConsultObjectTest2') ->
+     %      ConsultObjectTest2 = 
+     %         "../../libraries/c45_lib/consultobj/ConsultObjectTest2"
+     %   ;
+     %      ( exists('/home/drcid/readybot/golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2') ->
+%        ConsultObjectTest2 = '../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2',
+     %      ;
+     %         printf(stdout, "ERROR: Didn't find ConsultObjectTest2 executable\n", [])
+     %      )
+     %   ),
+        ( not(exists("../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2")) ->
+            printf(stdout, "Error: ../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2 not found!\n", [])
+        ;
+            true
+        ),
+        exec(["../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
               FullPath],
              [in, out, err], Pid),
         %  Do the Loop
@@ -776,8 +1274,10 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
         ( ( Success == false ) ->
            true
         ;
+            printf(stdout, "[Consultation Phase]: Success == true.. extract...\n", []),
            extract_consultation_results( DecisionString,
                                          Policy, Value, TermProb, Tree ),
+            printf(stdout, "[Consultation Phase]: Success\n", []),
            Success = true
         ),
 
@@ -839,14 +1339,14 @@ ask_c45_for_decision_aux( in, out, err, _S, IndicatorString,
         printf(stdout, "--------\n", []),
         printf(stdout, "[PROLOG] C4.5 is giving a decision.\n", []),
         flush(stdout),
-        read_string(out, end_of_line, _, Decision),
-        string_length(Decision, DecisionLength),
-        RawDecisionLength is (DecisionLength - 2),
-        substring(Decision, 2, RawDecisionLength, DecisionString),
+        read_string(out, end_of_line, _, DecisionString),
+%        string_length(Decision, DecisionLength),
+%        RawDecisionLength is (DecisionLength - 2),
+%        substring(Decision, 2, RawDecisionLength, DecisionString),
         printf(stdout, "[C4.5] Decision: %w\n", [DecisionString]),
         printf(stdout, "--------\n", []),
         flush(stdout),
-        ( stream_ready(out) ->
+        ( ( stream_ready(out), not(at_eof(out) ) ) ->
            read_string(out, end_of_file, _, _Rest)
         ;
            true
@@ -864,7 +1364,7 @@ ask_c45_for_decision_aux( in, out, err, _S, IndicatorString,
         printf(stdout, "--------\n", []),
         Success = false,
         flush(stdout),
-        ( stream_ready(out) ->
+        ( ( stream_ready(out), not(at_eof(out) ) ) ->
            read_string(out, end_of_file, _, _Rest)
         ;
            true
@@ -878,7 +1378,7 @@ ask_c45_for_decision_aux( in, out, err, _S, _IndicatorString,
         printf(stdout, "--------\n", []),
         Success = false,
         flush(stdout),
-        ( stream_ready(out) ->
+        ( ( stream_ready(out), not(at_eof(out) ) ) ->
            read_string(out, end_of_file, _, _Rest)
         ;
            true
@@ -892,21 +1392,31 @@ ask_c45_for_decision_aux( in, out, err, _S, _IndicatorString,
 extract_consultation_results( DecisionString,
                               Policy, Value, TermProb, Tree ) :-
          %%%  Cut out hash key for Policy.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         length(DecisionString, DecisionLength),
-         substring(DecisionString, 8, DecisionLength, PolicyHashKeyString),
+         printf(stdout, "DecisionString: %w\n", [DecisionString]), flush(stdout),
+         append_strings("Policy_", PolicyHashKeyString, DecisionString),
+         printf(stdout, "PolicyHashKeyString: %w\n", [PolicyHashKeyString]), flush(stdout),
          term_string(PolicyHashKey, PolicyHashKeyString),
+         printf(stdout, "PolicyHashKey: %w\n", [PolicyHashKey]), flush(stdout),
          %%%  Get the necessary information from the hash tables.  %%%%%%%%%
          getval(policy_hash_table, PolicyHashTable),
-         hash_get(PolicyHashTable, PolicyHashKey, Policy),
+         ( not(hash_contains(PolicyHashTable, PolicyHashKey)) ->
+            printf(stdout, "Error: No hash entry for this PolicyHashKey in PolicyHashTable!\n", []), flush(stdout)
+         ;
+            hash_get(PolicyHashTable, PolicyHashKey, Policy),
+            printf(stdout, "Policy: %w\n", [Policy]), flush(stdout)
+         ),
 
          getval(policy_value_hash_table, PolicyValueHashTable),
          hash_get(PolicyValueHashTable, PolicyHashKey, Value),
+         printf(stdout, "Value: %w\n", [Value]), flush(stdout),
 
          getval(policy_termprob_hash_table, PolicyTermprobHashTable),
          hash_get(PolicyTermprobHashTable, PolicyHashKey, TermProb),
+         printf(stdout, "TermProb: %w\n", [TermProb]), flush(stdout),
 
          getval(policy_tree_hash_table, PolicyTreeHashTable),
-         hash_get(PolicyTreeHashTable, PolicyHashKey, Tree).
+         hash_get(PolicyTreeHashTable, PolicyHashKey, Tree),
+         printf(stdout, "Tree: %w\n", [Tree]), flush(stdout).
 
 %% DEPRECATED %%
 /*        
