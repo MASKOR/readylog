@@ -70,14 +70,17 @@ initialise_iplearner :-
         %  If the error of the decision tree of a solve context it below that
         %  error, we switch to the consultation phase for that solve.
         setval(max_hypothesis_error, 0.2),
-        %  Create a hash table to store the filenames (keys) for
-        %  the different solve contexts (values).
-        hash_create(SolveHashTable), setval(solve_hash_table, SolveHashTable),
+%        %  Create a hash table to store the filenames (keys) for
+%        %  the different solve contexts (values).
+%        hash_create(SolveHashTable), setval(solve_hash_table, SolveHashTable),
         %  If not already stored on disk, create a fresh hash table to store the keys
         %  for the different policies (values).
-        ( not(exists('policies.hash')) ->
-           printf("policies.hash doesn't exists -> create fresh hash tables\n", []),
+        ( not(exists('solves.hash')) ->
+           printf("solves.hash doesn't exists -> create fresh hash tables\n", []),
            flush(stdout),
+           %  Create a hash table to store the filenames (keys) for
+           %  the different solve contexts (values).
+           hash_create(SolveHashTable), setval(solve_hash_table, SolveHashTable),
            hash_create(PolicyHashTable), setval(policy_hash_table, PolicyHashTable),
            %  Create hash tables to store the (average) Value, (average) TermProb,
            %  and (debugging) Tree for a policy with the corresponding hash key.
@@ -85,14 +88,16 @@ initialise_iplearner :-
            hash_create(PolicyTermprobHashTable),
            hash_create(PolicyTreeHashTable)
         ;
-           printf("policies.hash exists -> create hash tables from file\n", []),
+           printf("solves.hash exists -> create hash tables from file\n", []),
            flush(stdout),
            %  Otherwise construct hash lists from the file.
-           create_hash_lists_from_files( PolicyHashTable,
+           create_hash_lists_from_files( SolveHashTable,
+                                         PolicyHashTable,
                                          PolicyValueHashTable,
                                          PolicyTermprobHashTable,
                                          PolicyTreeHashTable )
         ),
+        setval(solve_hash_table, SolveHashTable),
         setval(policy_hash_table, PolicyHashTable),
         setval(policy_value_hash_table, PolicyValueHashTable),
         setval(policy_termprob_hash_table, PolicyTermprobHashTable),
@@ -466,7 +471,9 @@ get_value_from_n_dim_fluent(F, S, ValF) :-
         bytes_to_term(F, FT),
         FT = projected_fluent(I, _N, FluentND),
         %  Decipher name stem of n-dimensional fluent.
+ printf(stdout, "FluentND: %w\n", [FluentND]), flush(stdout),
         bytes_to_term(FluentND, FluentNDT),
+ printf(stdout, "get_value_from_n_dim_fluent(%w, %w, S, Valf)\n", [FluentNDT, I]), flush(stdout),
         get_value_from_n_dim_fluent(FluentNDT, I, S, ValF).
 
 
@@ -505,7 +512,9 @@ get_value_from_n_dim_fluent(FluentStem, CurrentDim, S, ValF) :-
         ;
            subf(FluentStem, ValFND, S)
         ),
-        get_element(CurrentDim, ValFND, ValF).
+ printf(stdout, "get_element(%w, %w, ValF)\n", [CurrentDim, ValFND]), flush(stdout),
+        get_element(CurrentDim, ValFND, ValF),
+ printf(stdout, "get_element(%w, %w, %w)\n", [CurrentDim, ValFND, ValF]), flush(stdout).
            
 
 %  Returns the I'th element from a List.        
@@ -754,9 +763,12 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
            true
         ;
            %  This is the first time that this policy is seen.
-           hash_set(PolicyTreeHashTable, PolicyHashKey, PolicyTree),
+           %  Store the trees in byte form, since otherwise we
+           %  might face syntax errors during parsing.
+           term_to_bytes(PolicyTree, PolicyTreeBytes),
+           hash_set(PolicyTreeHashTable, PolicyHashKey, PolicyTreeBytes),
            setval(policy_tree_hash_table, PolicyTreeHashTable),
-           store_hash_list(PolicyTreeHashTable, 'trees.hash')
+           store_hash_list_binary(PolicyTreeHashTable, 'trees.hash')
         ),
         ( not(hash_contains(SolveHashTable, HashKey)) ->
                 %  solve context encountered for the first time.
@@ -765,6 +777,8 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
                         solve(Prog, Horizon, RewardFunction)),
                 %  update "global" variable
                 setval(solve_hash_table, SolveHashTable),
+                %  write hash table to file
+                store_hash_list(SolveHashTable, 'solves.hash'),
 
                 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %
                 %  Construct a                       %
@@ -890,7 +904,7 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
                          concat_string(["dim_", IS, "_of_", NS, "_",
                                        FluentNDTS],
                                        FluentNameForHumans),
-                         printf(NameStream, "%w: discrete 1000.\n",
+                         printf(NameStream, "%w: continuous.\n",
                                [FluentNameForHumans])
                    ;
                       printf(NameStream, "%w: continuous.\n", [FluentTerm])
@@ -1059,7 +1073,16 @@ store_hash_list(HashList, Filename) :-
         printf(Stream, "%w\n\n", [HashKeys]),
         printf(Stream, "### HashValues: ###\n", []),
         printf(Stream, "%w\n", [HashValues]),
-        close(Stream).
+        close(Stream),
+        ( Filename = 'policies.hash' ->
+          ( foreach(X, HashValues)
+            do
+              printf(stdout, "\n%w\n", [X]),
+              flush(stdout)
+          )
+        ;
+          true
+        ).
 
 store_hash_list(HashList, Filename) :-
         % File already exists. Delete it and try again.
@@ -1067,23 +1090,71 @@ store_hash_list(HashList, Filename) :-
         store_hash_list(HashList, Filename).
 
 
+%  Stores a HashList to the hard disk in a File with the values in
+%  byte format.
+:- mode store_hash_list_binary(++, ++).
+store_hash_list_binary(HashList, Filename) :-
+        not(exists(Filename)),
+        !,
+        %  Create a new file.
+        hash_list(HashList, HashKeys, HashValues),
+        open(Filename, write, Stream),
+        printf(Stream, "### HashKeys: ###\n", []),
+        printf(Stream, "%w\n\n", [HashKeys]),
+        printf(Stream, "### HashValues: ###\n", []),
+        term_to_bytes(HashValues, HashValuesBytes),
+        printf(Stream, "%w\n", [HashValuesBytes]),
+        close(Stream).
+%        ( foreach(X, HashValues)
+%          do
+%            bytes_to_term(X, XT),
+%            printf(stdout, "%w\n", [XT]),
+%            flush(stdout)
+%        ).
+
+store_hash_list_binary(HashList, Filename) :-
+        % File already exists. Delete it and try again.
+        delete(Filename),
+        store_hash_list_binary(HashList, Filename).
+
+
 %  Reads the data from the files, puts them
 %  into hash lists, and returns those lists.
-:- mode create_hash_lists_from_files(-, -, -, -).
-create_hash_lists_from_files( PolicyHashTable,
+:- mode create_hash_lists_from_files(-, -, -, -, -).
+create_hash_lists_from_files( SolveHashTable,
+                              PolicyHashTable,
                               PolicyValueHashTable,
                               PolicyTermprobHashTable,
                               PolicyTreeHashTable ) :-
+        hash_create( SolveHashTable ),
+        ( exists('solves.hash') ->
+           printf(stdout, "Reading in solves.hash ... ", []),
+           flush(stdout),
+           open('solves.hash', read, Stream1),
+           read_string(Stream1, end_of_line, _, _),
+           read_string(Stream1, end_of_line, _, SolveHashKeysS),
+           read_string(Stream1, end_of_line, _, _),
+           read_string(Stream1, end_of_line, _, _),
+           read_string(Stream1, end_of_line, _, SolveHashValuesS),
+           close(Stream1),
+           printf(stdout, "successfully.\n", []),
+           term_string(SolveHashKeys, SolveHashKeysS),
+           term_string(SolveHashValues, SolveHashValuesS),
+           hash_set_recursively( SolveHashKeys, SolveHashValues,
+                                 SolveHashTable )
+        ;
+           true
+        ),
         printf(stdout, "Reading in policies.hash ... ", []),
         flush(stdout),
-        open('policies.hash', read, Stream1),
-        read_string(Stream1, end_of_line, _, _),
-        read_string(Stream1, end_of_line, _, PolicyHashKeysS),
-        read_string(Stream1, end_of_line, _, _),
-        read_string(Stream1, end_of_line, _, _),
-        read_string(Stream1, end_of_line, _, PolicyHashValuesS),
+        open('policies.hash', read, Stream2),
+        read_string(Stream2, end_of_line, _, _),
+        read_string(Stream2, end_of_line, _, PolicyHashKeysS),
+        read_string(Stream2, end_of_line, _, _),
+        read_string(Stream2, end_of_line, _, _),
+        read_string(Stream2, end_of_line, _, PolicyHashValuesS),
         printf(stdout, "successfully.\n", []),
-        close(Stream1),
+        close(Stream2),
         printf(stdout, "Creating PolicyHashTable ... ", []),
         hash_create( PolicyHashTable ),
         printf(stdout, "successfully.\n", []), flush(stdout),
@@ -1097,13 +1168,13 @@ create_hash_lists_from_files( PolicyHashTable,
         ( exists('values.hash') ->
            printf(stdout, "Reading in values.hash ... ", []),
            flush(stdout),
-           open('values.hash', read, Stream2),
-           read_string(Stream2, end_of_line, _, _),
-           read_string(Stream2, end_of_line, _, PolicyValueHashKeysS),
-           read_string(Stream2, end_of_line, _, _),
-           read_string(Stream2, end_of_line, _, _),
-           read_string(Stream2, end_of_line, _, PolicyValueHashValuesS),
-           close(Stream2),
+           open('values.hash', read, Stream3),
+           read_string(Stream3, end_of_line, _, _),
+           read_string(Stream3, end_of_line, _, PolicyValueHashKeysS),
+           read_string(Stream3, end_of_line, _, _),
+           read_string(Stream3, end_of_line, _, _),
+           read_string(Stream3, end_of_line, _, PolicyValueHashValuesS),
+           close(Stream3),
            printf(stdout, "successfully.\n", []),
            term_string(PolicyValueHashKeys, PolicyValueHashKeysS),
            term_string(PolicyValueHashValues, PolicyValueHashValuesS),
@@ -1116,13 +1187,13 @@ create_hash_lists_from_files( PolicyHashTable,
         ( exists('termprobs.hash') ->
            printf(stdout, "Reading in termprobs.hash ... ", []),
            flush(stdout),
-           open('termprobs.hash', read, Stream3),
-           read_string(Stream3, end_of_line, _, _),
-           read_string(Stream3, end_of_line, _, PolicyTermprobHashKeysS),
-           read_string(Stream3, end_of_line, _, _),
-           read_string(Stream3, end_of_line, _, _),
-           read_string(Stream3, end_of_line, _, PolicyTermprobHashValuesS),
-           close(Stream3),
+           open('termprobs.hash', read, Stream4),
+           read_string(Stream4, end_of_line, _, _),
+           read_string(Stream4, end_of_line, _, PolicyTermprobHashKeysS),
+           read_string(Stream4, end_of_line, _, _),
+           read_string(Stream4, end_of_line, _, _),
+           read_string(Stream4, end_of_line, _, PolicyTermprobHashValuesS),
+           close(Stream4),
            printf(stdout, "successfully.\n", []),
            term_string(PolicyTermprobHashKeys, PolicyTermprobHashKeysS),
            term_string(PolicyTermprobHashValues, PolicyTermprobHashValuesS),
@@ -1135,16 +1206,20 @@ create_hash_lists_from_files( PolicyHashTable,
         ( exists('trees.hash') ->
            printf(stdout, "Reading in trees.hash ... ", []),
            flush(stdout),
-           open('trees.hash', read, Stream4),
-           read_string(Stream4, end_of_line, _, _),
-           read_string(Stream4, end_of_line, _, PolicyTreeHashKeysS),
-           read_string(Stream4, end_of_line, _, _),
-           read_string(Stream4, end_of_line, _, _),
-           read_string(Stream4, end_of_line, _, PolicyTreeHashValuesS),
-           close(Stream4),
+           open('trees.hash', read, Stream5),
+           read_string(Stream5, end_of_line, _, _),
+           read_string(Stream5, end_of_line, _, PolicyTreeHashKeysS),
+           read_string(Stream5, end_of_line, _, _),
+           read_string(Stream5, end_of_line, _, _),
+           %  Read in all lines that are left, as we stored the list of
+           %  trees as byte value, which stretches over several lines.
+           read_string(Stream5, end_of_file, _, PolicyTreeHashValuesS),
+           close(Stream5),
            printf(stdout, "successfully.\n", []),
+           bytes_to_term(PolicyTreeHashValuesS, PolicyTreeHashValues),
            term_string(PolicyTreeHashKeys, PolicyTreeHashKeysS),
-           term_string(PolicyTreeHashValues, PolicyTreeHashValuesS),
+%           term_string(PolicyTreeHashValues, PolicyTreeHashValuesS),
+           bytes_to_term(PolicyTreeHashValuesS, PolicyTreeHashValues),
            hash_set_recursively( PolicyTreeHashKeys, PolicyTreeHashValues,
                                  PolicyTreeHashTable )
         ;
@@ -1312,12 +1387,97 @@ ask_c45_for_decision_aux( in, out, err, S, IndicatorString,
                   "#### Here comes the attribute name ####", _),
         !,
         read_string(out, end_of_line, _, AttributeNameS),
-        term_string(AttributeName, AttributeNameS),
         printf(stdout, "--------\n", []),
         printf(stdout, "[PROLOG] C4.5 asked for the value of attribute: ", []),
         printf(stdout, "%w\n", [AttributeNameS]),
         flush(stdout),
-        exog_fluent_getValue(AttributeName, ValTmp, S),
+%        exog_fluent_getValue(AttributeName, ValTmp, S),
+        %  Check if the fluent is a projection of an
+        %  n-dimensional fluent
+        ( substring(AttributeNameS, 1, 4, "dim_") ->
+           %  Extract the current dimension, the total dimension,
+           %  and the filestem.
+           %  The fluent name has the format:
+           %  dim_CurrDim_of_TotalDim_FileStem.
+           
+           string_length(AttributeNameS, FStringLength),
+           substring(AttributeNameS, OfPos, 4, "_of_"),
+           OfPosRight is (OfPos + 4),
+           CurrentDimLength is (OfPos - 5),
+           substring(AttributeNameS, 5, CurrentDimLength, CurrentDimS),
+           printf(stdout, "CurrentDimS: %w.\n", [CurrentDimS]),
+
+           RestLength is (FStringLength - OfPosRight + 1),
+           substring(AttributeNameS, OfPosRight, RestLength, RestString),
+           substring(RestString, BeforeStemPos, 1, "_"), !,  % Only match the
+                                                             % first finding of
+                                                             % the pattern.
+           BeforeStemPosLeft is (BeforeStemPos - 1),
+           substring(RestString, 1, BeforeStemPosLeft, TotalDimS),
+           printf(stdout, "TotalDimS: %w.\n", [TotalDimS]),
+
+           StemBegin is (BeforeStemPos + 1),
+           StemLength is (RestLength - StemBegin + 1),
+           substring(RestString, StemBegin, StemLength, FluentStemString),
+           printf(stdout, "FluentStemString: %w.\n", [FluentStemString]),
+           flush(stdout),
+
+           %  Converting the FluentStemString to a term with term_string/2
+           %  does not result in the correct term, if the term contains
+           %  quotation marks. That is why we have to try for
+           %  all projected ipl_fluents, if the conversion to a string
+           %  would lead to FluentStemString.
+
+           ipl_get_all_fluent_names(S, IPLFluents),
+
+           findall( Fluent,
+                    ( member(Fluent, IPLFluents),
+                      bytes_to_term(Fluent, ProjectedFluent),
+                      ProjectedFluent = projected_fluent(I, N, FluentND),
+                      bytes_to_term(FluentND, FluentNDT),
+                      term_string(FluentNDT, FluentNDTS),
+                      term_string(I, IS),
+                      term_string(N, NS),
+                      IS = CurrentDimS,
+                      NS = TotalDimS,
+                      FluentNDTS = FluentStemString ),
+                    DegeneratedList ),
+
+           printf(stdout, "DegeneratedList: %w.\n", [DegeneratedList]),
+           flush(stdout),
+
+           DegeneratedList = [Fluent1D],
+           get_value_from_n_dim_fluent(Fluent1D, S, ValTmp)
+           
+%           %  Convert the fluent name from human-readable
+%           %  form to evaluable byte form.
+%
+%           term_string(CurrentDim, CurrentDimS),
+%           term_string(TotalDim, TotalDimS),
+%           bytes_to_term(FluentStemString, FluentStemT),
+%           printf(stdout, "FluentStemT: %w.\n", [FluentStemT]),
+%           term_to_bytes(FluentStemT, FluentStemB),
+                   
+%           Fluent1DTmp = projected_fluent(CurrentDim, TotalDim, FluentStemB),
+%%           printf(stdout, "Fluent1DTmp: %w.\n", [Fluent1DTmp]),
+%           term_to_bytes(Fluent1DTmp, Fluent1D),
+%%           printf(stdout, "Fluent1D: %w.\n", [Fluent1DTmp]),
+%
+%% ipl_get_all_fluent_names(S, ResultList),
+%%           print_list(ResultList),
+%
+%           get_value_from_n_dim_fluent(Fluent1D, S, ValTmp)
+
+        ;
+           %  Fluent is not a projection of an n-dimensional fluent.
+           term_string(AttributeName, AttributeNameS),
+           %  Fluent is instantiated and 1-dimensional.
+           ( exog_fluent(AttributeName) ->
+              exog_fluent_getValue(AttributeName, ValTmp, S)
+           ;
+              subf(AttributeName, ValTmp, S)
+           )
+        ),
         %  Replace commas, as C4.5 forbids them in
         %  attribute values.
         term_string(ValTmp, ValTmpString),
@@ -1415,7 +1575,8 @@ extract_consultation_results( DecisionString,
          printf(stdout, "TermProb: %w\n", [TermProb]), flush(stdout),
 
          getval(policy_tree_hash_table, PolicyTreeHashTable),
-         hash_get(PolicyTreeHashTable, PolicyHashKey, Tree),
+         hash_get(PolicyTreeHashTable, PolicyHashKey, TreeBytes),
+         bytes_to_term(TreeBytes, Tree),
          printf(stdout, "Tree: %w\n", [Tree]), flush(stdout).
 
 %% DEPRECATED %%
