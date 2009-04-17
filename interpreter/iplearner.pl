@@ -122,8 +122,6 @@ initialise_iplearner :-
            %  parameterised exogenous fluents).
            setval(ipl_pre_training_phase, false)
         ),
-        %  Constant defining the maximum domain size for a pickBest.
-        setval( pick_best_domain_size_max, 10 ),
         %  Global list that stores has_val calls to parameterised exogenous
         %  primitive fluents (compounds containing vars), whenever IPLearning
         %  is active.
@@ -705,19 +703,30 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
         term_hash(solve(Prog, Horizon, RewardFunction), -1, 1000, HashKey),
         printf(stdout, "solve has hash key %w.\n", [HashKey]),
         term_string(HashKey, HashKeyString),
+        %  Remove all markers except for marker(true, false) and
+        %  marker(false, true). Those are probably intended
+        %  by the modeller to break a policy. But if, on the other hand,
+        %  we deal with continuous fluent values
+        %  (e.g., 3D positional vectors) in the marker we would get all
+        %  different policies.
+        printf(stdout, "Policy before cleaning markers: %w\n", [Policy]),
+        flush(stdout),
+        clean_up_markers(Policy, PolicyValidMarkers),
+        printf(stdout, "Policy with clean markers: %w\n", [PolicyValidMarkers]),
+        flush(stdout),
         %  Create a hash key for the policy.
         getval(policy_hash_table, PolicyHashTable),
-        %  Construct a Hash Key for the context "[Solve, Policy]".
+        %  Construct a Hash Key for the context "[Solve, PolicyValidMarkers]".
         %  The same Policy might appear in different solve contexts,
         %  and might have very different values in different solves.
         %  So we will keep apart policies from different solve contexts.
-        term_hash([solve(Prog, Horizon, RewardFunction), Policy], -1, 1000,
-                  PolicyHashKey),
+        term_hash([solve(Prog, Horizon, RewardFunction), PolicyValidMarkers],
+                  -1, 1000, PolicyHashKey),
         printf(stdout, "Policy has hash key %w.\n", [PolicyHashKey]),
         term_string(PolicyHashKey, PolicyHashKeyString),
         ( not(hash_contains(PolicyHashTable, PolicyHashKey)) ->
            %  Policy encountered for the first time.
-           hash_set(PolicyHashTable, PolicyHashKey, Policy),
+           hash_set(PolicyHashTable, PolicyHashKey, PolicyValidMarkers),
            setval(policy_hash_table, PolicyHashTable),
            %  Store the hash table on hard disk for later retrieval.
 %           printf(stdout, "store_hash_list().\n", []),
@@ -1244,6 +1253,105 @@ hash_set_recursively( HashKeys, HashValues, HashTable ) :-
         hash_set(HashTable, Key, Value),
         hash_set_recursively(RemainingKeys, RemainingValues,
                              HashTable).
+        
+%  Replaces all markers by the marker(true, true). Exceptions are the 
+%  marker(true, false) and the marker(false, true). Those are probably intended
+%  by the modeller to break a policy. But if, on the other hand,
+%  we deal with continuous fluent values (e.g., 3D positional vectors)
+%  in the marker we would get all different policies.
+:-mode clean_up_markers(++, -).
+clean_up_markers([], Result) :- !,
+        Result = [].
+
+clean_up_markers(marker(true, false), Result) :- !,
+        Result = marker(true, false).
+
+clean_up_markers([marker(true, false) | PolTail], Result) :- !,
+%      printf(stdout, "clean_up_markers(%w, 1)\n", [PolTail]), flush(stdout),
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [marker(true, false) | ResultTmp].
+
+clean_up_markers(marker(false, true), Result) :- !,
+        Result = marker(false, true).
+
+clean_up_markers([marker(false, true) | PolTail], Result) :- !,
+%      printf(stdout, "clean_up_markers(%w, 2)\n", [PolTail]), flush(stdout),
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [marker(false, true) | ResultTmp].
+
+clean_up_markers(marker(_C, _T), Result) :- !,
+        Result = marker(true, true).
+
+clean_up_markers([marker(_C, _T) | PolTail], Result) :- !,
+%      printf(stdout, "clean_up_markers(%w, 3)\n", [PolTail]), flush(stdout),
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [marker(true, true) | ResultTmp].
+
+clean_up_markers([Term | PolTail], Result) :-
+        not(compound(Term)), !,
+        %  Term is neither a list nor a structure.
+%      printf(stdout, "clean_up_markers(%w, 4)\n", [PolTail]), flush(stdout),
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [Term | ResultTmp].
+
+clean_up_markers([Term | PolTail], Result) :-
+        %  Term is a compound.
+        is_list(Term), !,
+        Term = [Head | Tail],
+%      printf(stdout, "clean_up_markers(%w, 5.1)\n", [Head]), flush(stdout),
+        clean_up_markers([Head], HeadClean),
+       HeadClean = [HeadFinal],
+%      printf(stdout, "clean_up_markers(%w, 5.2)\n", [Tail]), flush(stdout),
+        clean_up_markers(Tail, TailClean),
+%      printf(stdout, "clean_up_markers(%w, 5.3)\n", [PolTail]), flush(stdout),
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [[HeadFinal | TailClean] | ResultTmp].
+
+clean_up_markers([Term1=Term2 | PolTail], Result) :-
+        not(is_list(Term1)),
+        not(is_list(Term2)), !,
+        clean_up_markers([Term1], Term1Clean),
+        clean_up_markers([Term2], Term2Clean),
+        Term1Clean = [Term1Final],
+        Term2Clean = [Term2Final],
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [Term1Final=Term2Final | ResultTmp].
+
+clean_up_markers([Term1=Term2 | PolTail], Result) :-
+        not(is_list(Term1)), !,
+        clean_up_markers([Term1], Term1Clean),
+        clean_up_markers(Term2, Term2Clean),
+        Term1Clean = [Term1Final],
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [Term1Final=Term2Clean | ResultTmp].
+
+clean_up_markers([Term1=Term2 | PolTail], Result) :-
+        not(is_list(Term2)), !,
+        clean_up_markers(Term1, Term1Clean),
+        clean_up_markers([Term2], Term2Clean),
+        Term2Clean = [Term2Final],
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [Term1Clean=Term2Final | ResultTmp].
+
+clean_up_markers([Term1=Term2 | PolTail], Result) :-
+        !,
+        clean_up_markers(Term1, Term1Clean),
+        clean_up_markers(Term2, Term2Clean),
+        clean_up_markers(PolTail, ResultTmp),
+        Result = [Term1Clean=Term2Clean | ResultTmp].
+       
+clean_up_markers([Term | PolTail], Result) :-
+        %  As Term is no list and it is a compound,
+        %  it must be a structure (e.g., Term=if(A,B,C)).
+        %  We have to recurse into the arguments.
+        Term =.. [Functor | Args],
+%      printf(stdout, "clean_up_markers: %w =.. [%w, %w]\n", [Term, Functor, Args]), flush(stdout),
+%      printf(stdout, "clean_up_markers(%w, 10.1)\n", [Args]), flush(stdout),
+        clean_up_markers(Args, CleanArgs),
+%      printf(stdout, "clean_up_markers(%w, 10.2)\n", [PolTail]), flush(stdout),
+        clean_up_markers(PolTail, ResultTmp),
+        CleanTerm =.. [Functor | CleanArgs],
+        Result = [CleanTerm | ResultTmp].
 
 
 

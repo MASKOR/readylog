@@ -106,6 +106,9 @@ toggle_iplearn :- getval(iplearn, X),
           setval(iplearn, true),
           printf("IPLearn turned ON\n", [])
        ).
+
+%  Constant defining the maximum domain size for a pickBest.
+:- setval( pick_best_domain_size_max, 10 ).
  
 % </DP was here>
 

@@ -981,12 +981,12 @@ apply_rho_if_aux( [if(Cond, Sigma1, Sigma2) | Omega], Program,
 %  replace the pickBest call.
 :- mode create_pickBest_choice_list(++, ++, ++, -, -).
 create_pickBest_code(F, Domain, Delta, PreSolveProg, ChoiceList) :-
-        getval( pick_best_domain_size, Threshold ),
-%        printf(stdout, "pick_best_domain_size is %w\n", [Threshold]),
+        getval( pick_best_domain_size_max, Threshold ),
+%        printf(stdout, "pick_best_domain_size_max is %w\n", [Threshold]),
 %        flush(stdout),
         %  Create a helper list of strings
         %  VariableList = [PickBestVar1, PickBestVar2, ...,
-        %                  PickBestVarpick_best_domain_size] 
+        %                  PickBestVarpick_best_domain_size_max] 
         ( for(I, 1, Threshold),
           foreach(I, IntegerList)
           do
@@ -1313,7 +1313,7 @@ apply_tau_prime_H( [{P_List} | star(Alpha)], Horizon,
         Star_Program_Tmp = [[] | Star_Program],
          
         %  Integrate the complete rest program into the nondeterministic set.
-        integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+        integrate( {P_List}, Star_Program_Tmp, P_List_New ),
 
         apply_tau_prime_H( [{P_List_New}], Horizon, [],
                            Tau_Prime_H_Program ).
@@ -1343,7 +1343,7 @@ apply_tau_prime_H( [{P_List} | star(Alpha)], Horizon,
         Star_Program_Tmp = [[] | Star_Program],
          
         %  Integrate the complete rest program into the nondeterministic set.
-        integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+        integrate( {P_List}, Star_Program_Tmp, P_List_New ),
 
         apply_tau_prime_H( [{P_List_New}], Horizon, Program,
                            Tau_Prime_H_Program ).
@@ -1378,7 +1378,7 @@ apply_tau_prime_H( [{P_List} | [star(Alpha) | Omega_Prime]], Horizon,
         append( Omega_PrimeTmpList, Star_Program, Star_Program_Tmp ),
          
         %  Integrate the complete rest program into the nondeterministic set.
-        integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+        integrate( {P_List}, Star_Program_Tmp, P_List_New ),
 
         apply_tau_prime_H( [{P_List_New}], Horizon, [],
                            Tau_Prime_H_Program ).
@@ -1413,7 +1413,7 @@ apply_tau_prime_H( [{P_List} | [star(Alpha) | Omega_Prime]], Horizon,
         append( Omega_PrimeTmpList, Star_Program, Star_Program_Tmp ),
          
         %  Integrate the complete rest program into the nondeterministic set.
-        integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+        integrate( {P_List}, Star_Program_Tmp, P_List_New ),
 
         apply_tau_prime_H( [{P_List_New}], Horizon, Program,
                            Tau_Prime_H_Program ).
@@ -1433,7 +1433,7 @@ apply_tau_prime_H( [{P_List} | pickBest(F, Domain, Delta)],
            create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
         ),
         %  We integrate both choice lists.
-        integrate({P_List}, {ChoiceList}, {P_List_New}), 
+        integrate({P_List}, {ChoiceList}, P_List_New), 
         %  We add the domain variable binding code in front.
         Tau_Prime_H_Program_Tmp = [pickBestBindDomainVariables(PreSolveProg),
                                    {P_List_New}],
@@ -1456,7 +1456,7 @@ apply_tau_prime_H( [{P_List} | pickBest(F, Domain, Delta)],
            create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
         ),
         %  We integrate both choice lists.
-        integrate({P_List}, {ChoiceList}, {P_List_New}), 
+        integrate({P_List}, {ChoiceList}, P_List_New), 
         %  We add the domain variable binding code in front.
         Tau_Prime_H_Program_Tmp = [pickBestBindDomainVariables(PreSolveProg),
                                    {P_List_New}],
@@ -1479,7 +1479,7 @@ apply_tau_prime_H( [{P_List} | [pickBest(F, Domain, Delta) | Omega_Prime]],
            create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
         ),
         %  We integrate both choice lists.
-        integrate({P_List}, {ChoiceList}, {P_List_New}), 
+        integrate({P_List}, {ChoiceList}, P_List_New), 
         %  We add the domain variable binding code in front.
         Tau_Prime_H_Program_Tmp = [pickBestBindDomainVariables(PreSolveProg),
                                    {P_List_New}, Omega_Prime],
@@ -1502,7 +1502,7 @@ apply_tau_prime_H( [{P_List} | [pickBest(F, Domain, Delta) | Omega_Prime]],
            create_pickBest_code(F, DomainS, Delta, PreSolveProg, ChoiceList)
         ),
         %  We integrate both choice lists.
-        integrate({P_List}, {ChoiceList}, {P_List_New}), 
+        integrate({P_List}, {ChoiceList}, P_List_New), 
         %  We add the domain variable binding code in front.
         Tau_Prime_H_Program_Tmp = [pickBestBindDomainVariables(PreSolveProg),
                                    {P_List_New}, Omega_Prime],
@@ -1522,7 +1522,10 @@ apply_tau_prime_H( [{P_List}], _Horizon, [], Tau_Prime_H_Program ) :-
         %  Before integration, we had exchanged commas in tests,
         %  while-statements, and if-statements by placeholders.
         %  Now we substitute them back.
-        replace_string(Tmp3, "__COMMA__", ",", P_List_Clean),
+        replace_string(Tmp3, "__COMMA__", ",", Tmp4),
+        %  And we replace semicolons, which we used to separate
+        %  consecutive actions, by commas.
+        replace_string(Tmp4, ";", ",", P_List_Clean),
         %  TODO: sort P_List
         Program_New = [nondet([P_List_Clean])],
         Tau_Prime_H_Program = Program_New.
@@ -1537,7 +1540,10 @@ apply_tau_prime_H( [{P_List}], _Horizon, Program, Tau_Prime_H_Program ) :-
         %  Before integration, we had exchanged commas in tests,
         %  while-statements, and if-statements by placeholders.
         %  Now we substitute them back.
-        replace_string(Tmp3, "__COMMA__", ",", P_List_Clean),
+        replace_string(Tmp3, "__COMMA__", ",", Tmp4),
+        %  And we replace semicolons, which we used to separate
+        %  consecutive actions, by commas.
+        replace_string(Tmp4, ";", ",", P_List_Clean),
         %  TODO: sort P_List
         Program_New = [Program | nondet([P_List_Clean])],
         Tau_Prime_H_Program = Program_New.
@@ -1545,8 +1551,8 @@ apply_tau_prime_H( [{P_List}], _Horizon, Program, Tau_Prime_H_Program ) :-
 %%%  Conditional  %%%
 apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
                    Horizon, [], Tau_Prime_H_Program ) :- !,
-        integrate({P_List}, [?(Cond)], {P_List_New1}), 
-        integrate({P_List}, [?(not(Cond))], {P_List_New2}),
+        integrate({P_List}, [?(Cond)], P_List_New1), 
+        integrate({P_List}, [?(not(Cond))], P_List_New2),
         apply_tau_prime_H( [{P_List_New1} | Sigma1], Horizon,
                            [], Tau_Prime_H_Program1 ),
         apply_tau_prime_H( [{P_List_New2} | Sigma2], Horizon, 
@@ -1561,14 +1567,14 @@ apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
         ReducedLength2 is (Length2 - 10),
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2},
-                         {P_String_Joined} ),
+                         P_String_Joined ),
         %  TODO: sort P_String_Joined
         Tau_Prime_H_Program = [nondet(P_String_Joined)].
 
 apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
                    Horizon, Program, Tau_Prime_H_Program ) :- !,
-        integrate({P_List}, [?(Cond)], {P_List_New1}), 
-        integrate({P_List}, [?(not(Cond))], {P_List_New2}),
+        integrate({P_List}, [?(Cond)], P_List_New1), 
+        integrate({P_List}, [?(not(Cond))], P_List_New2),
         apply_tau_prime_H( [{P_List_New1} | Sigma1], Horizon,
                            Program, Tau_Prime_H_Program1 ),
         apply_tau_prime_H( [{P_List_New2} | Sigma2], Horizon, 
@@ -1583,15 +1589,15 @@ apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
         ReducedLength2 is (Length2 - 10),
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2},
-                         {P_String_Joined} ),
+                         P_String_Joined ),
         %  TODO: sort P_String_Joined
         Program_New = [Program | nondet(P_String_Joined)],
         Tau_Prime_H_Program = Program_New.
 
 apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
                    Horizon, [], Tau_Prime_H_Program ) :- !,
-        integrate({P_List}, [?(Cond)], {P_List_New1}), 
-        integrate({P_List}, [?(not(Cond))], {P_List_New2}),
+        integrate({P_List}, [?(Cond)], P_List_New1), 
+        integrate({P_List}, [?(not(Cond))], P_List_New2),
         apply_tau_prime_H( [{P_List_New1} | [Sigma1 | Omega_Prime]], Horizon,
                            [], Tau_Prime_H_Program1 ),
         apply_tau_prime_H( [{P_List_New2} | [Sigma2 | Omega_Prime]], Horizon, 
@@ -1606,14 +1612,14 @@ apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
         ReducedLength2 is (Length2 - 10),
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2},
-                         {P_String_Joined} ),
+                         P_String_Joined ),
         %  TODO: sort P_String_Joined
         Tau_Prime_H_Program = [nondet(P_String_Joined)].
 
 apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
                    Horizon, Program, Tau_Prime_H_Program ) :- !,
-        integrate({P_List}, [?(Cond)], {P_List_New1}), 
-        integrate({P_List}, [?(not(Cond))], {P_List_New2}),
+        integrate({P_List}, [?(Cond)], P_List_New1), 
+        integrate({P_List}, [?(not(Cond))], P_List_New2),
         apply_tau_prime_H( [{P_List_New1} | [Sigma1 | Omega_Prime]], Horizon,
                            Program, Tau_Prime_H_Program1 ),
         apply_tau_prime_H( [{P_List_New2} | [Sigma2 | Omega_Prime]], Horizon, 
@@ -1628,7 +1634,7 @@ apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
         ReducedLength2 is (Length2 - 10),
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2},
-                         {P_String_Joined} ),
+                         P_String_Joined ),
         %  TODO: sort P_String_Joined
         Program_New = [Program | nondet(P_String_Joined)],
         Tau_Prime_H_Program = Program_New.
@@ -1671,7 +1677,7 @@ apply_tau_prime_H( [{P_List} | while(Cond, Sigma)],
          %  Add the choice of [?(not(Cond))] in the beginning.
          Star_Program_Tmp = [[NegCondTestS] | Star_Program],
          %  Integrate the complete rest program into the nondeterministic set.
-         integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+         integrate( {P_List}, Star_Program_Tmp, P_List_New ),
 
          apply_tau_prime_H( [{P_List_New}], Horizon, [],
                             Tau_Prime_H_Program ).
@@ -1692,7 +1698,7 @@ apply_tau_prime_H( [{P_List} | while(Cond, Sigma)],
          %  Add the choice of [?(not(Cond)); Omega_Prime] in the beginning.
          Star_Program_Tmp = [[NegCondTestS] | Star_Program],
          %  Integrate the complete rest program into the nondeterministic set.
-         integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+         integrate( {P_List}, Star_Program_Tmp, P_List_New ),
 
          apply_tau_prime_H( [{P_List_New}], Horizon, Program,
                             Tau_Prime_H_Program ).
@@ -1716,7 +1722,7 @@ apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
          string_to_list( Tmp1S, Tmp2 ),
          Star_Program_Tmp = [Tmp2 | Star_Program],
          %  Integrate the complete rest program into the nondeterministic set.
-         integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+         integrate( {P_List}, Star_Program_Tmp, P_List_New ),
 
          apply_tau_prime_H( [{P_List_New} | []], Horizon, [],
                             Tau_Prime_H_Program ).
@@ -1740,7 +1746,7 @@ apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
          string_to_list( Tmp1S, Tmp2 ),
          Star_Program_Tmp = [Tmp2 | Star_Program],
          %  Integrate the complete rest program into the nondeterministic set.
-         integrate( {P_List}, Star_Program_Tmp, {P_List_New} ),
+         integrate( {P_List}, Star_Program_Tmp, P_List_New ),
 
          apply_tau_prime_H( [{P_List_New}], Horizon, Program,
                             Tau_Prime_H_Program ).
@@ -1748,50 +1754,53 @@ apply_tau_prime_H( [{P_List} | [while(Cond, Sigma) | Omega_Prime]],
 %%%  Nondeterministic Choice  %%%
 apply_tau_prime_H( [{P_List} | nondet(ArgList)], Horizon,
                    [], Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, ArgList, {P_List_New} ), 
+        integrate( {P_List}, ArgList, P_List_New ), 
         apply_tau_prime_H( [{P_List_New}], Horizon, [],
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | nondet(ArgList)], Horizon,
                    Program, Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, ArgList, {P_List_New} ), 
+        integrate( {P_List}, ArgList, P_List_New ), 
         apply_tau_prime_H( [{P_List_New}], Horizon, Program,
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | [nondet(ArgList) | Omega_Prime]], Horizon,
                    [], Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, ArgList, {P_List_New} ), 
+        %  Convert the nondet into a choice set.
+        apply_rho(nondet(ArgList), [], Rho_List),
+        Rho_List = [P2_List],
+        integrate( {P_List}, P2_List, P_List_New ), 
         apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, [],
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | [nondet(ArgList) | Omega_Prime]], Horizon,
                    Program, Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, ArgList, {P_List_New} ), 
+        integrate( {P_List}, ArgList, P_List_New ), 
         apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
                            Tau_Prime_H_Program ).
 
 %%%  Test Action, Primitive Action, or Stochastic Action  %%%
 apply_tau_prime_H( [{P_List} | Term], Horizon, [],
                    Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, [Term], {P_List_New} ),
+        integrate( {P_List}, [Term], P_List_New ),
         apply_tau_prime_H( [{P_List_New}], Horizon, [],
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | Term], Horizon, Program,
                    Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, [Term], {P_List_New} ),
+        integrate( {P_List}, [Term], P_List_New ),
         apply_tau_prime_H( [{P_List_New}], Horizon, Program,
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | [Term | Omega_Prime]], Horizon, [],
                    Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, [Term], {P_List_New} ),
+        integrate( {P_List}, [Term], P_List_New ),
         apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, [],
                            Tau_Prime_H_Program ).
 
 apply_tau_prime_H( [{P_List} | [Term | Omega_Prime]], Horizon, Program,
                    Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, [Term], {P_List_New} ),
+        integrate( {P_List}, [Term], P_List_New ),
         apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
                            Tau_Prime_H_Program ).
 

@@ -536,65 +536,58 @@ is_deterministic( Prog, SeenProcs, Result ) :-
 
 %  Joins two program sets to another program set.
 :- mode join_prog_lists(++, ++, -).
-join_prog_lists( {P_String1}, {P_String2}, {P_String_Joined} ) :-
+join_prog_lists( {P_String1}, {P_String2}, P_String_Joined ) :-
         %  Add brackets around first argument.
         concat_string( ["[", P_String1, "], "], ReducedString1 ),
         %  Add brackets around second argument.
         concat_string( ["[", P_String2, "]"], ReducedString2 ),
         %  Join argument lists.
-        concat_strings( ReducedString1, ReducedString2, P_String_Joined ).
+        concat_string( [ReducedString1, ReducedString2],
+                       P_String_Joined ).
 
-%  Recursively integrates two program sets into a
-%  new program set.
+%  Recursively integrates either a program set and a program list (argument
+%  list for a nondeterministic choice) or two program sets into a
+%  new program set by creating some kind of cross product.
 :- mode integrate(++, ++, -).
-integrate({P1_String}, {P2_String}, {P_String_New} ) :- 
-        string(P2_String),
+integrate({P1_String}, {P2_String}, P_String_New ) :- 
+%        string(P2_String),
         !,
-        string_to_list(P2_String, P2_List),
-        integrate({P1_String}, P2_List, {P_String_New}).
+        %  Cut away potential brackets [] inside the choice sets.
+        %  So {[Program1, Program2]} would become {Program1, Program2}.
+        remove_outer_list_brackets(P1_String, P1_String_Reduced),
+        remove_outer_list_brackets(P2_String, P2_String_Reduced),
+        integrate_aux({P1_String_Reduced}, {P2_String_Reduced}, P_String_New).
 
-integrate({P_String}, List, {P_String_New} ) :-
-%        printf(stdout, "*** Checking if there are brackets in %w...\n ",
-%              [P_String]),
-        %  Cut away [ and ]. Note that [] are not counted in StringLength.
-        string_length(P_String, StringLength),
-        %  Check if first character is [ and last character is ].
-        ( (substring( P_String, 1, 1, "["),
-           substring( P_String, StringLength, 1, "]") ) ->
-%                printf(stdout, "There are brackets ***\n", []),
-                 %  Cut away brackets.
-                 StringLengthReduced is (StringLength-2),
-                 substring( P_String, 2, StringLengthReduced, ReducedString ),
-                 integrate({ReducedString}, List, {P_String_New})
-           ;
-%                printf(stdout, "No brackets found ***\n", []),
-                 integrate_aux({P_String}, List, {P_String_New})
-        ).
+integrate({P_String}, List, P_String_New ) :- !,
+        %  List is a list of programs to nondeterministically choose from.
+        %  It contains commas to separate list elements, but the elements
+        %  itself may contain commas (e.g., if-statements). Therefore,
+        %  we first transform the program into a choice set with the help
+        %  of the operator rho. It replaces all in-term commas by a
+        %  placeholder __COMMA__.
+        apply_rho(nondet(List), [], RhoList),
+        %  Match again with a program *set* RhoList this time.
+        integrate({P_String}, RhoList, P_String_New).
 
+        
 :- mode integrate_aux(++, ++, -).
-integrate_aux({P_String}, [], {P_String_New}) :- !,
-%        printf(stdout, "*integrate case 1*\n", []),
+%  Note, that we don't add {} to the result. It will be
+%  done later to emphasise the workings of the transformation
+%  operators.
+integrate_aux({P_String}, {""}, P_String_New) :- !,
         P_String_New = P_String.
 
-integrate_aux({""}, List, {P_String_New}) :- !,
-%        printf(stdout, "*integrate case 4* with [Term]=[%w]\n", [Term]),
-        P_List = [],
-%        printf(stdout, "P_String: "" --> P_List: %w\n", [P_List]),
-        append(P_List, List, P_List_New),
-        list_to_string(P_List_New, P_String_New).
-%        printf(stdout, "P_List_New: %w --> P_String_New: %w\n",
-%               [P_List_New, P_String_New]).
+integrate_aux({""}, {P_String}, P_String_New) :- !,
+        P_String_New = P_String.
 
-integrate_aux({P_String}, List, {P_String_New}) :-
-        %  Test, if List really is a list.
-%        printf(stdout, "*integrating a program list*\n", []),
-%        printf(stdout, "%w ---integrate--> {%w}\n", [List, P_String]),
-        string_to_list(P_String, P_List),
-%        printf(stdout, "P_List: %w\n", [P_List]),
+integrate_aux({P1_String}, {P2_String}, P_String_New) :-
+        string_to_list(P1_String, P1_List),
+        string_to_list(P2_String, P2_List),
         %  Create some kind of cross-product.
         findall([X;Y],
-                ( member(X, P_List),               
-                  member(Y, List) ),
+                ( member(X, P1_List),               
+                  member(Y, P2_List)
+                ),
                 P_List_Cross),
         list_to_string(P_List_Cross, P_String_Cross),
         %  Clean up string by removing unnecessary brackets.
@@ -608,11 +601,30 @@ integrate_aux({P_String}, List, {P_String_New}) :-
         remove_character(Tmp2, "[", Tmp3),
         remove_character(Tmp3, "]", P_String_Cross_Clean),
 %        printf(stdout, "P_String_Cross_Clean: %w\n", [P_String_Cross_Clean]),
-
 %        printf(stdout, "P_List_Cross: %w --> P_String_Cross: %w\n",
 %               [P_List_Cross, P_String_Cross]),
         P_String_New = P_String_Cross_Clean.
 
+
+%  Cuts away potential brackets [] inside the choice sets.
+%  So {[Program1, Program2]} would become {Program1, Program2}.
+:- mode remove_outer_list_brackets(++, -).
+remove_outer_list_brackets("", Result) :- !,
+        Result = "".
+
+remove_outer_list_brackets(String, Result) :- !,
+        %  Cut away [ and ]. Note that [] are not counted in StringLength.
+        string_length(String, StringLength),
+        %  Check if first character is [ and last character is ].
+        ( (substring( String, 1, 1, "["),
+           substring( String, StringLength, 1, "]") ) ->
+                 %  Cut away brackets.
+                 StringLengthReduced is (StringLength-2),
+                 substring( String, 2, StringLengthReduced, Result )
+           ;
+                 %  No brackets found.
+                 Result = String
+        ).
         
 
 :- writeln("** loading iplutils.pl\t\t DONE").
