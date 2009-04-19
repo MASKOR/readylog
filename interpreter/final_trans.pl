@@ -588,9 +588,26 @@ transPr( applyLearnedPolicy([PolHead | PolTail],
 	  transPr( applyLearnedPolicy(PolTail,
                    solve(Prog, Horizon, RewardFunction), S_solve), S, ProgR, SNew, 1)
 	;
-	  transPr( PolHead, S, PolHeadR, SNew, 1),  
-	  append(PolHeadR, PolTail, PolR),
-	  ProgR = applyLearnedPolicy(PolR, solve(Prog, Horizon, RewardFunction), S_solve)
+	  printColor(yellow, "\t transPr( %w, %w, PolHeadR, SNew, 1)\n", [PolHead, S]), flush(stdout),
+          %  Since the learning might propose an impossible action,
+          %  we have to check if the goal transPr can be fulfilled.
+          %  Otherwise we re-plan.
+	  ( transPr( PolHead, S, PolHeadR, SNew, 1) ->
+             append(PolHeadR, PolTail, PolR),
+	     ProgR = applyLearnedPolicy(PolR, solve(Prog, Horizon, RewardFunction), S_solve)
+          ;
+	     printColor(red, "BREAKING POLICY (impossible action)\n", []),
+	     printColor(cyan, "SITUATION:%w\n", [S]),
+   	     printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
+	     bestDoM(Prog, [clipOnline|S], Horizon, PolicyReplanned,
+	             _Value, _TermProb, checkEvents, _Tree, RewardFunction),
+	     printf(" --------\t re-planning DONE \t-------------\n", []),
+   	     printf("Policy:\n", []),
+	     printPol(stdout, PolicyReplanned),
+             % use applyPolicy and NOT applyLearnedPolicy
+             ProgR = applyPolicy(PolicyReplanned),
+             SNew = S
+          )
 	).
 % </DP was here>
 	

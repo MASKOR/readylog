@@ -2232,4 +2232,4 @@ autorun :-
 
 :- writeln("** loading iplpreprocessor.pl\t\t DONE").
 
-%:- autorun.
+:- autorun.

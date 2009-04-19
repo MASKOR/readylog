@@ -30,6 +30,7 @@
 %% solve contexts in standard form)
 :- ensure_loaded("ipl_processed_agent.pl").
 
+
 %:- initial_val( pos, V ), setval(real_pos, V).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,34 +77,170 @@ dp_profile :- toggle_iplearn,
               initialise_shades,
               TotalRuns = 2,
               printf("######## Run 1 of %w... ########\n", [TotalRuns]),
-              icp( find_gold(6) ),
+              icp( find_gold(6, _) ),
               reset_values,
               printf("######## Run 2 of %w... ########\n", [TotalRuns]),
-              icp( find_gold(3) ),
+              icp( find_gold(3, _) ),
               reset_values.
 
 dp :- toggle_iplearn,
+      initialise_iplearner,
+      ( exists('wumpus.log') ->
+         delete('wumpus.log')
+      ;
+         true
+      ),
+      open('wumpus.log', write, StreamLog),
       vis_wumpus,
       initialise_shades,
-      TotalRuns = 1200,
-      printf("######## Run 1 of %w... ########\n", [TotalRuns]),
-      icp( find_gold(6) ),
-      reset_values,
-      printf("######## Run 2 of %w... ########\n", [TotalRuns]),
-      icp( find_gold(3) ),
-      reset_values,
-      LastRun is (TotalRuns + 4),
-      ( count(I,7,LastRun),
-        param(TotalRuns)
+      TotalRuns = 1500,
+      printf(StreamLog, "# TotalRuns = %w\n", [TotalRuns]),
+      setval(total_gold_found, 0),
+      setval(avg_user_time_per_level, 0.0),
+      setval(avg_system_time_per_level, 0.0),
+      setval(avg_real_time_per_level, 0.0),
+      statistics(times, [GlobalStartTimeUser, 
+                         GlobalStartTimeSystem,
+                         GlobalStartTimeReal]),
+      date(StartDate),
+      printf(StreamLog, "# StartTime = %w\n\n", [StartDate]),
+      printf(StreamLog, "-----------------------------------------------------------------------\n", []),
+      printf(StreamLog, "Level \t Time for Level                \t Found Gold \t Goldbars Found\n", []),
+      printf(StreamLog, "      \t [UserCPU, SystemCPU, Session] \t            \t (in percent) \n", []),
+      printf(StreamLog, "      \t (in seconds)\n", []),
+      printf(StreamLog, "-----------------------------------------------------------------------\n\n", []),
+      ( count(I,1,TotalRuns),
+        param(TotalRuns, StreamLog)
         do
-          CurrentRun is (I - 4),
-          printf("######## Run %w of %w... ########\n", [CurrentRun, TotalRuns]),
-          icp( find_gold(I) ),
-          reset_values
-      ).
+          statistics(times, [LevelStartTimeUser,
+                             LevelStartTimeSystem,
+                             LevelStartTimeReal]),
+          printf("######## Run %w of %w... ########\n", [I, TotalRuns]),
+          printf(StreamLog, "%w \t ", [I]),
+          icp( find_gold(I, FoundGold) ),
+          reset_values,
+          statistics(times, [LevelEndTimeUser,
+                             LevelEndTimeSystem,
+                             LevelEndTimeReal]),
+          LevelTimeDiffUserTmp is (LevelEndTimeUser - LevelStartTimeUser),
+          round(LevelTimeDiffUserTmp, LevelTimeDiffUser),
+          LevelTimeDiffSystemTmp is (LevelEndTimeSystem - LevelStartTimeSystem),
+          round(LevelTimeDiffSystemTmp, LevelTimeDiffSystem),
+          LevelTimeDiffRealTmp is (LevelEndTimeReal - LevelStartTimeReal),
+          round(LevelTimeDiffRealTmp, LevelTimeDiffReal),
+          printf("######## Finished level %w in %w seconds. ########\n",
+                 [I, LevelTimeDiffReal]), flush(stdout),
+          printf(StreamLog, "[%w, %w, %w] \t \t ", [LevelTimeDiffUser,
+                                                    LevelTimeDiffSystem,
+                                                    LevelTimeDiffReal]),
+
+          getval(avg_user_time_per_level, AvgUserTimePerLevel),
+          AvgUserTimePerLevelSum is (AvgUserTimePerLevel + LevelTimeDiffUser),
+          AvgUserTimePerLevelDiv is (AvgUserTimePerLevelSum / 2.0),
+          round(AvgUserTimePerLevelDiv, AvgUserTimePerLevelNew),
+          setval(avg_user_time_per_level, AvgUserTimePerLevelNew),
+
+          getval(avg_system_time_per_level, AvgSystemTimePerLevel),
+          AvgSystemTimePerLevelSum is (AvgSystemTimePerLevel + LevelTimeDiffSystem),
+          AvgSystemTimePerLevelDiv is (AvgSystemTimePerLevelSum / 2.0),
+          round(AvgSystemTimePerLevelDiv, AvgSystemTimePerLevelNew),
+          setval(avg_system_time_per_level, AvgSystemTimePerLevelNew),
+
+          getval(avg_real_time_per_level, AvgRealTimePerLevel),
+          AvgRealTimePerLevelSum is (AvgRealTimePerLevel + LevelTimeDiffReal),
+          AvgRealTimePerLevelDiv is (AvgRealTimePerLevelSum / 2.0),
+          round(AvgRealTimePerLevelDiv, AvgRealTimePerLevelNew),
+          setval(avg_real_time_per_level, AvgRealTimePerLevelNew),
+
+          ( FoundGold ->
+             getval(total_gold_found, TotalGoldFound),
+             TotalGoldFoundNew is (TotalGoldFound + 1),
+             setval(total_gold_found, TotalGoldFoundNew),
+             printf("######## Found the gold in level %w. ########\n",
+                    [I]), flush(stdout),
+             printf(StreamLog, "true \t \t ", [])
+          ;
+             printf("######## Didn't find the gold in level %w. ########\n",
+                    [I]), flush(stdout),
+             printf(StreamLog, "false \t \t ", [])
+          ),
+          getval(total_gold_found, TGF),
+          float(TGF, TGFf),
+          float(I, If),
+          TGFPercentTmp1 is (TGFf / If),
+          TGFPercentTmp2 is (TGFPercentTmp1 * 100.0),
+          round(TGFPercentTmp2, TGFPercent),
+          printf("######## Found %w of %w possible goldbars (%w percent). ########\n\n",
+                 [TGF, I, TGFPercent]), flush(stdout),
+          printf(StreamLog, "%w \n", [TGFPercent]),
+
+          LevelsLeft is (TotalRuns - I),
+          RealTimeRemainingTmp is (LevelsLeft * AvgRealTimePerLevelNew),
+          round(RealTimeRemainingTmp, TimeRemaining),
+          seconds_to_hms(TimeRemaining, ETAHours, ETAMinutes, ETASeconds),
+          printf("######## Estimated time left for solving all levels: %w:%w:%w (H:M:S). ########\n",
+                 [ETAHours, ETAMinutes, ETASeconds]), flush(stdout)
+      ),
+      statistics(times, [GlobalEndTimeUser, 
+                         GlobalEndTimeSystem,
+                         GlobalEndTimeReal]),
+      GlobalTimeDiffUser is (GlobalEndTimeUser - GlobalStartTimeUser),
+      GlobalTimeDiffSystem is (GlobalEndTimeSystem - GlobalStartTimeSystem),
+      GlobalTimeDiffReal is (GlobalEndTimeReal - GlobalStartTimeReal),
+      seconds_to_hms(GlobalTimeDiffUser, GTDHoursUser, GTDMinutesUser, GTDSecondsUser),
+      seconds_to_hms(GlobalTimeDiffSystem, GTDHoursSystem, GTDMinutesSystem, GTDSecondsSystem),
+      seconds_to_hms(GlobalTimeDiffReal, GTDHoursReal, GTDMinutesReal, GTDSecondsReal),
+      printf("######## Finished %w runs in %w hours, %w minutes, %w seconds of User CPU Time. ########\n",
+             [TotalRuns, GTDHoursUser, GTDMinutesUser, GTDSecondsUser]), flush(stdout),
+      getval(avg_user_time_per_level, ATPLUser),
+      printf("######## Average user cpu time per level: %w seconds. ########\n",
+             [ATPLUser]), flush(stdout),
+      printf("######## Finished %w runs in %w hours, %w minutes, %w seconds of System CPU Time. ########\n",
+             [TotalRuns, GTDHoursSystem, GTDMinutesSystem, GTDSecondsSystem]), flush(stdout),
+      getval(avg_system_time_per_level, ATPLSystem),
+      printf("######## Average system cpu time per level: %w seconds. ########\n",
+             [ATPLSystem]), flush(stdout),
+      printf("######## Finished %w runs in %w hours, %w minutes, %w seconds of Real Session Time. ########\n",
+             [TotalRuns, GTDHoursReal, GTDMinutesReal, GTDSecondsReal]), flush(stdout),
+      getval(avg_real_time_per_level, ATPLReal),
+      printf("######## Average real session time per level: %w seconds. ########\n",
+             [ATPLReal]), flush(stdout),
+
+      printf(StreamLog, "\n# Finished %w runs in %w hours, %w minutes, %w seconds of User CPU Time.\n",
+             [TotalRuns, GTDHoursUser, GTDMinutesUser, GTDSecondsUser]),
+      printf(StreamLog, "# Average user cpu time per level: %w seconds.\n",
+             [ATPLUser]), flush(stdout),
+      printf(StreamLog, "# Finished %w runs in %w hours, %w minutes, %w seconds of System CPU Time.\n",
+             [TotalRuns, GTDHoursSystem, GTDMinutesSystem, GTDSecondsSystem]), flush(stdout),
+      printf(StreamLog, "# Average system cpu time per level: %w seconds.\n",
+             [ATPLSystem]), flush(stdout),
+      printf(StreamLog, "# Finished %w runs in %w hours, %w minutes, %w seconds of Real Session Time.\n",
+             [TotalRuns, GTDHoursReal, GTDMinutesReal, GTDSecondsReal]), flush(stdout),
+      printf(StreamLog, "# Average real session time per level: %w seconds.\n",
+             [ATPLReal]), flush(stdout),
+      close(StreamLog).
+      
       
 dpdebug :- toggle_dtdebug, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
 dp_novis :- initialise_wumpus_lists, icp( find_gold ).
+
+%  Converts a unix Time in seconds into three values
+%  for Hours, Minutes, and Seconds.
+:- mode seconds_to_hms(++, -, -, -).
+seconds_to_hms(Time, Hours, Minutes, Seconds) :-
+        HoursTmp1 is (Time / 3600),
+        round(HoursTmp1, HoursTmp2),
+        integer(HoursTmp2, Hours),
+
+        MinutesTmp1 is (Time / 60),
+        round(MinutesTmp1, MinutesTmp2),
+        integer(MinutesTmp2, MinutesTmp3),
+        Minutes is (MinutesTmp3 mod 60), 
+
+        round(Time, SecondsTmp1),
+        integer(SecondsTmp1, SecondsTmp2),
+        Seconds is (SecondsTmp2 mod 60).
+
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  SHORTUTS                                           %%

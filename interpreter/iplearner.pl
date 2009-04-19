@@ -430,6 +430,16 @@ fluent_dimension_aux(ValF, N) :-
 %  Returns a list of n scalar fluents Fluents1D (in byte form!),
 %  given a n-dimensional fluent FluentND (in byte form!) and a situation S.
 :- mode project_from_n_to_1(++, ++, -).
+project_from_n_to_1(FluentND, _S, Fluents1D) :-
+        %  Hack for Wumpus World. It contains fluents that are dynamic lists
+        %  of lists. Their dimension changes during program execution.
+        %  So we use identity for projection.
+        bytes_to_term(FluentND, FluentNDT),
+        term_string(FluentNDT, FluentNDS),
+        substring(FluentNDS, "epf_cells", 1),
+        !,
+        project_from_n_to_1_aux(FluentND, 1, Fluents1D).
+
 project_from_n_to_1(FluentND, S, Fluents1D) :-
         fluent_dimension(FluentND, S, N),
         project_from_n_to_1_aux(FluentND, N, Fluents1D).
@@ -469,9 +479,9 @@ get_value_from_n_dim_fluent(F, S, ValF) :-
         bytes_to_term(F, FT),
         FT = projected_fluent(I, _N, FluentND),
         %  Decipher name stem of n-dimensional fluent.
- printf(stdout, "FluentND: %w\n", [FluentND]), flush(stdout),
+% printf(stdout, "FluentND: %w\n", [FluentND]), flush(stdout),
         bytes_to_term(FluentND, FluentNDT),
- printf(stdout, "get_value_from_n_dim_fluent(%w, %w, S, Valf)\n", [FluentNDT, I]), flush(stdout),
+% printf(stdout, "get_value_from_n_dim_fluent(%w, %w, S, Valf)\n", [FluentNDT, I]), flush(stdout),
         get_value_from_n_dim_fluent(FluentNDT, I, S, ValF).
 
 
@@ -510,9 +520,9 @@ get_value_from_n_dim_fluent(FluentStem, CurrentDim, S, ValF) :-
         ;
            subf(FluentStem, ValFND, S)
         ),
- printf(stdout, "get_element(%w, %w, ValF)\n", [CurrentDim, ValFND]), flush(stdout),
-        get_element(CurrentDim, ValFND, ValF),
- printf(stdout, "get_element(%w, %w, %w)\n", [CurrentDim, ValFND, ValF]), flush(stdout).
+% printf(stdout, "get_element(%w, %w, ValF)\n", [CurrentDim, ValFND]), flush(stdout),
+        get_element(CurrentDim, ValFND, ValF).
+% printf(stdout, "get_element(%w, %w, %w)\n", [CurrentDim, ValFND, ValF]), flush(stdout).
            
 
 %  Returns the I'th element from a List.        
@@ -531,9 +541,9 @@ get_element(I, List, Element) :-
 %  still collect training data and train the decision tree for the given
 %  solve-context, or we are in the consultation phase for this solve-context.
 :- mode determine_ipl_phase(++, ++, -).
-%determine_ipl_phase( _Solve, _S, Phase ) :-
-%        !,
-%        Phase = "consult".
+determine_ipl_phase( _Solve, _S, Phase ) :-
+        !,
+        Phase = "consult".
 
 determine_ipl_phase( _Solve, _S, Phase ) :-
         param_exog_prim_fluents,
@@ -742,7 +752,8 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
            %  There is already an average value for this policy (for this
            %  solve context).
            hash_get(PolicyValueHashTable, PolicyHashKey, OldAvgValue),
-           NewAvgValue is ((OldAvgValue + Value) / 2),
+           SumValue is (OldAvgValue + Value),
+           NewAvgValue is (SumValue / 2.0),
            hash_set(PolicyValueHashTable, PolicyHashKey, NewAvgValue),
            store_hash_list(PolicyValueHashTable, 'values.hash')
         ;
@@ -756,7 +767,8 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
            %  There is already an average termprob for this policy (for this
            %  solve context).
            hash_get(PolicyTermprobHashTable, PolicyHashKey, OldAvgTermprob),
-           NewAvgTermprob is ((OldAvgTermprob + TermProb) / 2),
+           SumTermprob is (OldAvgTermprob + TermProb),
+           NewAvgTermprob is (SumTermprob / 2.0),
            hash_set(PolicyTermprobHashTable, PolicyHashKey, NewAvgTermprob),
            setval(policy_termprob_hash_table, PolicyTermprobHashTable),
            store_hash_list(PolicyTermprobHashTable, 'termprobs.hash')
@@ -1428,14 +1440,22 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
      %         printf(stdout, "ERROR: Didn't find ConsultObjectTest2 executable\n", [])
      %      )
      %   ),
-        ( not(exists("../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2")) ->
-            printf(stdout, "Error: ../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2 not found!\n", [])
+        ( not(exists("../../libraries/c45_lib/consultobj/ConsultObjectTest2")) ->
+            printf(stdout, "Error: ../../libraries/c45_lib/consultobj/ConsultObjectTest2 not found!\n", [])
         ;
             true
         ),
-        exec(["../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
+        exec(["../../libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
               FullPath],
              [in, out, err], Pid),
+%%        ( not(exists("../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2")) ->
+%%            printf(stdout, "Error: ../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2 not found!\n", [])
+%%        ;
+%%            true
+%%        ),
+%%        exec(["../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
+%%              FullPath],
+%%             [in, out, err], Pid),
         %  Do the Loop
         %  "C4.5 asks for attribute value ->
         %   Readylog provides Fluent Value ->
@@ -1685,7 +1705,11 @@ extract_consultation_results( DecisionString,
          getval(policy_tree_hash_table, PolicyTreeHashTable),
          hash_get(PolicyTreeHashTable, PolicyHashKey, TreeBytes),
          bytes_to_term(TreeBytes, Tree),
-         printf(stdout, "Tree: %w\n", [Tree]), flush(stdout).
+         ( dtdebug ->
+            printf(stdout, "Tree: %w\n", [Tree]), flush(stdout)
+         ;
+            true
+         ).
 
 %% DEPRECATED %%
 /*        

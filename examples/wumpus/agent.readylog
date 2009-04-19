@@ -96,7 +96,9 @@ function( adl(E,L), V,
 %%  FIND AND GET GOLD                                                 %%
 %% ================================================================== %%
 
-proc( find_gold(Seed),
+%  Lets the agent search for gold in a level that is randomised by
+%  Seed and returns a boolean indicating if the gold was found or not.
+proc( find_gold(Seed, FoundGold),
       [
          cout(" === INITIALISING DUNGEON === \n"),
 
@@ -126,6 +128,7 @@ proc( find_gold(Seed),
                             exogf_Update ]
                     ),
                make_yourself_at_home,
+               ?( FoundGold = false ),
                cout(" === FINISHED FIND_GOLD === \n")
              ],
              [ %%  else (if epf_gold_reachable = true)
@@ -143,6 +146,7 @@ proc( find_gold(Seed),
                               exogf_Update ]
                       ),
                  make_yourself_at_home,
+                 ?( FoundGold = false ),
                  cout(" === FINISHED FIND_GOLD === \n")
                ],
                %%  epf_still_time = true
@@ -159,6 +163,7 @@ proc( find_gold(Seed),
                                exogf_Update ]
                        ),
                   make_yourself_at_home,
+                  ?( FoundGold = true ),
                   cout(" === FINISHED FIND_GOLD === \n")
                ]
                ) %%  endif epf_still_time

@@ -285,7 +285,8 @@ xTra(exogf_Update, _H) :- !,
         ( breeze(V_AGENT_POS_X, V_AGENT_POS_Y) ->
 %                printColor( blue, " Sensing a breeze at %w \n", [V_AGENT_POS]),
                 ( nonmember([V_AGENT_POS_X, V_AGENT_POS_Y], V_CELLS_BRE ) ->
-                        V_CELLS_BRE_NEW = [[V_AGENT_POS_X, V_AGENT_POS_Y] | V_CELLS_BRE],
+                        V_CELLS_BRE_NEW_UNSORTED = [[V_AGENT_POS_X, V_AGENT_POS_Y] | V_CELLS_BRE],
+                        sort(V_CELLS_BRE_NEW_UNSORTED, V_CELLS_BRE_NEW),
                         setval( real_cells_breezy, V_CELLS_BRE_NEW ),
                         setval( wm_cells_breezy, V_CELLS_BRE_NEW )
                 ;
@@ -302,7 +303,8 @@ xTra(exogf_Update, _H) :- !,
         ( stench(V_AGENT_POS_X, V_AGENT_POS_Y) ->
 %                printColor( green, " Sensing a stench at %w \n", [V_AGENT_POS]),
                 ( nonmember([V_AGENT_POS_X, V_AGENT_POS_Y], V_CELLS_SME ) ->
-                        V_CELLS_SME_NEW = [[V_AGENT_POS_X, V_AGENT_POS_Y] | V_CELLS_SME],
+                        V_CELLS_SME_NEW_UNSORTED = [[V_AGENT_POS_X, V_AGENT_POS_Y] | V_CELLS_SME],
+                        sort(V_CELLS_SME_NEW_UNSORTED, V_CELLS_SME_NEW),
                         setval( real_cells_smelly, V_CELLS_SME_NEW ),
                         setval( wm_cells_smelly, V_CELLS_SME_NEW )
                 ;
@@ -338,7 +340,8 @@ xTra(exogf_Update, _H) :- !,
                           param(V_CELLS_K_N_P1)
                           do
                           ( nonmember( PitPos, V_CELLS_K_N_P1 ) ->
-                                  V_CELLS_K_N_P1_NEW = [PitPos | V_CELLS_K_N_P1],
+                                  V_CELLS_K_N_P1_NEW_UNSORTED = [PitPos | V_CELLS_K_N_P1],
+                                  sort(V_CELLS_K_N_P1_NEW_UNSORTED, V_CELLS_K_N_P1_NEW),
                                   setval( real_cells_know_no_pit, V_CELLS_K_N_P1_NEW ),
                                   setval( wm_cells_know_no_pit, V_CELLS_K_N_P1_NEW )
                           ;
@@ -353,7 +356,8 @@ xTra(exogf_Update, _H) :- !,
         ( member( V_AGENT_POS, V_CELLS_BRE1 ) ->
                 getval( real_cells_know_no_pit, V_CELLS_K_N_P2 ),
                 ( nonmember( V_AGENT_POS, V_CELLS_K_N_P2 ) ->
-                        V_CELLS_K_N_P2_NEW = [V_AGENT_POS | V_CELLS_K_N_P2],
+                        V_CELLS_K_N_P2_NEW_UNSORTED = [V_AGENT_POS | V_CELLS_K_N_P2],
+                        sort(V_CELLS_K_N_P2_NEW_UNSORTED, V_CELLS_K_N_P2_NEW),
                         setval( real_cells_know_no_pit, V_CELLS_K_N_P2_NEW ),
                         setval( wm_cells_know_no_pit, V_CELLS_K_N_P2_NEW )
                 ;
@@ -397,7 +401,8 @@ xTra(exogf_Update, _H) :- !,
                             param(V_CELLS_K_N_W1)
                             do
                             ( nonmember( WumpusPos, V_CELLS_K_N_W1 ) ->
-                                    V_CELLS_K_N_W1_NEW = [WumpusPos | V_CELLS_K_N_W1],
+                                    V_CELLS_K_N_W1_NEW_UNSORTED = [WumpusPos | V_CELLS_K_N_W1],
+                                    sort(V_CELLS_K_N_W1_NEW_UNSORTED, V_CELLS_K_N_W1_NEW),
                                     setval( real_cells_know_no_wumpus, V_CELLS_K_N_W1_NEW ),
                                     setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W1_NEW )
                             ;
@@ -412,7 +417,8 @@ xTra(exogf_Update, _H) :- !,
         ( member( V_AGENT_POS, V_CELLS_SME1 ) ->
                 getval( real_cells_know_no_wumpus, V_CELLS_K_N_W2 ),
                 ( nonmember( V_AGENT_POS, V_CELLS_K_N_W2 ) ->
-                        V_CELLS_K_N_W2_NEW = [V_AGENT_POS | V_CELLS_K_N_W2],
+                        V_CELLS_K_N_W2_NEW_UNSORTED = [V_AGENT_POS | V_CELLS_K_N_W2],
+                        sort(V_CELLS_K_N_W2_NEW_UNSORTED, V_CELLS_K_N_W2_NEW),
                         setval( real_cells_know_no_wumpus, V_CELLS_K_N_W2_NEW ),
                         setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W2_NEW )
                 ;
@@ -490,8 +496,9 @@ xTra(exogf_Update, _H) :- !,
                   member([SafeX, SafeY], V_CELLS_K_N_P_TEST),
                   member([SafeX, SafeY], V_CELLS_K_N_W_TEST)
                 ),
-                SAFE),
+                SAFE_UNSORTED),
 
+        sort(SAFE_UNSORTED, SAFE),
         setval( real_cells_safe, SAFE ),
         setval( wm_cells_safe, SAFE ),
  
