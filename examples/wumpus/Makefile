@@ -78,5 +78,5 @@ doc:
 
 run: 
 	$(SILENT) make -s all
-	$(SILENT) $(ECLIPSE) -g 1000000 -b run.pl
+	$(SILENT) $(ECLIPSE) -g 700000 -l 500000 -b run.pl
 

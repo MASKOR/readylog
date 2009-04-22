@@ -286,7 +286,7 @@ xTra(exogf_Update, _H) :- !,
 %                printColor( blue, " Sensing a breeze at %w \n", [V_AGENT_POS]),
                 ( nonmember([V_AGENT_POS_X, V_AGENT_POS_Y], V_CELLS_BRE ) ->
                         V_CELLS_BRE_NEW_UNSORTED = [[V_AGENT_POS_X, V_AGENT_POS_Y] | V_CELLS_BRE],
-                        sort(V_CELLS_BRE_NEW_UNSORTED, V_CELLS_BRE_NEW),
+                        sort_list_of_2D_vectors( V_CELLS_BRE_NEW_UNSORTED, V_CELLS_BRE_NEW),
                         setval( real_cells_breezy, V_CELLS_BRE_NEW ),
                         setval( wm_cells_breezy, V_CELLS_BRE_NEW )
                 ;
@@ -304,7 +304,7 @@ xTra(exogf_Update, _H) :- !,
 %                printColor( green, " Sensing a stench at %w \n", [V_AGENT_POS]),
                 ( nonmember([V_AGENT_POS_X, V_AGENT_POS_Y], V_CELLS_SME ) ->
                         V_CELLS_SME_NEW_UNSORTED = [[V_AGENT_POS_X, V_AGENT_POS_Y] | V_CELLS_SME],
-                        sort(V_CELLS_SME_NEW_UNSORTED, V_CELLS_SME_NEW),
+                        sort_list_of_2D_vectors(V_CELLS_SME_NEW_UNSORTED, V_CELLS_SME_NEW),
                         setval( real_cells_smelly, V_CELLS_SME_NEW ),
                         setval( wm_cells_smelly, V_CELLS_SME_NEW )
                 ;
@@ -341,7 +341,7 @@ xTra(exogf_Update, _H) :- !,
                           do
                           ( nonmember( PitPos, V_CELLS_K_N_P1 ) ->
                                   V_CELLS_K_N_P1_NEW_UNSORTED = [PitPos | V_CELLS_K_N_P1],
-                                  sort(V_CELLS_K_N_P1_NEW_UNSORTED, V_CELLS_K_N_P1_NEW),
+                                  sort_list_of_2D_vectors(V_CELLS_K_N_P1_NEW_UNSORTED, V_CELLS_K_N_P1_NEW),
                                   setval( real_cells_know_no_pit, V_CELLS_K_N_P1_NEW ),
                                   setval( wm_cells_know_no_pit, V_CELLS_K_N_P1_NEW )
                           ;
@@ -357,7 +357,7 @@ xTra(exogf_Update, _H) :- !,
                 getval( real_cells_know_no_pit, V_CELLS_K_N_P2 ),
                 ( nonmember( V_AGENT_POS, V_CELLS_K_N_P2 ) ->
                         V_CELLS_K_N_P2_NEW_UNSORTED = [V_AGENT_POS | V_CELLS_K_N_P2],
-                        sort(V_CELLS_K_N_P2_NEW_UNSORTED, V_CELLS_K_N_P2_NEW),
+                        sort_list_of_2D_vectors(V_CELLS_K_N_P2_NEW_UNSORTED, V_CELLS_K_N_P2_NEW),
                         setval( real_cells_know_no_pit, V_CELLS_K_N_P2_NEW ),
                         setval( wm_cells_know_no_pit, V_CELLS_K_N_P2_NEW )
                 ;
@@ -402,7 +402,7 @@ xTra(exogf_Update, _H) :- !,
                             do
                             ( nonmember( WumpusPos, V_CELLS_K_N_W1 ) ->
                                     V_CELLS_K_N_W1_NEW_UNSORTED = [WumpusPos | V_CELLS_K_N_W1],
-                                    sort(V_CELLS_K_N_W1_NEW_UNSORTED, V_CELLS_K_N_W1_NEW),
+                                    sort_list_of_2D_vectors(V_CELLS_K_N_W1_NEW_UNSORTED, V_CELLS_K_N_W1_NEW),
                                     setval( real_cells_know_no_wumpus, V_CELLS_K_N_W1_NEW ),
                                     setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W1_NEW )
                             ;
@@ -418,7 +418,7 @@ xTra(exogf_Update, _H) :- !,
                 getval( real_cells_know_no_wumpus, V_CELLS_K_N_W2 ),
                 ( nonmember( V_AGENT_POS, V_CELLS_K_N_W2 ) ->
                         V_CELLS_K_N_W2_NEW_UNSORTED = [V_AGENT_POS | V_CELLS_K_N_W2],
-                        sort(V_CELLS_K_N_W2_NEW_UNSORTED, V_CELLS_K_N_W2_NEW),
+                        sort_list_of_2D_vectors(V_CELLS_K_N_W2_NEW_UNSORTED, V_CELLS_K_N_W2_NEW),
                         setval( real_cells_know_no_wumpus, V_CELLS_K_N_W2_NEW ),
                         setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W2_NEW )
                 ;
@@ -498,7 +498,7 @@ xTra(exogf_Update, _H) :- !,
                 ),
                 SAFE_UNSORTED),
 
-        sort(SAFE_UNSORTED, SAFE),
+        sort_list_of_2D_vectors(SAFE_UNSORTED, SAFE),
         setval( real_cells_safe, SAFE ),
         setval( wm_cells_safe, SAFE ),
  
@@ -1530,6 +1530,45 @@ manhattan_dist( [X1, Y1], [X2, Y2], Result ) :-
         abs(DistX, AbsDistX),
         abs(DistY, AbsDistY),
         Result is (AbsDistX + AbsDistY).        
+              
+%  Takes a list of 2-element lists, and sorts them increasingly
+%  first by the first dimension, and then by the second dimension.
+:- mode sort_list_of_2D_vectors(++, -).
+sort_list_of_2D_vectors( List, Result ) :-
+%        printColor( blue, "List before sorting: %w\n", [List]),
+        %  We first sort by the second component and keep results
+        %  with the same y-component.
+        sort(2, =<, List, ResultTmp),
+        %  As sorting is stable, we won't destroy the presorting
+        %  by the second component now that we sort by the first one.
+        sort(1, =<, ResultTmp, Result).
+%        %  Replace all elements that are lists of two elements [X,Y] by a
+%        %  functor vec(X,Y). This is necessary as the functor of a list is
+%        %  ".", its first argument is "X", but its second argument is "[Y]".
+%        findall( VecX,
+%                 ( member(X, List),
+%                   arg(1, X, Arg1),
+%                   arg(2, X, Arg2List),
+%                   Arg2List = [Arg2],
+%                   VecX = vec(Arg1, Arg2)
+%                 ),
+%                 Vecs ),
+%        sort(2, =<, Vecs, VecsSorted1),
+%        sort(1, =<, VecsSorted1, VecsSorted),
+%        printColor( blue, "VecsSorted: %w\n", [VecsSorted]),
+%        %  Convert all vecs back to the list format. Note, that the 
+%        %  ordering will be retained due to matching order of member.
+%        findall( ListX,
+%                 ( member(X, VecsSorted),
+%                   arg(1, X, Arg1),
+%                   arg(2, X, Arg2),
+%                   ListX = [Arg1, Arg2]
+%                 ),
+%                 Result ),
+
+%%        printColor( blue, "List after sorting: %w\n", [Result]).
+
+ 
 
 % Return the current Eclipse Time. Kind'o'a timestamp.
 %   Parameter 1: Returns current time.

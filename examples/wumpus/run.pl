@@ -109,8 +109,8 @@ dp :- toggle_iplearn,
       printf(StreamLog, "      \t [UserCPU, SystemCPU, Session] \t            \t (in percent) \n", []),
       printf(StreamLog, "      \t (in seconds)\n", []),
       printf(StreamLog, "-----------------------------------------------------------------------\n\n", []),
-      ( count(I,1,TotalRuns),
-        param(TotalRuns, StreamLog)
+      ( count(I,1314,TotalRuns),
+        param(TotalRuns, StreamLog, GlobalStartTimeUser, GlobalStartTimeSystem, GlobalStartTimeReal)
         do
           statistics(times, [LevelStartTimeUser,
                              LevelStartTimeSystem,
@@ -179,47 +179,30 @@ dp :- toggle_iplearn,
           round(RealTimeRemainingTmp, TimeRemaining),
           seconds_to_hms(TimeRemaining, ETAHours, ETAMinutes, ETASeconds),
           printf("######## Estimated time left for solving all levels: %w:%w:%w (H:M:S). ########\n",
-                 [ETAHours, ETAMinutes, ETASeconds]), flush(stdout)
+                 [ETAHours, ETAMinutes, ETASeconds]), flush(stdout),
+          ( mod(I, 10, 0) ->
+             %  Log some statistics after every 10th level.
+             print_statistics(I,
+                              GlobalStartTimeUser,
+                              GlobalStartTimeSystem,
+                              GlobalStartTimeReal,
+                              StreamLog)
+          ;
+             true
+          )
       ),
-      statistics(times, [GlobalEndTimeUser, 
-                         GlobalEndTimeSystem,
-                         GlobalEndTimeReal]),
-      GlobalTimeDiffUser is (GlobalEndTimeUser - GlobalStartTimeUser),
-      GlobalTimeDiffSystem is (GlobalEndTimeSystem - GlobalStartTimeSystem),
-      GlobalTimeDiffReal is (GlobalEndTimeReal - GlobalStartTimeReal),
-      seconds_to_hms(GlobalTimeDiffUser, GTDHoursUser, GTDMinutesUser, GTDSecondsUser),
-      seconds_to_hms(GlobalTimeDiffSystem, GTDHoursSystem, GTDMinutesSystem, GTDSecondsSystem),
-      seconds_to_hms(GlobalTimeDiffReal, GTDHoursReal, GTDMinutesReal, GTDSecondsReal),
-      printf("######## Finished %w runs in %w hours, %w minutes, %w seconds of User CPU Time. ########\n",
-             [TotalRuns, GTDHoursUser, GTDMinutesUser, GTDSecondsUser]), flush(stdout),
-      getval(avg_user_time_per_level, ATPLUser),
-      printf("######## Average user cpu time per level: %w seconds. ########\n",
-             [ATPLUser]), flush(stdout),
-      printf("######## Finished %w runs in %w hours, %w minutes, %w seconds of System CPU Time. ########\n",
-             [TotalRuns, GTDHoursSystem, GTDMinutesSystem, GTDSecondsSystem]), flush(stdout),
-      getval(avg_system_time_per_level, ATPLSystem),
-      printf("######## Average system cpu time per level: %w seconds. ########\n",
-             [ATPLSystem]), flush(stdout),
-      printf("######## Finished %w runs in %w hours, %w minutes, %w seconds of Real Session Time. ########\n",
-             [TotalRuns, GTDHoursReal, GTDMinutesReal, GTDSecondsReal]), flush(stdout),
-      getval(avg_real_time_per_level, ATPLReal),
-      printf("######## Average real session time per level: %w seconds. ########\n",
-             [ATPLReal]), flush(stdout),
-
-      printf(StreamLog, "\n# Finished %w runs in %w hours, %w minutes, %w seconds of User CPU Time.\n",
-             [TotalRuns, GTDHoursUser, GTDMinutesUser, GTDSecondsUser]),
-      printf(StreamLog, "# Average user cpu time per level: %w seconds.\n",
-             [ATPLUser]), flush(stdout),
-      printf(StreamLog, "# Finished %w runs in %w hours, %w minutes, %w seconds of System CPU Time.\n",
-             [TotalRuns, GTDHoursSystem, GTDMinutesSystem, GTDSecondsSystem]), flush(stdout),
-      printf(StreamLog, "# Average system cpu time per level: %w seconds.\n",
-             [ATPLSystem]), flush(stdout),
-      printf(StreamLog, "# Finished %w runs in %w hours, %w minutes, %w seconds of Real Session Time.\n",
-             [TotalRuns, GTDHoursReal, GTDMinutesReal, GTDSecondsReal]), flush(stdout),
-      printf(StreamLog, "# Average real session time per level: %w seconds.\n",
-             [ATPLReal]), flush(stdout),
+      print_statistics(TotalRuns,
+                       GlobalStartTimeUser,
+                       GlobalStartTimeSystem,
+                       GlobalStartTimeReal,
+                       stdout),
+      print_statistics(TotalRuns,
+                       GlobalStartTimeUser,
+                       GlobalStartTimeSystem,
+                       GlobalStartTimeReal,
+                       StreamLog),
       close(StreamLog).
-      
+
       
 dpdebug :- toggle_dtdebug, vis_wumpus, initialise_wumpus_lists, icp( find_gold ).
 dp_novis :- initialise_wumpus_lists, icp( find_gold ).
@@ -229,17 +212,47 @@ dp_novis :- initialise_wumpus_lists, icp( find_gold ).
 :- mode seconds_to_hms(++, -, -, -).
 seconds_to_hms(Time, Hours, Minutes, Seconds) :-
         HoursTmp1 is (Time / 3600),
-        round(HoursTmp1, HoursTmp2),
+        floor(HoursTmp1, HoursTmp2),
         integer(HoursTmp2, Hours),
 
         MinutesTmp1 is (Time / 60),
-        round(MinutesTmp1, MinutesTmp2),
+        floor(MinutesTmp1, MinutesTmp2),
         integer(MinutesTmp2, MinutesTmp3),
         Minutes is (MinutesTmp3 mod 60), 
 
         round(Time, SecondsTmp1),
         integer(SecondsTmp1, SecondsTmp2),
         Seconds is (SecondsTmp2 mod 60).
+
+%  Prints some time statistics to Stream.
+:- mode print_statistics(++, ++, ++, ++, ++).
+print_statistics( CurrentRun,
+                  GlobalStartTimeUser, GlobalStartTimeSystem, GlobalStartTimeReal,
+                  Stream ) :-
+        statistics(times, [GlobalEndTimeUser, 
+                           GlobalEndTimeSystem,
+                           GlobalEndTimeReal]),
+        GlobalTimeDiffUser is (GlobalEndTimeUser - GlobalStartTimeUser),
+        GlobalTimeDiffSystem is (GlobalEndTimeSystem - GlobalStartTimeSystem),
+        GlobalTimeDiffReal is (GlobalEndTimeReal - GlobalStartTimeReal),
+        seconds_to_hms(GlobalTimeDiffUser, GTDHoursUser, GTDMinutesUser, GTDSecondsUser),
+        seconds_to_hms(GlobalTimeDiffSystem, GTDHoursSystem, GTDMinutesSystem, GTDSecondsSystem),
+        seconds_to_hms(GlobalTimeDiffReal, GTDHoursReal, GTDMinutesReal, GTDSecondsReal),
+        printf(Stream, "\n# Finished %w runs in %w hours, %w minutes, %w seconds of User CPU Time.\n",
+               [CurrentRun, GTDHoursUser, GTDMinutesUser, GTDSecondsUser]),
+        getval(avg_user_time_per_level, ATPLUser),
+        printf(Stream, "# Average user cpu time per level: %w seconds.\n",
+               [ATPLUser]), flush(stdout),
+        printf(Stream, "# Finished %w runs in %w hours, %w minutes, %w seconds of System CPU Time.\n",
+               [CurrentRun, GTDHoursSystem, GTDMinutesSystem, GTDSecondsSystem]), flush(stdout),
+        getval(avg_system_time_per_level, ATPLSystem),
+        printf(Stream, "# Average system cpu time per level: %w seconds.\n",
+               [ATPLSystem]), flush(stdout),
+        printf(Stream, "# Finished %w runs in %w hours, %w minutes, %w seconds of Real Session Time.\n",
+               [CurrentRun, GTDHoursReal, GTDMinutesReal, GTDSecondsReal]), flush(stdout),
+        getval(avg_real_time_per_level, ATPLReal),
+        printf(Stream, "# Average real session time per level: %w seconds.\n\n",
+               [ATPLReal]), flush(stdout).
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%

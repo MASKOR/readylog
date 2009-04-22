@@ -588,7 +588,6 @@ transPr( applyLearnedPolicy([PolHead | PolTail],
 	  transPr( applyLearnedPolicy(PolTail,
                    solve(Prog, Horizon, RewardFunction), S_solve), S, ProgR, SNew, 1)
 	;
-	  printColor(yellow, "\t transPr( %w, %w, PolHeadR, SNew, 1)\n", [PolHead, S]), flush(stdout),
           %  Since the learning might propose an impossible action,
           %  we have to check if the goal transPr can be fulfilled.
           %  Otherwise we re-plan.

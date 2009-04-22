@@ -1271,99 +1271,79 @@ hash_set_recursively( HashKeys, HashValues, HashTable ) :-
 %  by the modeller to break a policy. But if, on the other hand,
 %  we deal with continuous fluent values (e.g., 3D positional vectors)
 %  in the marker we would get all different policies.
-:-mode clean_up_markers(++, -).
-clean_up_markers([], Result) :- !,
-        Result = [].
+:- mode clean_up_markers(++, -).
+clean_up_markers(Policy, Result) :-
+        %  We use an accumulator and tail-recursion
+        %  for higher efficiency.
+        clean_up_markers(Policy, [], ResultReversed),
+        %  Since we want to avoid using append, we
+        %  construct the clean policy in reverse
+        %  order in the accumulator and now reverse it.
+        flatten(ResultReversed, ResultFlat),
+        reverse(ResultFlat, Result).
 
-clean_up_markers(marker(true, false), Result) :- !,
-        Result = marker(true, false).
+:- mode clean_up_markers(++, ++, -).
+clean_up_markers([], Result, Result) :- !.
 
-clean_up_markers([marker(true, false) | PolTail], Result) :- !,
-%      printf(stdout, "clean_up_markers(%w, 1)\n", [PolTail]), flush(stdout),
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [marker(true, false) | ResultTmp].
+clean_up_markers([marker(true, false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(true, false) | Rest], Result).
 
-clean_up_markers(marker(false, true), Result) :- !,
-        Result = marker(false, true).
+clean_up_markers([marker(false, true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(false, true) | Rest], Result).
 
-clean_up_markers([marker(false, true) | PolTail], Result) :- !,
-%      printf(stdout, "clean_up_markers(%w, 2)\n", [PolTail]), flush(stdout),
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [marker(false, true) | ResultTmp].
+clean_up_markers([marker(_C, _T) | PolTail], Rest, Result) :- !,
+%        clean_up_markers(PolTail, [marker(true, true) | Rest], Result).
+        clean_up_markers(PolTail, [Rest], Result).
 
-clean_up_markers(marker(_C, _T), Result) :- !,
-        Result = marker(true, true).
-
-clean_up_markers([marker(_C, _T) | PolTail], Result) :- !,
-%      printf(stdout, "clean_up_markers(%w, 3)\n", [PolTail]), flush(stdout),
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [marker(true, true) | ResultTmp].
-
-clean_up_markers([Term | PolTail], Result) :-
+clean_up_markers([Term | PolTail], Rest, Result) :-
         not(compound(Term)), !,
         %  Term is neither a list nor a structure.
-%      printf(stdout, "clean_up_markers(%w, 4)\n", [PolTail]), flush(stdout),
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [Term | ResultTmp].
+        clean_up_markers(PolTail, [Term | Rest], Result).
 
-clean_up_markers([Term | PolTail], Result) :-
+clean_up_markers([Term | PolTail], Rest, Result) :-
         %  Term is a compound.
         is_list(Term), !,
-        Term = [Head | Tail],
-%      printf(stdout, "clean_up_markers(%w, 5.1)\n", [Head]), flush(stdout),
-        clean_up_markers([Head], HeadClean),
-       HeadClean = [HeadFinal],
-%      printf(stdout, "clean_up_markers(%w, 5.2)\n", [Tail]), flush(stdout),
-        clean_up_markers(Tail, TailClean),
-%      printf(stdout, "clean_up_markers(%w, 5.3)\n", [PolTail]), flush(stdout),
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [[HeadFinal | TailClean] | ResultTmp].
+        clean_up_markers(Term, TermClean),
+        TermClean = [TermFinal],
+        clean_up_markers(PolTail, [TermFinal | Rest], Result).
 
-clean_up_markers([Term1=Term2 | PolTail], Result) :-
+clean_up_markers([Term1=Term2 | PolTail], Rest, Result) :-
         not(is_list(Term1)),
         not(is_list(Term2)), !,
         clean_up_markers([Term1], Term1Clean),
         clean_up_markers([Term2], Term2Clean),
         Term1Clean = [Term1Final],
         Term2Clean = [Term2Final],
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [Term1Final=Term2Final | ResultTmp].
+        clean_up_markers(PolTail, [Term1Final=Term2Final | Rest], Result).
 
-clean_up_markers([Term1=Term2 | PolTail], Result) :-
+clean_up_markers([Term1=Term2 | PolTail], Rest, Result) :-
         not(is_list(Term1)), !,
         clean_up_markers([Term1], Term1Clean),
         clean_up_markers(Term2, Term2Clean),
         Term1Clean = [Term1Final],
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [Term1Final=Term2Clean | ResultTmp].
+        clean_up_markers(PolTail, [Term1Final=Term2Clean | Rest], Result).
 
-clean_up_markers([Term1=Term2 | PolTail], Result) :-
+clean_up_markers([Term1=Term2 | PolTail], Rest, Result) :-
         not(is_list(Term2)), !,
         clean_up_markers(Term1, Term1Clean),
         clean_up_markers([Term2], Term2Clean),
         Term2Clean = [Term2Final],
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [Term1Clean=Term2Final | ResultTmp].
+        clean_up_markers(PolTail, [Term1Clean=Term2Final | Rest], Result).
 
-clean_up_markers([Term1=Term2 | PolTail], Result) :-
+clean_up_markers([Term1=Term2 | PolTail], Rest, Result) :-
         !,
         clean_up_markers(Term1, Term1Clean),
         clean_up_markers(Term2, Term2Clean),
-        clean_up_markers(PolTail, ResultTmp),
-        Result = [Term1Clean=Term2Clean | ResultTmp].
-       
-clean_up_markers([Term | PolTail], Result) :-
+        clean_up_markers(PolTail, [Term1Clean=Term2Clean | Rest], Result).
+
+clean_up_markers([Term | PolTail], Rest, Result) :-
         %  As Term is no list and it is a compound,
         %  it must be a structure (e.g., Term=if(A,B,C)).
         %  We have to recurse into the arguments.
         Term =.. [Functor | Args],
-%      printf(stdout, "clean_up_markers: %w =.. [%w, %w]\n", [Term, Functor, Args]), flush(stdout),
-%      printf(stdout, "clean_up_markers(%w, 10.1)\n", [Args]), flush(stdout),
         clean_up_markers(Args, CleanArgs),
-%      printf(stdout, "clean_up_markers(%w, 10.2)\n", [PolTail]), flush(stdout),
-        clean_up_markers(PolTail, ResultTmp),
         CleanTerm =.. [Functor | CleanArgs],
-        Result = [CleanTerm | ResultTmp].
+        clean_up_markers(PolTail, [CleanTerm | Rest], Result).
 
 
 
@@ -1472,6 +1452,7 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
         !,
         close(in),
         close(out),
+        close(err),
         wait(Pid, _Stat),
 
         ( ( Success == false ) ->

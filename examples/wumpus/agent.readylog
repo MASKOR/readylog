@@ -58,10 +58,14 @@ proc(goto(X,Y),
                           epf_agent_pos_Y = Y
                        ])
                   ), 
-                    nondet( [ go_forward, 
-                              turn_left,
-                              turn_right
-                            ] )
+                    if( epf_remaining_time =< 0.0,
+                        [],
+                        [ nondet( [ go_forward, 
+                                    turn_left,
+                                    turn_right
+                                ] )
+                        ]
+                      )
              )
      ]
     ).
@@ -120,52 +124,75 @@ proc( find_gold(Seed, FoundGold),
                /** TODO: how about keeping to the safe track already found
                 *  instead of exploration? */
                reset_visited,
-               while( neg( and([ epf_agent_pos_X = HomeX,
-                                 epf_agent_pos_Y = HomeY 
-                              ])
-                         ),
+               while( and([ neg( and([ epf_agent_pos_X = HomeX,
+                                       epf_agent_pos_Y = HomeY 
+                                    ])
+                               ),
+                            epf_remaining_time > 0.0
+                         ]),
                           [ go_home,
                             exogf_Update ]
                     ),
-               make_yourself_at_home,
+               if( and([ epf_agent_pos_X = HomeX,
+                         epf_agent_pos_Y = HomeY
+                      ]),
+                      [ make_yourself_at_home ],
+                      []
+                 ),
                ?( FoundGold = false ),
                cout(" === FINISHED FIND_GOLD === \n")
              ],
              [ %%  else (if epf_gold_reachable = true)
                if( epf_still_time = false,
-               [
-                 cout(" === I HAVE TO HURRY BACK HOME === \n"),
-                 /** TODO: how about keeping to the safe track already found
-                  *  instead of exploration? */
-                 reset_visited,
-                 while( neg( and([ epf_agent_pos_X = HomeX,
-                                   epf_agent_pos_Y = HomeY
-                                 ])
+                   [
+                      cout(" === I HAVE TO HURRY BACK HOME === \n"),
+                      /** TODO: how about keeping to the safe track already found
+                       *  instead of exploration? */
+                      reset_visited,
+                      while( and([ neg( and([ epf_agent_pos_X = HomeX,
+                                              epf_agent_pos_Y = HomeY
+                                           ])
+                                      ),
+                                   epf_remaining_time > 0.0
+                                ]),
+                                 [ go_home,
+                                   exogf_Update ]
                            ),
-                            [ go_home,
-                              exogf_Update ]
-                      ),
-                 make_yourself_at_home,
-                 ?( FoundGold = false ),
-                 cout(" === FINISHED FIND_GOLD === \n")
-               ],
-               %%  epf_still_time = true
-               [
-                  cout( green, " *** found gold at %w,%w *** \n", [XG,YG] ),
-                  grab_gold,
-                  reset_visited,
-                  while( neg( and([ epf_carry_gold = true,
-                                    epf_agent_pos_X = HomeX,
-                                    epf_agent_pos_Y = HomeY
-                                 ])
-                            ),
-                             [ carry_gold_home,
-                               exogf_Update ]
-                       ),
-                  make_yourself_at_home,
-                  ?( FoundGold = true ),
-                  cout(" === FINISHED FIND_GOLD === \n")
-               ]
+                      if( epf_remaining_time =< 0.0,
+                          [ ?( FoundGold = false ),
+                            cout(" === TIME IS UP === \n")
+                          ],
+                          [ make_yourself_at_home,
+                            ?( FoundGold = false ),
+                            cout(" === FINISHED FIND_GOLD === \n")
+                          ]
+                        ) %%  endif epf_remaining_time =< 0.0
+                   ],
+                   %%  epf_still_time = true
+                   [
+                      cout( green, " *** found gold at %w,%w *** \n", [XG,YG] ),
+                      grab_gold,
+                      reset_visited,
+                      while( and([ neg( and([ epf_carry_gold = true,
+                                              epf_agent_pos_X = HomeX,
+                                              epf_agent_pos_Y = HomeY
+                                           ])
+                                      ),
+                                   epf_remaining_time > 0.0
+                                ]),
+                                 [ carry_gold_home,
+                                   exogf_Update ]
+                           ),
+                      if( epf_remaining_time =< 0.0,
+                          [ ?( FoundGold = false ),
+                            cout(" === TIME IS UP === \n")
+                          ],
+                          [ make_yourself_at_home,
+                            ?( FoundGold = true ),
+                            cout(" === FINISHED FIND_GOLD === \n")
+                          ]
+                        ) %%  endif epf_remaining_time =< 0.0
+                   ]
                ) %%  endif epf_still_time
              ]
            ) %%  endif epf_gold_reachable
@@ -260,7 +287,20 @@ proc( carry_gold_home,
          cout( yellow, " --- bringing gold home --- \n", []),
          ?( epf_start_pos_X = HomeX ),
          ?( epf_start_pos_Y = HomeY ),
-         solve( goto(HomeX,HomeY), 5, reward_heuristic(HomeX,HomeY) )
+         while( and([ epf_remaining_time > 0.0,
+                      neg( and([ epf_agent_pos_X = HomeX,
+                                 epf_agent_pos_Y = HomeY
+                              ])
+                         )
+                   ]),
+                   [ solve( [nondet( [ go_forward, 
+                                       turn_left,
+                                       turn_right
+                                  ] )
+                            ], 5, reward_heuristic(HomeX,HomeY)
+                          )
+                   ])  %  endwhile
+%         solve( goto(HomeX,HomeY), 5, reward_heuristic(HomeX,HomeY) )
       ]
     ).
 
@@ -269,7 +309,19 @@ proc( go_home,
          cout( yellow, " --- going home --- \n", []),
          ?( epf_start_pos_X = HomeX ),
          ?( epf_start_pos_Y = HomeY ),
-         solve( goto(HomeX,HomeY), 5, reward_heuristic(HomeX,HomeY) )
+         while( and([ epf_remaining_time > 0.0,
+                      neg( and([ epf_agent_pos_X = HomeX,
+                                 epf_agent_pos_Y = HomeY
+                              ])
+                         )
+                   ]),
+                   [ solve( [nondet( [ go_forward, 
+                                       turn_left,
+                                       turn_right
+                                  ] )
+                            ], 5, reward_heuristic(HomeX,HomeY)
+                          )
+                   ])  %  endwhile
       ]
     ).
 

@@ -91,4 +91,3 @@ display_ng :- get_domain_ng(X, Y, W, O), start_display_ng(X, Y, W, O).
 
 display_wumpus :- get_domain_wumpus(X, Y, W, P, WI, S), start_display_wumpus(X, Y, W, P, WI, S).
 
-breeze_test :- start_display_wumpus(10, 10, [], [[2,2],[4,3]],[[4,4]]).
