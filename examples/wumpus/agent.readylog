@@ -221,34 +221,63 @@ proc( search_gold,
                                             turn_left,
                                             turn_right,
                                             shoot
+                                        ] ),
+                                  nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right,
+                                            shoot
+                                        ] ),
+                                  nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right,
+                                            shoot
+                                        ] ),
+                                  nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right,
+                                            shoot
                                         ] )
                                 ],
                                 [ nondet( [ go_forward,
                                             turn_left,
                                             turn_right
+                                          ] ),
+                                  nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right
+                                          ] ),
+                                  nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right
+                                          ] ),
+                                  nondet( [ go_forward,
+                                            turn_left,
+                                            turn_right
                                           ] )
                                  ]
                                )
-                          ], 8, reward_search_gold ),
+                          ], 4, reward_search_gold ),
 
-/** The above solve is not in standard form! The IPL preprocessor should
- *  transform it into:
- *
- *                 if( and([ epf_wumpus_alive = true,
- *                           epf_agent_arrow = true
- *                        ]),
- *                      solve([ nondet( [ go_forward,
- *                                        turn_left,
- *                                        turn_right,
- *                                        shoot
- *                                    ] )
- *                            ], 8, reward_search_gold ),
- *                      solve([ nondet( [ go_forward,
- *                                        turn_left,
- *                                        turn_right
- *                                    ] )
- *                            ], 8, reward_search_gold ),
- **/
+%/** The above solve is not in standard form! The IPL preprocessor should
+% *  transform it into:
+% *
+% *                 if( and([ epf_wumpus_alive = true,
+% *                           epf_agent_arrow = true
+% *                        ]),
+% *                      solve([ nondet( [ go_forward,
+% *                                        turn_left,
+% *                                        turn_right,
+% *                                        shoot
+% *                                    ] ),
+% *                                    ...
+% *                            ], 8, reward_search_gold ),
+% *                      solve([ nondet( [ go_forward,
+% *                                        turn_left,
+% *                                        turn_right
+% *                                    ] ),
+% *                                    ...
+% *                            ], 8, reward_search_gold ),
+% */
 
                    exogf_Update
                 ]
@@ -293,11 +322,19 @@ proc( carry_gold_home,
                               ])
                          )
                    ]),
-                   [ solve( [nondet( [ go_forward, 
-                                       turn_left,
-                                       turn_right
-                                  ] )
-                            ], 5, reward_heuristic(HomeX,HomeY)
+                   [ solve( [ nondet( [ go_forward, 
+                                        turn_left,
+                                        turn_right
+                                    ] ),
+                              nondet( [ go_forward, 
+                                        turn_left,
+                                        turn_right
+                                    ] ),
+                              nondet( [ go_forward, 
+                                        turn_left,
+                                        turn_right
+                                    ] )
+                            ], 3, reward_heuristic(HomeX,HomeY)
                           )
                    ])  %  endwhile
 %         solve( goto(HomeX,HomeY), 5, reward_heuristic(HomeX,HomeY) )
@@ -315,11 +352,19 @@ proc( go_home,
                               ])
                          )
                    ]),
-                   [ solve( [nondet( [ go_forward, 
-                                       turn_left,
-                                       turn_right
-                                  ] )
-                            ], 5, reward_heuristic(HomeX,HomeY)
+                   [ solve( [ nondet( [ go_forward, 
+                                        turn_left,
+                                        turn_right
+                                    ] ),
+                              nondet( [ go_forward, 
+                                        turn_left,
+                                        turn_right
+                                    ] ),
+                              nondet( [ go_forward, 
+                                        turn_left,
+                                        turn_right
+                                    ] )
+                            ], 3, reward_heuristic(HomeX,HomeY)
                           )
                    ])  %  endwhile
       ]

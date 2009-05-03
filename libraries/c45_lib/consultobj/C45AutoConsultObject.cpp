@@ -185,7 +185,7 @@ vector< vector<string> > C45AutoConsultObject::GetAttributeValues( )
 // The Prolog variant replaces "," by "\\," in values.
 vector<string> C45AutoConsultObject::GetAttributeValuesProlog( short Att )
 {
-  //  cout << "C45AutoConsultObject(GetAttributeValuesProlog): Entering" << endl;
+//    cout << "C45AutoConsultObject(GetAttributeValuesProlog): Entering" << endl;
 
   vector<string> attributeValues( m_NumberOfAttributes );
   string str;
@@ -225,7 +225,7 @@ vector<string> C45AutoConsultObject::GetAttributeValuesProlog( short Att )
        attributeValues[j-1] = str;
      }
 
-   //  cout << "C45AutoConsultObject(GetAttributeValuesProlog): Exiting" << endl;
+//     cout << "C45AutoConsultObject(GetAttributeValuesProlog): Exiting" << endl;
   return attributeValues;
 }
 
@@ -798,6 +798,7 @@ int C45AutoConsultObject::CppWhich( string Val, short Att, short First, short La
     short n=First;
     vector<string> AttributeValueList;
 //    cout << "C45AutoConsultObject(CppWhich): this->GetAttributeValuesProlog( " << Att << " )" << endl;
+//    cout << "C45AutoConsultObject(CppWhich): Val = " << Val << ", First = " << First << ", Last = " << Last << endl;
     AttributeValueList = this->GetAttributeValuesProlog( Att );
  
 //         cout << "n is " << n << ", Val is " << Val << ", AttributeValueList[n] is "
@@ -815,122 +816,26 @@ int C45AutoConsultObject::CppWhich( string Val, short Att, short First, short La
 // Autoread the discrete values by asking the Prolog program
 void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)
 {
-    DiscrValue dv, PNo = 0;
-    float P, PSum = 0.0;
-
+    // Note, that this is a very simplistic version. We don't take
+    // into account any probability values like C4.5 usually does.
+    DiscrValue dv;
     char * value;
-    char partOfString[m_MaxClassLength];
-    int i = 0;
-    int n = 0;
-    P = 1.0; 
 
-    for ( dv = 1; dv <= MaxAttVal[Att]; ++dv )
-      {
-	RangeDesc[Att].Probability[dv] = 0.0;
-      }
- 
-//    value = (char *)values[Att].c_str();
-
-    /** Ask the value string from the Prolog program */
-//    cout << "C45AutoConsultObject(AutoReadDiscrProlog): Asking Prolog for the value of "
-//         << AttName[Att] << endl;
-
-///       ec_init();
-
-        /** TODO: Can be made more efficient. Maybe only compile modules. Or somehow make the knowledge
-         *  base that has been compiled before by the calling process available here. */
-/*        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/definitions"));
-        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/readylog"));
-        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/iplearner"));
-        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/programs/wumpus.readylog/wumpus"));*/
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/programs/wumpus.readylog/xtra"));
-
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/debug"));
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/definitions"));
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/config"));
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/final_trans"));
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/stateabstration"));
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/decisionTheoretic"));
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/iplearner"));
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/interpreter/readylog/options"));
-//        post_goal(term(EC_functor("compile",1),"/home/drcid/kbsgolog/utils/utils"));
-
-/*
-        if (EC_resume() != EC_succeed)
-          {
-           cout << "compile failed." << endl;
-          }
-
-
-        EC_atom Tralala = EC_atom("hello yat"); */
-        /* writeln("hello world"), */
-/*        post_goal(term(EC_functor("writeln",1),"hello world"));
-        post_goal(term(EC_functor("writeln",1),"hello again"));
-        post_goal(term(EC_functor("writeln",1),Tralala)); */
-//        post_goal(term(EC_functor("prolog_find_out_value",1),AttName[Att]));
-//        post_goal(term(EC_functor("prolog_find_out_value",2),AttValueString));
-/*        EC_refs Testanswer(1);
-        post_goal(term(EC_functor("test",1),Testanswer[0]));
-
-        EC_refs AttValue(1);
-//        AttNameChar = (char *)AttName[Att].c_str();
-        char *situationChar = (char *)situation.c_str();
-        
-        post_goal(term(EC_functor("ask_prolog_for_value",3),EC_word(AttName[Att]),AttValue[0],EC_word(situationChar)));
-  if (EC_resume() == EC_succeed)
-    {
-      char *s1;
-      char *s2;
-      if ( EC_succeed == Testanswer[0].is_string(&s1) &&
-           EC_succeed == AttValue[0].is_string(&s2) )
-         { cout << s1 << "\n";
-           cout << "Prolog says the value is: "<< s2 << "\n";
-         }
-      else
-         cout << "unexpected result type" << endl;
-    }
-  else
-    {
-         cout << "Goal failed." << endl;
-    } */
-//        post_goal(term(EC_functor("writeln",1),EC_word(Testanswer)));
-        cout << "#### Here comes the attribute name ####" << endl;
-        cout << AttName[Att] << endl;
-        string valueString;
-        getline(cin, valueString);
+    cout << "#### Here comes the attribute name ####" << endl;
+    cout << AttName[Att] << endl;
+    string valueString;
+    getline(cin, valueString);
 //        cin >> valueString;
-        cout << "[C4.5] Prolog says the value of " << AttName[Att] << " is: "
-             << valueString << endl;
-        cout << "--------" << endl << endl;
-
-/*        EC_resume();
-        ec_cleanup();*/
-
+    cout << "[C4.5] Prolog says the value of " << AttName[Att] << " is: "
+         << valueString << endl;
+    cout << "--------" << endl << endl;
+//    cout << "[C4.5] The Attribute " << Att << " can take " << MaxAttVal[Att] << " values." << endl;
 
     value = (char *)valueString.c_str();
 
-    // Here follows parsing... This one is really dirty...
-    while ( value[i] != '\0' )
-      {
-	n = 0;
-	while ( Space(value[i]) ) ++i;
-	// Attribute
-	// ist kein Space mehr da, d.h. kopieren, bis : oder \n
-	while ( value[i] != '\0' && value[i] != ':' )
-	  {
-	    partOfString[n] = value[i];
-	    ++i;
-	    ++n;
-	  }
-	partOfString[n] = '\0';   // Attribute geschrieben
-//	cout << " Found That: " << partOfString << endl;
-// 	dv = Which( partOfString, AttValName[Att], 1, MaxAttVal[Att] );
-// 	cout << "dv = this->CppWhich()" << endl;
- 	dv = this->CppWhich( partOfString, Att, 0, MaxAttVal[Att]-1 );
- 	if ( !dv )
+    dv = this->CppWhich( value, Att, 0, MaxAttVal[Att]-1 );
+    if ( !dv )
  	  {
-// 	    cout << "C45AutoConsultObject(AutoReadDiscrProlog): Cannot find attribute in the" 
-// 		 << " attributelist while scanning for attribute!" << endl;
  	    cout << "#### Error ####" << endl;
  	    cout << "C45AutoConsultObject(AutoReadDiscr): Cannot find attribute " << valueString
                  << " in the attributelist while scanning for attribute!" << endl;
@@ -941,82 +846,7 @@ void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)
  	    cout << AttributeValueList[(MaxAttVal[Att]-1)] << endl;
  	    exit(0);
  	  }
-//        else
-//          {
-// 	    cout << "C45AutoConsultObject(AutoReadDiscr): Found attribute " << valueString
-//                 << " in the attributelist!" << endl;
-//          }
 
-	// W'keiten
-	n = 0;
-	while ( Space(value[i]) ) ++i;
-	if ( (value[i] != ':') && (P == 1.0) )
-	  {
-	    RangeDesc[Att].Probability[dv] = P;	  
-	    break;
-	  }
-	else if ( (value[i] != ':' ) && (P != 1.0 ) )
-	  {
-	    cout << "C45AutoConsultObject(AutoReadDiscrProlog): Error in parsing..." << endl;
-	    exit(0);
-	  }
-	else if ( value[i] == ':' )
-	  {
-	    i++;
-	    while ( Space(value[i]) ) ++i;
-	    while ( value[i] != '\0' && value[i] != ',' )
-	      {
-		partOfString[n] = value[i];
-		++i;
-		++n;
-	      }
-	    if ( value[i] == ',' ) ++i;
-	    if ( n == 0 )
-	      {
-		cout << "C45AutoConsultObject(AutoReadDiscrProlog): Error in parsing..." << endl;
-		exit(0);
-	      }
-	    partOfString[n] = '\0';   // Attribute geschrieben
-	    P = atof( partOfString );
-	  }
-	else
-	  {
-	    cout << "There was no : where I waited for one..." << endl;
-	    exit(0);
-	  }
-//	cout << " and Probability " << P << endl;
-	RangeDesc[Att].Probability[dv] = P;
-      }
-
-    /*  Check that sum of probabilities is not > 1  */
-    PNo = MaxAttVal[Att];
-    PSum = 1.0;
-    for ( dv = 1; dv <= MaxAttVal[Att]; ++dv)
-      {
-	if ( RangeDesc[Att].Probability[dv] > Fuzz )
-	  {
-	    PSum -= RangeDesc[Att].Probability[dv];
-	    PNo--;
-	  }
-      }
-    
-    // SJ previous was:  if ( PSum < 0 || ! PNo && PSum > Fuzz )
-    if ( (PSum < 0) || ((!PNo) && (PSum > Fuzz)) )
-      {
-	printf("SJ ERROR USERINT.C:: ReadDiscr: Probability values must sum to 1\n");
-	exit(0);
-      }
-    
-    /*  Distribute the remaining probability equally among
-	the unspecified attribute values  */
-    PSum /= PNo;
-    for ( dv = 1; dv <= MaxAttVal[Att]; ++dv)
-      {
-	if ( RangeDesc[Att].Probability[dv] < Fuzz )
-	  {
-	    RangeDesc[Att].Probability[dv] = PSum;
-	  }
-      }
     return;
 }
 

@@ -173,6 +173,7 @@ shade_init(X, Y) :- world( XMin, YMin, XMax, YMax ),
 %% %%%%%%%%%%%%%%%%%%%%%%%%
 %%  DIRECTIONS
 
+
 /** direction predicates
  *  used for storing the direction of the agent
  *  and the arrow */
@@ -275,8 +276,9 @@ exog_fluent_getValue( epf_cells_visited, V, _S ) :- !,
 
 exog_prim_fluent( epf_num_visited ).
 exog_fluent_getValue( epf_num_visited, V, _S ) :- !,
-      getval( wm_cells_visited, Vtemp ),
-      length( Vtemp, V ).
+      getval( wm_num_visited, V ).
+%      getval( wm_cells_visited, Vtemp ),
+%      length( Vtemp, V ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  list of unvisited cells    %%
@@ -436,8 +438,8 @@ exog_prim_fluent( epf_sense_breeze ).
 
 /** access function returns the fluent's value in Situation _S. */
 exog_fluent_getValue(epf_sense_breeze, V, _S) :- !,
-      getval( real_agent_pos_X, X ),
-      getval( real_agent_pos_Y, Y ),
+      getval( wm_agent_pos_X, X ),
+      getval( wm_agent_pos_Y, Y ),
       ( breeze(X,Y) -> V = true; V = false ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -458,8 +460,8 @@ exog_prim_fluent( epf_sense_stench ).
 
 /** access function returns the fluent's value in Situation _S. */
 exog_fluent_getValue(epf_sense_stench, V, _S) :- !,
-      getval( real_agent_pos_X, X ),
-      getval( real_agent_pos_Y, Y ),
+      getval( wm_agent_pos_X, X ),
+      getval( wm_agent_pos_Y, Y ),
       ( stench(X,Y) -> V = true; V = false ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -609,14 +611,12 @@ poss( go_forward,
               is_pos(Xp, Yp),
               epf_wumpus_alive = WA,
               
-              /** agent has deduced that the cells in the list RCKNP(RealCellsKnowNoPit)
-               *  do not contain a pit
-               */
+              %  agent has deduced that the cells in the list RCKNP(RealCellsKnowNoPit)
+              %  do not contain a pit
               epf_cells_know_no_pit = NoPits,
 
-              /** agent has deduced that the wumpus is not in the cells in the list
-               *  RCKNW(RealCellsKnowNoWumpus)
-               */
+              %  agent has deduced that the wumpus is not in the cells in the list
+              %  RCKNW(RealCellsKnowNoWumpus)
               epf_cells_know_no_wumpus = NoWumpus,
               
               epf_cells_visited = Visited,
@@ -641,15 +641,15 @@ poss( go_forward,
                 ])
            ])
       ).
-                      
+
 /** Decide, if agent may go from [Xp, Yp] to [Xn, Yn] */   
 function( f_allowed_to_go(Xp, Yp, Xn, Yn, NoPits, NoWumpus, WA, Visited), V,
         lif( and([ is_pos(Xn, Yn),
                    not is_wall(Xp, Yp, Xn, Yn),
-                   % not is_pit(Xn, Yp),            /** would be absolute knowledge */
+                   % not is_pit(Xn, Yn),            /** would be absolute knowledge */
                    member([Xn, Yn], NoPits),        /** agent knows that there is no pit
                                                      *  in the neighbour cell */
-                   % not is_wumpus(Xn, Yn)          /** would be absolute knowledge */
+                   %not is_wumpus(Xn, Yn),          /** would be absolute knowledge */
                    or([ member([Xn, Yn], NoWumpus), /** either wumpus is know not to be in the cell... */
                         WA = false,                 /** ... or wumpus is dead */
                         member([Xn, Yn], Visited)   /** ... or the cell had been visited before */
@@ -707,7 +707,40 @@ causes_val( go_forward, epf_agent_pos_Y, L,
            ])
           ).
 
-/** QUESTION: Do I really have to change epf_cells_visited here, or wm_cells_visited? */
+causes_val( go_forward, epf_num_visited, V,
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_visited = CellsVisitedCurr,
+              epf_num_visited = OldNum,
+              or([ and([ Dir = east,
+                         Xn is Xp + 1,
+                         nonmember([Xn, Yp], CellsVisitedCurr),
+                         V is (OldNum + 1)
+                      ]),
+                   and([ Dir = south,
+                         Yn is Yp - 1,
+                         nonmember([Xp, Yn], CellsVisitedCurr),
+                         V is (OldNum + 1)
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp - 1,
+                         nonmember([Xn, Yp], CellsVisitedCurr),
+                         V is (OldNum + 1)
+                      ]),
+                   and([ Dir = north,
+                         Yn is Yp + 1,
+                         nonmember([Xp, Yn], CellsVisitedCurr),
+                         V is (OldNum + 1)
+                      ]),
+                   %  New cell had been visited before.
+                   V = OldNum
+                ])
+           ])
+        ).
+
 causes_val( go_forward, epf_cells_visited, CellsVisitedNew,
         and([ epf_agent_pos_X = Xp,
               epf_agent_pos_Y = Yp,
@@ -718,23 +751,277 @@ causes_val( go_forward, epf_cells_visited, CellsVisitedNew,
               or([ and([ Dir = east,
                          Xn is Xp + 1,
                          nonmember([Xn, Yp], CellsVisitedCurr),
-                         CellsVisitedNew = [[Xn, Yp] | CellsVisitedCurr]
+                         CellsVisitedTmp = [[Xn, Yp] | CellsVisitedCurr],
+                         sort_list_of_2D_vectors(CellsVisitedTmp,
+                                                 CellsVisitedNew)
                       ]),
                    and([ Dir = south,
                          Yn is Yp - 1,
                          nonmember([Xp, Yn], CellsVisitedCurr),
-                         CellsVisitedNew = [[Xp, Yn] | CellsVisitedCurr]
+                         CellsVisitedTmp = [[Xp, Yn] | CellsVisitedCurr],
+                         sort_list_of_2D_vectors(CellsVisitedTmp,
+                                                 CellsVisitedNew)
                       ]),
                    and([ Dir = west,
                          Xn is Xp - 1,
                          nonmember([Xn, Yp], CellsVisitedCurr),
-                         CellsVisitedNew = [[Xn, Yp] | CellsVisitedCurr]
+                         CellsVisitedTmp = [[Xn, Yp] | CellsVisitedCurr],
+                         sort_list_of_2D_vectors(CellsVisitedTmp,
+                                                 CellsVisitedNew)
                       ]),
                    and([ Dir = north,
                          Yn is Yp + 1,
                          nonmember([Xp, Yn], CellsVisitedCurr),
-                         CellsVisitedNew = [[Xp, Yn] | CellsVisitedCurr]
-                      ])
+                         CellsVisitedTmp = [[Xp, Yn] | CellsVisitedCurr],
+                         sort_list_of_2D_vectors(CellsVisitedTmp,
+                                                 CellsVisitedNew)
+                      ]),
+                   %  New cell already had been visited
+                   CellsVisitedNew = CellsVisitedCurr
+                ])
+           ])
+        ).
+
+causes_val( go_forward, epf_cells_shaded, CellsShadedNew,
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_shaded = CellsShadedCurr,
+              or([ and([ Dir = east,
+                         Xn is Xp + 1,
+                         member([Xn, Yp], CellsShadedCurr),
+                         delete([Xn, Yp], CellsShadedCurr, CellsShadedNew)
+                      ]),
+                   and([ Dir = south,
+                         Yn is Yp - 1,
+                         member([Xp, Yn], CellsShadedCurr),
+                         delete([Xp, Yn], CellsShadedCurr, CellsShadedNew)
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp - 1,
+                         member([Xn, Yp], CellsShadedCurr),
+                         delete([Xn, Yp], CellsShadedCurr, CellsShadedNew)
+                      ]),
+                   and([ Dir = north,
+                         Yn is Yp + 1,
+                         member([Xp, Yn], CellsShadedCurr),
+                         delete([Xp, Yn], CellsShadedCurr, CellsShadedNew)
+                      ]),
+                   %  New cell hasn't been shaded anymore
+                   CellsShadedNew = CellsShadedCurr
+                ])
+           ])
+        ).
+
+causes_val( go_forward, epf_cells_breezy, CellsBreezyNew,
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_breezy = CellsBreezyCurr,
+              or([ and([ Dir = east,
+                         Xn is Xp + 1,
+                         breeze(Xn, Yp),
+                         nonmember([Xn, Yp], CellsBreezyCurr),
+                         CellsBreezyTmp = [[Xn, Yp] | CellsBreezyCurr],
+                         sort_list_of_2D_vectors(CellsBreezyTmp,
+                                                 CellsBreezyNew)
+                      ]),
+                   and([ Dir = south,
+                         Yn is Yp - 1,
+                         breeze(Xp, Yn),
+                         nonmember([Xp, Yn], CellsBreezyCurr),
+                         CellsBreezyTmp = [[Xp, Yn] | CellsBreezyCurr],
+                         sort_list_of_2D_vectors(CellsBreezyTmp,
+                                                 CellsBreezyNew)
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp - 1,
+                         breeze(Xn, Yp),
+                         nonmember([Xn, Yp], CellsBreezyCurr),
+                         CellsBreezyTmp = [[Xn, Yp] | CellsBreezyCurr],
+                         sort_list_of_2D_vectors(CellsBreezyTmp,
+                                                 CellsBreezyNew)
+                      ]),
+                   and([ Dir = north,
+                         Yn is Yp + 1,
+                         breeze(Xp, Yn),
+                         nonmember([Xp, Yn], CellsBreezyCurr),
+                         CellsBreezyTmp = [[Xp, Yn] | CellsBreezyCurr],
+                         sort_list_of_2D_vectors(CellsBreezyTmp,
+                                                 CellsBreezyNew)
+                      ]),
+                   %  New cell is not breezy or already in list.
+                   CellsBreezyNew = CellsBreezyCurr
+                ])
+           ])
+        ).
+
+causes_val( go_forward, epf_cells_smelly, CellsSmellyNew,
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_smelly = CellsSmellyCurr,
+              or([ and([ Dir = east,
+                         Xn is Xp + 1,
+                         stench(Xn, Yp),
+                         nonmember([Xn, Yp], CellsSmellyCurr),
+                         CellsSmellyTmp = [[Xn, Yp] | CellsSmellyCurr],
+                         sort_list_of_2D_vectors(CellsSmellyTmp,
+                                                 CellsSmellyNew)
+                      ]),
+                   and([ Dir = south,
+                         Yn is Yp - 1,
+                         stench(Xp, Yn),
+                         nonmember([Xp, Yn], CellsSmellyCurr),
+                         CellsSmellyTmp = [[Xp, Yn] | CellsSmellyCurr],
+                         sort_list_of_2D_vectors(CellsSmellyTmp,
+                                                 CellsSmellyNew)
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp - 1,
+                         stench(Xn, Yp),
+                         nonmember([Xn, Yp], CellsSmellyCurr),
+                         CellsSmellyTmp = [[Xn, Yp] | CellsSmellyCurr],
+                         sort_list_of_2D_vectors(CellsSmellyTmp,
+                                                 CellsSmellyNew)
+                      ]),
+                   and([ Dir = north,
+                         Yn is Yp + 1,
+                         stench(Xp, Yn),
+                         nonmember([Xp, Yn], CellsSmellyCurr),
+                         CellsSmellyTmp = [[Xp, Yn] | CellsSmellyCurr],
+                         sort_list_of_2D_vectors(CellsSmellyTmp,
+                                                 CellsSmellyNew)
+                      ]),
+                   %  New cell is not smelly or already in list.
+                   CellsSmellyNew = CellsSmellyCurr
+                ])
+           ])
+        ).
+
+causes_val( go_forward, epf_cells_know_no_pit, CellsKnowNoPitNew,
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_know_no_pit = CellsKnowNoPitCurr,
+              or([ and([ Dir = east,
+                         Xn is Xp+1,
+                         Yn is Yp,
+                         is_pos(Xn, Yn),
+                         not breeze(Xn, Yn),
+                         get_cross_cells([Xn, Yn], CrossCells),
+                         union(CrossCells, CellsKnowNoPitCurr,
+                               CellsKnowNoPitTmp),
+                         sort_list_of_2D_vectors(CellsKnowNoPitTmp,
+                                                 CellsKnowNoPitNew)
+                      ]),
+                   and([ Dir = south,
+                         Xn is Xp,
+                         Yn is Yp-1,
+                         is_pos(Xn, Yn),
+                         not breeze(Xn, Yn),
+                         get_cross_cells([Xn, Yn], CrossCells),
+                         sort_list_of_2D_vectors(CrossCells, CrossCellsSorted),
+                         union(CrossCells, CellsKnowNoPitCurr,
+                               CellsKnowNoPitTmp),
+                         sort_list_of_2D_vectors(CellsKnowNoPitTmp,
+                                                 CellsKnowNoPitNew)
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp-1,
+                         Yn is Yp,
+                         is_pos(Xn, Yn),
+                         not breeze(Xn, Yn),
+                         get_cross_cells([Xn, Yn], CrossCells),
+                         sort_list_of_2D_vectors(CrossCells, CrossCellsSorted),
+                         union(CrossCells, CellsKnowNoPitCurr,
+                               CellsKnowNoPitTmp),
+                         sort_list_of_2D_vectors(CellsKnowNoPitTmp,
+                                                 CellsKnowNoPitNew)
+                      ]),
+                   and([ Dir = north,
+                         Xn is Xp,
+                         Yn is Yp+1,
+                         is_pos(Xn, Yn),
+                         not breeze(Xn, Yn),
+                         get_cross_cells([Xn, Yn], CrossCells),
+                         sort_list_of_2D_vectors(CrossCells, CrossCellsSorted),
+                         union(CrossCells, CellsKnowNoPitCurr,
+                               CellsKnowNoPitTmp),
+                         sort_list_of_2D_vectors(CellsKnowNoPitTmp,
+                                                 CellsKnowNoPitNew)
+                      ]),
+                   %  Do not update the cells since
+                   %  new cell is no position or it's breezy.
+                   CellsKnowNoPitNew = CellsKnowNoPitCurr
+                ])
+           ])
+        ).
+
+causes_val( go_forward, epf_cells_know_no_wumpus, CellsKnowNoWumpusNew,
+        and([ epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
+              is_pos(Xp, Yp),
+              epf_agent_direction = Dir,
+              is_direction(Dir),
+              epf_cells_know_no_wumpus = CellsKnowNoWumpusCurr,
+              or([ and([ Dir = east,
+                         Xn is Xp+1,
+                         Yn is Yp,
+                         is_pos(Xn, Yn),
+                         not stench(Xn, Yn),
+                         get_cross_cells([Xn, Yn], CrossCells),
+                         union(CrossCells, CellsKnowNoWumpusCurr,
+                               CellsKnowNoWumpusTmp),
+                         sort_list_of_2D_vectors(CellsKnowNoWumpusTmp,
+                                                 CellsKnowNoWumpusNew)
+%                         merge(1, =<, CrossCells, CellsKnowNoWumpusCurr,
+%                               CellsKnowNoWumpusNew)
+                      ]),
+                   and([ Dir = south,
+                         Xn is Xp,
+                         Yn is Yp-1,
+                         is_pos(Xn, Yn),
+                         not stench(Xn, Yn),
+                         get_cross_cells([Xn, Yn], CrossCells),
+                         union(CrossCells, CellsKnowNoWumpusCurr,
+                               CellsKnowNoWumpusTmp),
+                         sort_list_of_2D_vectors(CellsKnowNoWumpusTmp,
+                                                 CellsKnowNoWumpusNew)
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp-1,
+                         Yn is Yp,
+                         is_pos(Xn, Yn),
+                         not stench(Xn, Yn),
+                         get_cross_cells([Xn, Yn], CrossCells),
+                         union(CrossCells, CellsKnowNoWumpusCurr,
+                               CellsKnowNoWumpusTmp),
+                         sort_list_of_2D_vectors(CellsKnowNoWumpusTmp,
+                                                 CellsKnowNoWumpusNew)
+                      ]),
+                   and([ Dir = north,
+                         Xn is Xp,
+                         Yn is Yp+1,
+                         is_pos(Xn, Yn),
+                         not stench(Xn, Yn),
+                         get_cross_cells([Xn, Yn], CrossCells),
+                         union(CrossCells, CellsKnowNoWumpusCurr,
+                               CellsKnowNoWumpusTmp),
+                         sort_list_of_2D_vectors(CellsKnowNoWumpusTmp,
+                                                 CellsKnowNoWumpusNew)
+                      ]),
+                   %  Do not update the cells since
+                   %  new cell is no position or it's smelly.
+                   CellsKnowNoWumpusNew = CellsKnowNoWumpusCurr
                 ])
            ])
         ).
@@ -747,6 +1034,20 @@ causes_val( go_forward, epf_num_facedShades, V,
               is_direction(Dir),
               term_string(Dir, DirString),
               count_faced_shades([Xc, Yc], DirString, V)
+           ])
+        ).
+
+causes_val( go_forward, epf_cells_safe, CellsSafeNew,
+        and([ epf_cells_know_no_wumpus = CellsKnowNoWumpus,
+              epf_cells_know_no_pit = CellsKnowNoPit,
+              epf_cells_shaded = CellsShaded,
+              findall( X,
+                       ( member(X, CellsKnowNoWumpus),
+                         member(X, CellsKnowNoPit),
+                         member(X, CellsShaded) ),
+                       CellsSafeTmp ),
+              sort_list_of_2D_vectors(CellsSafeTmp,
+                                      CellsSafeNew)
            ])
         ).
 
@@ -799,8 +1100,39 @@ causes_val( go_forward, epf_sure_to_hit, V,
            ])
         ).
 
+causes_val( go_forward, epf_sense_gold, V, 
+        and([ epf_gold_pos_X = GX,
+              epf_gold_pos_Y = GY,
+              epf_agent_pos_X = Xp,
+              epf_agent_pos_Y = Yp,
+              epf_agent_direction = Dir,
+              or([ and([ Dir = east,
+                         Xn is Xp + 1,
+                         [Xn, Yp] = [GX, GY],
+                         V = true
+                      ]),
+                   and([ Dir = south,
+                         Yn is Yp - 1,
+                         [Xp, Yn] = [GX, GY],
+                         V = true
+                      ]),
+                   and([ Dir = west,
+                         Xn is Xp - 1,
+                         [Xn, Yp] = [GX, GY],
+                         V = true
+                      ]),
+                   and([ Dir = north,
+                         Yn is Yp + 1,
+                         [Xp, Yn] = [GX, GY],
+                         V = true
+                      ]),
+                   V = false
+                ])
+           ])
+        ).
+
+
 /** epf_visited(X,Y) is changed indirectly via the extension of the wm_cells_visited list */
-/** epf_num_visited is changed indirectly via the extension of the wm_cells_visited list */
 
 
 /** turn right.
@@ -858,22 +1190,36 @@ causes_val( turn_right, epf_num_facedShades, V,
 
 /** predicates to recognise an immediate backturn */
 /** backturn_right( +CurrentDir, +PreviousDir ). */
-backturn_right( east, "south" ).
-backturn_right( south, "west" ).
-backturn_right( west, "north" ).
-backturn_right( north, "east" ).
+%backturn_right( east, "south" ).
+%backturn_right( south, "west" ).
+%backturn_right( west, "north" ).
+%backturn_right( north, "east" ).
 
 causes_val( turn_right, epf_turning_back_again, V,
-        and([ epf_agent_direction = DCurr,
+        and([
+              epf_agent_direction = DCurr,
               epf_previous_direction = DPrev,
-              lif( backturn_right(DCurr, DPrev),
+%              lif( backturn_right(DCurr, DPrev),
+              lif( determine_turning_back_again(right, DCurr, DPrev),
                    V = true,
                    V = false )
            ])
         ).
 causes_val( turn_right, epf_previous_direction, V,
         V = epf_agent_direction).
-
+causes_val( turn_right, epf_sure_to_hit, true, false ).
+causes_val( turn_right, epf_sure_to_hit, V,
+        and([ epf_agent_pos_X = Xc,
+              epf_agent_pos_Y = Yc,
+              epf_agent_direction = DirCurr,
+              epf_cells_know_no_wumpus = CKNW,
+              epf_cells_smelly = CS,
+              epf_known_wumpus_pos_X = KWPX,
+              epf_known_wumpus_pos_Y = KWPY,
+              determine_sure_to_hit(Xc, Yc, DirCurr, CKNW, CS, KWPX, KWPY,
+                                    V, _WPX, _WPY)
+           ])
+        ).
 
 /** turn left */
 prim_action( turn_left ).
@@ -927,15 +1273,17 @@ causes_val( turn_left, epf_num_facedShades, V,
 
 /** predicates to recognise an immediate backturn */
 /** backturn_left( +CurrentDir, +PreviousDir ). */
-backturn_left( east, "north" ).
-backturn_left( south, "east" ).
-backturn_left( west, "south" ).
-backturn_left( north, "west" ).
+%backturn_left( east, "north" ).
+%backturn_left( south, "east" ).
+%backturn_left( west, "south" ).
+%backturn_left( north, "west" ).
 
 causes_val( turn_left, epf_turning_back_again, V,
-        and([ DCurr = epf_agent_direction,
+        and([
+              DCurr = epf_agent_direction,
               DPrev = epf_previous_direction,
-              lif( backturn_left(DCurr,DPrev),
+%              lif( backturn_left(DCurr,DPrev),
+              lif( determine_turning_back_again(left, DCurr, DPrev),
                    V = true,
                    V = false )
            ])
@@ -943,6 +1291,19 @@ causes_val( turn_left, epf_turning_back_again, V,
 
 causes_val( turn_left, epf_previous_direction, V,
         V = epf_agent_direction).
+causes_val( turn_left, epf_sure_to_hit, true, false ).
+causes_val( turn_left, epf_sure_to_hit, V,
+        and([ epf_agent_pos_X = Xc,
+              epf_agent_pos_Y = Yc,
+              epf_agent_direction = DirCurr,
+              epf_cells_know_no_wumpus = CKNW,
+              epf_cells_smelly = CS,
+              epf_known_wumpus_pos_X = KWPX,
+              epf_known_wumpus_pos_Y = KWPY,
+              determine_sure_to_hit(Xc, Yc, DirCurr, CKNW, CS, KWPX, KWPY,
+                                    V, _WPX, _WPY)
+           ])
+        ).
 
 
 /** shoot */
@@ -991,8 +1352,8 @@ causes_val( shoot, epf_wumpus_alive, WA,
 
 causes_val( shoot, epf_cells_know_no_wumpus, CellsNoWumpus,
         % as Wumpus dies if shoot is possible
-        get_all_positions( CellsAll ),
-        CellsNoWumpus = CellsAll
+        and([ get_all_positions( CellsAll ),
+              CellsNoWumpus = CellsAll ])
         ).
 
 /** do not move */

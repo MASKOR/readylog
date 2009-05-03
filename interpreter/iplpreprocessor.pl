@@ -231,7 +231,11 @@ process_proc_aux( ProcName, ProcBody, Stream ) :-
                 Processed = ProcessedTmp
            ),
            %  Write the transformed proc to the file.
-           printf( Stream, "%w ).\n", [Processed] ).
+%           printf( Stream, "%w ).\n", [Processed] ).
+           %  Use write_term/3 to force writing out the whole
+           %  term. Otherwise eclipse might introduce ellipsis "...".
+           write_term( Stream, Processed, [depth(full)] ),
+           printf( Stream, ").\n", [] ).
 %%-%%        ;
 %%-%%           printf( stdout, "Skipping Proc %w\n", [ProcName]), flush(stdout)
 %%-%%        ).
@@ -1775,7 +1779,10 @@ apply_tau_prime_H( [{P_List} | [nondet(ArgList) | Omega_Prime]], Horizon,
 
 apply_tau_prime_H( [{P_List} | [nondet(ArgList) | Omega_Prime]], Horizon,
                    Program, Tau_Prime_H_Program ) :- !,
-        integrate( {P_List}, ArgList, P_List_New ), 
+        %  Convert the nondet into a choice set.
+        apply_rho(nondet(ArgList), [], Rho_List),
+        Rho_List = [P2_List],
+        integrate( {P_List}, P2_List, P_List_New ), 
         apply_tau_prime_H( [{P_List_New} | Omega_Prime], Horizon, Program,
                            Tau_Prime_H_Program ).
 
@@ -1926,7 +1933,11 @@ apply_tau(solve([if(Cond, Sigma1, Sigma2)], Horizon, RewardFunction),
            term_string(Cond, CondString),
            concat_string( ["if( ", CondString, ", [", Sigma1_Final,
                            "], [", Sigma2_Final, "] )"], FinalString ),
+           % TODO: When given large nondet lists, string_to_list
+           % replaces the end by elipsis ...
            string_to_list(FinalString, Tau_Program)
+%           term_string(Tau_Program, FinalString)
+%           Tau_Program = FinalString
         ).
 
 apply_tau(solve([if(Cond, Sigma1, Sigma2) | Omega], Horizon, RewardFunction),

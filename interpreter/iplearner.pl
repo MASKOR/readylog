@@ -541,9 +541,9 @@ get_element(I, List, Element) :-
 %  still collect training data and train the decision tree for the given
 %  solve-context, or we are in the consultation phase for this solve-context.
 :- mode determine_ipl_phase(++, ++, -).
-determine_ipl_phase( _Solve, _S, Phase ) :-
-        !,
-        Phase = "consult".
+%determine_ipl_phase( _Solve, _S, Phase ) :-
+%        !,
+%        Phase = "consult".
 
 determine_ipl_phase( _Solve, _S, Phase ) :-
         param_exog_prim_fluents,
@@ -623,8 +623,8 @@ create_hash_key( Term, HashKey ) :-
 :- mode stream_ready(++).
 stream_ready( Stream ) :-
 %        not at_eof( Stream ), % does not work as intended with the pipe stream
-        select([Stream], 100, ReadyStream),
-        ReadyStream \= [].
+        select([Stream], 0, ReadyStream),
+        ReadyStream = [Stream].
 
 %  Skips through the (output)-stream Stream until Pattern is found or
 %  Stream is "quiet for a while".
@@ -632,28 +632,47 @@ stream_ready( Stream ) :-
 %  Returns String of the line where pattern is found.
 %  Helper predicate for chatting with C4.5.
 :- mode print_skip(++, ++, -).
-print_skip( Stream, _Pattern, String ) :-
-        not stream_ready( out ), !,
-        printf("[print_skip] ***Error*** Stream '%w' is not ready for I/O ",
-               [Stream]),
-        printf("while trying to skip!\n", []),
-        flush(stdout),
-        String = "".
+%print_skip( Stream, _Pattern, String ) :-
+%        not stream_ready( out ), !,
+%        printf("[print_skip] ***Error*** Stream '%w' is not ready for I/O ",
+%               [Stream]),
+%        printf("while trying to skip!\n", []),
+%        flush(stdout),
+%        String = "".
 
-print_skip( Stream, _Pattern, String ) :-
-        at_eof( Stream ), !,
-        printf("[print_skip] ***Error*** Got empty Stream '%w' ", [Stream]),
-        printf("while trying to skip!\n", []),
-        flush(stdout),
-        String = "".
+%print_skip( Stream, _Pattern, String ) :-
+%        at_eof( Stream ), !,
+%        printf("[print_skip] ***Error*** Got empty Stream '%w' ", [Stream]),
+%        printf("while trying to skip!\n", []),
+%        flush(stdout),
+%        String = "".
+
+%print_skip( Stream, Pattern, String ) :-
+%        stream_ready( out ),
+%        read_string(Stream, end_of_line, _, String),
+%        ( substring(String, Pattern, _) ->
+%           true
+%        ;
+%           print_skip( Stream, Pattern, String )
+%        ).
 
 print_skip( Stream, Pattern, String ) :-
-        stream_ready( out ),
-        read_string(Stream, end_of_line, _, String),
-        ( substring(String, Pattern, _) ->
-           true
+%        ( stream_ready( Stream ) ->
+        repeat,
+           select([Stream], 0, ReadyStream),
+        ( ReadyStream = [Stream] ),
+        !,
+        ( read_string(Stream, end_of_line, _, StringLine) ->
+          ( substring(StringLine, Pattern, _) ->
+             printf(stdout, "[C4.5] Skipped Line: %w\n", [StringLine]),
+             String = StringLine
+          ;
+             printf(stdout, "[C4.5] Found Line: %w\n", [StringLine]),
+             print_skip( Stream, Pattern, String )
+          )
         ;
-           print_skip( Stream, Pattern, String )
+          printf(stdout, "[C4.5] Stream is at_eof.\n", []),
+          String = "#### Error. Stream is at_eof. ####"
         ).
 
 %  Skips through the (output)-stream Stream until Pattern is found or
@@ -678,12 +697,19 @@ quiet_skip( Stream, _Pattern, String ) :-
         String = "".
 */
 quiet_skip( Stream, Pattern, String ) :-
-        stream_ready( out ),
-        read_string(Stream, end_of_line, _, String),
-        ( substring(String, Pattern, _) ->
-           true
+%        ( stream_ready( Stream ) ->
+        repeat,
+           select([Stream], 0, ReadyStream),
+        ( ReadyStream = [Stream] ),
+        !,
+        ( read_string(Stream, end_of_line, _, StringLine) ->
+          ( substring(StringLine, Pattern, _) ->
+             String = StringLine
+          ;
+             quiet_skip( Stream, Pattern, String )
+          )
         ;
-           quiet_skip( Stream, Pattern, String )
+          String = "#### Error. Stream is at_eof. ####"
         ).
 
 % --------------------------------------------------------- %
@@ -941,7 +967,7 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
                          concat_string(["dim_", IS, "_of_", NS, "_",
                                        FluentNDTS],
                                        FluentNameForHumans),
-                         printf(NameStream, "%w: discrete 1000.\n",
+                         printf(NameStream, "%w: discrete 10000.\n",
                                [FluentNameForHumans])
                    ;   
                       %  The fluent is in byte form... we make it human-
@@ -953,9 +979,9 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
                          ;
                             subf(FluentTerm, _ValF, S)
                          ),
-                         printf(NameStream, "%w: discrete 1000.\n", [FluentTerm])
+                         printf(NameStream, "%w: discrete 10000.\n", [FluentTerm])
                       ;
-                         printf(NameStream, "%w: discrete 1000.\n", [FluentTerm]),
+                         printf(NameStream, "%w: discrete 10000.\n", [FluentTerm]),
                          printf(NameStream, "| WARNING: %w is neither ", [FluentTerm]),
                          printf(NameStream, "cont nor prim!\n,", []),
                          printf(stdout, "*** WARNING ***: %w is neither ", [FluentTerm]),
@@ -1276,10 +1302,15 @@ clean_up_markers(Policy, Result) :-
         %  We use an accumulator and tail-recursion
         %  for higher efficiency.
         clean_up_markers(Policy, [], ResultReversed),
+        %( ResultReversed = [] ->
+           ResultFlat = ResultReversed,
+        %;
+% Flattening destroys if(Cond, [], Prog).
+%        flatten(ResultReversed, ResultFlat),
+        %),
         %  Since we want to avoid using append, we
         %  construct the clean policy in reverse
         %  order in the accumulator and now reverse it.
-        flatten(ResultReversed, ResultFlat),
         reverse(ResultFlat, Result).
 
 :- mode clean_up_markers(++, ++, -).
@@ -1293,7 +1324,8 @@ clean_up_markers([marker(false, true) | PolTail], Rest, Result) :- !,
 
 clean_up_markers([marker(_C, _T) | PolTail], Rest, Result) :- !,
 %        clean_up_markers(PolTail, [marker(true, true) | Rest], Result).
-        clean_up_markers(PolTail, [Rest], Result).
+% printf(stdout, "\n clean_up_markers[marker(_C, _T)]: PolTail %w\n", [PolTail]), flush(stdout),
+        clean_up_markers(PolTail, Rest, Result).
 
 clean_up_markers([Term | PolTail], Rest, Result) :-
         not(compound(Term)), !,
@@ -1303,9 +1335,10 @@ clean_up_markers([Term | PolTail], Rest, Result) :-
 clean_up_markers([Term | PolTail], Rest, Result) :-
         %  Term is a compound.
         is_list(Term), !,
+% printf(stdout, "\n clean_up_markers[LIST]: Term = %w\n", [Term]), flush(stdout),
         clean_up_markers(Term, TermClean),
-        TermClean = [TermFinal],
-        clean_up_markers(PolTail, [TermFinal | Rest], Result).
+% printf(stdout, "\n clean_up_markers[LIST]: TermClean = %w\n", [TermClean]), flush(stdout),
+        clean_up_markers(PolTail, [TermClean | Rest], Result).
 
 clean_up_markers([Term1=Term2 | PolTail], Rest, Result) :-
         not(is_list(Term1)),
@@ -1335,14 +1368,34 @@ clean_up_markers([Term1=Term2 | PolTail], Rest, Result) :-
         clean_up_markers(Term1, Term1Clean),
         clean_up_markers(Term2, Term2Clean),
         clean_up_markers(PolTail, [Term1Clean=Term2Clean | Rest], Result).
-
+/*
 clean_up_markers([Term | PolTail], Rest, Result) :-
         %  As Term is no list and it is a compound,
         %  it must be a structure (e.g., Term=if(A,B,C)).
         %  We have to recurse into the arguments.
         Term =.. [Functor | Args],
+        Functor = if,
+ printf(stdout, "------- Term: [%w | Args]\n", [Functor, Args]), flush(stdout),
+        !,
+        arg(1, Term, Cond),
+        arg(2, Term, Prog1),
+        arg(3, Term, Prog2),
+        clean_up_markers(Cond, CleanCond),
+        clean_up_markers(Prog1, CleanProg1),
+        clean_up_markers(Prog2, CleanProg2),
+        CleanTerm =.. [Functor | [CleanCond, CleanProg1, CleanProg2]],
+ printf(stdout, "------- CleanTerm: %w\n", [CleanTerm]), flush(stdout),
+        clean_up_markers(PolTail, [CleanTerm | Rest], Result).
+*/
+clean_up_markers([Term | PolTail], Rest, Result) :-
+        %  As Term is no list and it is a compound,
+        %  it must be a structure (e.g., Term=if(A,B,C)).
+        %  We have to recurse into the arguments.
+        Term =.. [Functor | Args],
+% printf(stdout, "\n clean_up_markers[COMPOUND]: Term =.. [%w | %w]\n", [Functor, Args]), flush(stdout),
         clean_up_markers(Args, CleanArgs),
         CleanTerm =.. [Functor | CleanArgs],
+% printf(stdout, "\n clean_up_markers[COMPOUND]: CleanTerm = %w\n", [CleanTerm]), flush(stdout),
         clean_up_markers(PolTail, [CleanTerm | Rest], Result).
 
 
@@ -1481,7 +1534,7 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
 :- mode ask_c45_for_decision(++, ++, ++, ++, ?, ?).        
 ask_c45_for_decision( in, out, err, S, DecisionString, Success ) :-
 %         print_skip( out, "####", IndicatorString ),
-        quiet_skip( out, "####", IndicatorString ),
+        quiet_skip( out, "####", IndicatorString ) ->
         ask_c45_for_decision_aux( in, out, err, S, IndicatorString,
                                   DecisionString, Success ).
 
@@ -1627,9 +1680,27 @@ ask_c45_for_decision_aux( in, out, err, _S, IndicatorString,
         %  training.
         substring(IndicatorString, "#### Error ####", _), !,
         printf(stdout, "--------\n", []),
+        printf(stdout, "[C4.5] IndicatorString: %w\n", [IndicatorString]),
         printf(stdout, "[C4.5] This attribute value has not appeared ", []),
         printf(stdout, "during training.\n", []),
         printf(stdout, "       Will use planning instead.\n", []),
+        printf(stdout, "--------\n", []),
+        Success = false,
+        flush(stdout),
+        ( ( stream_ready(out), not(at_eof(out) ) ) ->
+           read_string(out, end_of_file, _, _Rest)
+        ;
+           true
+        ).
+
+ask_c45_for_decision_aux( in, out, err, _S, IndicatorString,
+                          _DecisionString, Success ) :-
+        %  Happens when the attribute value has not been seen during
+        %  training.
+        substring(IndicatorString, "#### Error. Stream is at_eof. ####", _), !,
+        printf(stdout, "--------\n", []),
+        printf(stdout, "[C4.5] IndicatorString: %w\n", [IndicatorString]),
+        printf(stdout, "Will use planning instead.\n", []),
         printf(stdout, "--------\n", []),
         Success = false,
         flush(stdout),

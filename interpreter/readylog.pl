@@ -129,8 +129,7 @@ icpgolog(E) :-
         (iplearn ->
             writeln("INDUCTIVE POLICY LEARNING ENABLED."),
             nl,
-% TODO: uncomment! only used for evaluating wumpus with pure consultation.
-%            initialise_iplearner,
+            initialise_iplearner,
             (getval(param_exog_prim_fluents, true) ->
                 writeln("WORLD MODEL CONTAINS PARAMETERISED EXOG. FLUENTS."),
                 nl

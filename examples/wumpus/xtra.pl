@@ -47,6 +47,9 @@ reset_values :-
  * overwritten randomly via place_agent(Seed)*/
    setval( real_cells_visited, [[1,1]] ),
 
+/* number of visited cells */
+   setval( real_num_visited, 1 ),
+
 /* list of unvisited cells */
    setval( real_cells_shaded, [ ] ),
 
@@ -229,8 +232,13 @@ xTra(exogf_Update, _H) :- !,
 	%process_xtra_events,
 
 	%% worldmodel update
-	getval( real_cells_visited, V_CELLS_VIS ),
+	getval( real_cells_visited, V_CELLS_VIS_UNSORTED ),
+        sort_list_of_2D_vectors( V_CELLS_VIS_UNSORTED, V_CELLS_VIS),
+        setval( real_cells_visited, V_CELLS_VIS ),
         setval( wm_cells_visited, V_CELLS_VIS ),
+
+	getval( real_num_visited, V_NUM_VIS ),
+        setval( wm_num_visited, V_NUM_VIS ),
 
         getval( real_cells_shaded, V_CELLS_SHA ),
         setval( wm_cells_shaded, V_CELLS_SHA ),
@@ -322,12 +330,16 @@ xTra(exogf_Update, _H) :- !,
         get_all_positions( V_CELLS_POS ),
         % printColor( red, " All positions: %w \n", [V_CELLS_POS]),
 
-        getval( real_cells_know_no_pit, V_CELLS_K_N_P1 ),
+        getval( real_cells_know_no_pit, V_CELLS_K_N_P1_UNSORTED ),
+        sort_list_of_2D_vectors( V_CELLS_K_N_P1_UNSORTED, V_CELLS_K_N_P1 ),
+        setval( real_cells_know_no_pit, V_CELLS_K_N_P1 ),
         setval( wm_cells_know_no_pit, V_CELLS_K_N_P1 ),
 
-        getval( real_cells_breezy, V_CELLS_BRE1 ),
+        getval( real_cells_breezy, V_CELLS_BRE1_UNSORTED ),
+        sort_list_of_2D_vectors( V_CELLS_BRE1_UNSORTED, V_CELLS_BRE1 ),
 %        printColor( red, " *****  V_CELLS_BRE1: %w \n", [V_CELLS_BRE1]),
-        getval( real_cells_visited, V_CELLS_VIS1 ),
+        getval( real_cells_visited, V_CELLS_VIS1_UNSORTED ),
+        sort_list_of_2D_vectors( V_CELLS_VIS1_UNSORTED, V_CELLS_VIS1 ),
 %        printColor( red, " *****  V_CELLS_VIS1: %w \n", [V_CELLS_VIS1]),
 
         ( foreach( PossPitPos, V_CELLS_POS ),
@@ -381,9 +393,12 @@ xTra(exogf_Update, _H) :- !,
         %%  First find out, where there is no wumpus:
         % Cells that have been visited and are free of stench, have no wumpus as neighbour.
         % Note that real_cells_smelly only contains visited cells. 
-        getval( real_cells_know_no_wumpus, V_CELLS_K_N_W1 ),
+        getval( real_cells_know_no_wumpus, V_CELLS_K_N_W1_UNSORTED ),
+        sort_list_of_2D_vectors( V_CELLS_K_N_W1_UNSORTED, V_CELLS_K_N_W1 ),
+        setval( real_cells_know_no_wumpus, V_CELLS_K_N_W1 ),
         setval( wm_cells_know_no_wumpus, V_CELLS_K_N_W1 ),
-        getval( real_cells_smelly, V_CELLS_SME1 ),
+        getval( real_cells_smelly, V_CELLS_SME1_UNSORTED ),
+        sort_list_of_2D_vectors( V_CELLS_SME1_UNSORTED, V_CELLS_SME1 ),
 
         getval( real_wumpus_alive, V_WUMPUS_ALIVE ),
         setval( wm_wumpus_alive, V_WUMPUS_ALIVE ),
@@ -464,7 +479,10 @@ xTra(exogf_Update, _H) :- !,
         /** The "margin" are those cells that are shaded (unknown) and at the same time 
          *  are neighbours of already explored cells
          */
-	getval( real_cells_visited, M_CELLS_VIS ),
+	getval( real_cells_visited, M_CELLS_VIS_UNSORTED ),
+        sort_list_of_2D_vectors(M_CELLS_VIS_UNSORTED, M_CELLS_VIS),
+        getval( real_cells_shaded, M_CELLS_SHA_UNSORTED ),
+        sort_list_of_2D_vectors(M_CELLS_SHA_UNSORTED, M_CELLS_SHA),
         getval( real_cells_shaded, M_CELLS_SHA ),
         findall( MarginCell,
                  ( member( MarginCell, M_CELLS_SHA ),
@@ -831,7 +849,7 @@ go_forward_aux([X,Y], D, A) :- !,
         ;
           true
         ),
-%        printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [Xn, Yn, D, A]),
+%        printf(" draw_wumpus_hunter(%w,%w,%w,%w) \n", [Xn, Yn, D, A]), flush(stdout),
         /** bool to int conversion */
         ( ( A ) ->
             AInt = 1
@@ -843,7 +861,11 @@ go_forward_aux([X,Y], D, A) :- !,
         getval(real_cells_visited, RCV),
         ( nonmember([Xn,Yn], RCV) -> RCVN = [[Xn, Yn] | RCV],
                                      setval(real_cells_visited, RCVN),
-                                     setval(wm_cells_visited, RCVN)
+                                     setval(wm_cells_visited, RCVN),
+                                     getval(real_num_visited, RNumV),
+                                     RNumVN is (RNumV + 1),
+                                     setval(real_num_visited, RNumVN),
+                                     setval(wm_num_visited, RNumVN)
         ;
                                      true
         ),
@@ -857,11 +879,30 @@ go_forward_aux([X,Y], D, A) :- !,
                                   true
         ),
         getval(real_cells_shaded, RCSC),
-%        printf(" the following cells are shaded: %w \n", [RCSC_east]),                    
+%        printf(" the following cells are shaded: %w \n", [RCSC]),                    
         update_shades(RCSC),
         count_faced_shades([X,Y], D, NumShaded),
         setval( real_num_facedShades, NumShaded), 
-        setval( wm_num_facedShades, NumShaded).
+        setval( wm_num_facedShades, NumShaded),
+        getval( real_cells_know_no_wumpus, CellsKnowNoWumpus ),
+        ( stench(Xn, Yn) ->
+           true
+        ;
+           get_cross_cells([Xn, Yn], CrossCellsWumpus),
+           merge(1, =<, CrossCellsWumpus, CellsKnowNoWumpus, CellsKnowNoWumpusNew),
+           setval( real_cells_know_no_wumpus, CellsKnowNoWumpusNew ),
+           setval( wm_cells_know_no_wumpus, CellsKnowNoWumpusNew )
+        ),
+        getval( real_cells_know_no_pit, CellsKnowNoPit ),
+        ( breeze(Xn, Yn) ->
+           true
+        ;
+           get_cross_cells([Xn, Yn], CrossCellsPit),
+           merge(1, =<, CrossCellsPit, CellsKnowNoPit, CellsKnowNoPitNew),
+           setval( real_cells_know_no_pit, CellsKnowNoPitNew ),
+           setval( wm_cells_know_no_pit, CellsKnowNoPitNew )
+        ).
+           
 
 :- mode turn_aux(++, ++, ++, ++).        
 turn_aux( Side, [X,Y], D, A ) :- !,
@@ -1105,7 +1146,7 @@ place_agent_aux( Seed ) :- !,
            true
         ),
         setval( real_agent_dir, Dir ),
-%        setval( wm_agent_dir, Dir ),
+        setval( wm_agent_dir, Dir ),
         getval( real_wumpus_pos_X, WumpusX ),
         getval( real_wumpus_pos_Y, WumpusY ),
         ( ( pit(PosX, PosY); [WumpusX, WumpusY] = [PosX, PosY] ) ->
@@ -1115,8 +1156,8 @@ place_agent_aux( Seed ) :- !,
               printf("Placing agent at [%w, %w].\n", [PosX,PosY]),
               setval( real_agent_pos_X, PosX ),
               setval( real_agent_pos_Y, PosY ),
-%              setval( wm_agent_pos_X, PosX ),
-%              setval( wm_agent_pos_Y, PosX ),
+              setval( wm_agent_pos_X, PosX ),
+              setval( wm_agent_pos_Y, PosX ),
               setval( real_start_pos_X, PosX ),
               setval( real_start_pos_Y, PosY ),
               /** Start position is constant for the level, so
@@ -1125,12 +1166,12 @@ place_agent_aux( Seed ) :- !,
               setval( wm_start_pos_X, PosX ),
               setval( wm_start_pos_Y, PosY ),
               setval( real_cells_know_no_pit, [[PosX, PosY]] ),
-%              setval( wm_cells_know_no_pit, [[PosX, PosY]] ),
+              setval( wm_cells_know_no_pit, [[PosX, PosY]] ),
               setval( real_cells_know_no_wumpus, [[PosX, PosY]] ),
-%              setval( wm_cells_know_no_wumpus, [[PosX, PosY]] ),
+              setval( wm_cells_know_no_wumpus, [[PosX, PosY]] ),
               /** agent has seen the starting cell */
               setval( real_cells_visited, [[PosX, PosY]] ),
-%              setval( wm_cells_visited, [[PosX, PosY]] ),
+              setval( wm_cells_visited, [[PosX, PosY]] ),
               world( XMin, YMin, XMax, YMax ),
               findall( [X,Y],
                        ( between(XMin, XMax, 1, X),
@@ -1141,7 +1182,7 @@ place_agent_aux( Seed ) :- !,
                        ShadeList ),
 %              print_list(ShadeList),
               setval(real_cells_shaded, ShadeList),
-%              setval(wm_cells_shaded, ShadeList),
+              setval(wm_cells_shaded, ShadeList),
               update_shades(ShadeList),
               /** compute how many shades cells are initially lying
                *  in front of the agent */
@@ -1176,9 +1217,9 @@ place_gold_aux(Seed) :- !,
         ;
               printf("Placing gold at [%w,%w].\n", [PosX,PosY]),
               setval( real_gold_pos_X, PosX ),
-              setval( real_gold_pos_Y, PosY )%,
-%              setval( wm_gold_pos_X, PosX ),
-%              setval( wm_gold_pos_Y, PosY )
+              setval( real_gold_pos_Y, PosY ),
+              setval( wm_gold_pos_X, PosX ),
+              setval( wm_gold_pos_Y, PosY )
         ).
 
 /** Re-compute the position of breezes. */
@@ -1403,6 +1444,27 @@ deduce_wumpus( Cells, KnowNoWumpus, KnowSmell, Result, ResultPos ) :-
                 ResultPos = ["N/A", "N/A"]
         ).
 
+%  Succeeds if the agent is immediately turning back again.
+:- mode determine_turning_back_again(++, ++, ++).
+determine_turning_back_again(right, east, south).
+determine_turning_back_again(right, south, west).
+determine_turning_back_again(right, west, north).
+determine_turning_back_again(right, north, east).
+determine_turning_back_again(left, east, north).
+determine_turning_back_again(left, south, east).
+determine_turning_back_again(left, west, south).
+determine_turning_back_again(left, north, west).
+
+:- mode merge_lists(++, ++, -).
+merge_lists([], Result, Result).
+
+merge_lists([Head|Tail], List, Result) :-
+        ( nonmember(Head, List) ->
+           Result = [Head | List]
+        ;
+           Result = merge_lists(Tail, List, Result)
+        ).
+
 /** Shortcut... inefficient, if you already know the variable values! */
 %determine_sure_to_hit( SureToHit ) :-
 %        getval( real_agent_pos_X, CurrX ),
@@ -1538,10 +1600,15 @@ sort_list_of_2D_vectors( List, Result ) :-
 %        printColor( blue, "List before sorting: %w\n", [List]),
         %  We first sort by the second component and keep results
         %  with the same y-component.
-        sort(2, =<, List, ResultTmp),
+        sort(0, <, List, Result).
+%        sort(1, =<, List, ResultTmp1),
+%%        sort(2, =<, List, ResultTmp),
         %  As sorting is stable, we won't destroy the presorting
         %  by the second component now that we sort by the first one.
-        sort(1, =<, ResultTmp, Result).
+%        sort(1, =<, ResultTmp1, ResultTmp2).
+        %  Remove duplicates.
+%        sort([1,2], =, ResultTmp1, ResultTmp2).
+
 %        %  Replace all elements that are lists of two elements [X,Y] by a
 %        %  functor vec(X,Y). This is necessary as the functor of a list is
 %        %  ".", its first argument is "X", but its second argument is "[Y]".
@@ -1566,7 +1633,7 @@ sort_list_of_2D_vectors( List, Result ) :-
 %                 ),
 %                 Result ),
 
-%%        printColor( blue, "List after sorting: %w\n", [Result]).
+%        printColor( blue, "List after sorting: %w\n", [Result]).
 
  
 
@@ -1585,6 +1652,7 @@ realSleep( Time ) :-
         currentTime( Current ),
         Current - Start >= Time, !.
 
-execdelay :- realSleep(2).
+execdelay.
+%execdelay :- realSleep(2).
 
 :- write(" <-- loading xtra.pl done.\n").

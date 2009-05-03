@@ -252,6 +252,7 @@ list_to_string( List, ResultString ) :-
         %  converting terms to strings with term_string/2.
         remove_character( TmpString, "'", ResultString ).        
 
+
 %  Converts a string to a Prolog list.
 :- mode string_to_list(++, -).
 string_to_list( "", List ) :- !,
@@ -262,6 +263,7 @@ string_to_list( String, List ) :-
         findall( X,
                  ( member(Y, StringList), atom_string(X,Y) ),
                  List ).
+        
 
 %  Converts the fluent values (with placeholders
 %  COMMA and QUOTATION) from a C4.5-friendly format into

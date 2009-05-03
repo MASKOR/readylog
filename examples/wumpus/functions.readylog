@@ -86,7 +86,7 @@ function( reward_search_gold, Reward,
 %                     RewardSavedArrow = (-20)
 %                   ),
                 RewardExploration = ( (epf_distance_to_closest_safe_cell * (-10)) +
-                                      ( epf_num_visited * 20) +
+                                      (epf_num_visited * 20) +
                                       /** reward for turning into an direction that's
                                        *  promising for exploration */
                                        epf_num_facedShades),

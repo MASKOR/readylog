@@ -65,7 +65,7 @@ void Retry( Attribute Att, Tree T )Retry287,5625
 void SkipLine( char c )SkipLine305,6009
 void Clear()Clear323,6345
 
-C45AutoConsultObject.cpp,2360
+C45AutoConsultObject.cpp,2355
 #define _C45_AUTOCONSULTOBJECT_CPP__C45_AUTOCONSULTOBJECT_CPP_25,985
 C45AutoConsultObject::C45AutoConsultObject() C45AutoConsultObject45,1564
 C45AutoConsultObject::C45AutoConsultObject( char * fileName )C45AutoConsultObject82,2863
@@ -85,12 +85,12 @@ void C45AutoConsultObject::AutoCheckValue( Attribute Att, Tree T, vector<string>
 void C45AutoConsultObject::AutoCheckValueProlog( Attribute Att, Tree T )AutoCheckValueProlog656,19244
 void C45AutoConsultObject::AutoReadDiscr(Attribute Att, Tree T, vector<string> values)AutoReadDiscr683,19654
 int C45AutoConsultObject::CppWhich( string Val, short Att, short First, short Last)CppWhich796,22450
-void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)AutoReadDiscrProlog816,23186
-void C45AutoConsultObject::AutoReadContin( Attribute Att, Tree T, vector<string> values )AutoReadContin1026,30581
-void C45AutoConsultObject::AutoReadContinProlog( Attribute Att, Tree T )AutoReadContinProlog1051,31425
-void C45AutoConsultObject::AutoClear()AutoClear1081,32310
-void C45AutoConsultObject::AutoDecision( ClassNo c, float p, float lb, float ub)AutoDecision1108,32908
-void C45AutoConsultObject::AutoDecisionProlog( ClassNo c, float p, float lb, float ub)AutoDecisionProlog1134,33828
+void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)AutoReadDiscrProlog817,23305
+void C45AutoConsultObject::AutoReadContin( Attribute Att, Tree T, vector<string> values )AutoReadContin856,24699
+void C45AutoConsultObject::AutoReadContinProlog( Attribute Att, Tree T )AutoReadContinProlog881,25543
+void C45AutoConsultObject::AutoClear()AutoClear911,26428
+void C45AutoConsultObject::AutoDecision( ClassNo c, float p, float lb, float ub)AutoDecision938,27026
+void C45AutoConsultObject::AutoDecisionProlog( ClassNo c, float p, float lb, float ub)AutoDecisionProlog964,27946
 
 C45ConsultObject.cpp,384
 #define _C45_CONSULTOBJECT_CPP__C45_CONSULTOBJECT_CPP_29,1376
