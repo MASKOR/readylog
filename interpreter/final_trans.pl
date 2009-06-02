@@ -627,6 +627,14 @@ transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
 	    printPol(stdout, PolicyReplanned),
             % use applyPolicy and NOT applyLearnedPolicy
             PolR = applyPolicy(PolicyReplanned)
+
+            %%  In case of the ReadyBots we do not suggest re-planning.
+            %%  Instead, please comment out the above lines for the
+            %%  else case and uncomment the following lines instead.
+%            printColor(red, "BREAKING POLICY (true-case)\n", []),
+%            %printColor(yellow, "CONDITION:%w\n", [Cond]),
+%            printColor(cyan, "SITUATION:%w\n", [S]),
+%            PolR = []
 	  )
 	;
 	  (
@@ -649,6 +657,14 @@ transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
 	    printPol(stdout, PolicyReplanned),
             % use applyPolicy and NOT applyLearnedPolicy
             PolR = applyPolicy(PolicyReplanned)
+
+            %%  In case of the ReadyBots we do not suggest re-planning.
+            %%  Instead, please comment out the above lines for the
+            %%  else case and uncomment the following lines instead.
+%            printColor(red, "BREAKING LEARNED POLICY (false-case)\n", []),
+%            %printColor(yellow, "CONDITION:%w\n", [Cond]),
+%            printColor(cyan, "SITUATION:%w\n", [S]),
+%            PolR = []
 	  )
 	).	
 
@@ -683,6 +699,7 @@ transPr( applyLearnedPolicy([PolHead | PolTail],
 	  transPr( applyLearnedPolicy(PolTail,
                    solve(Prog, Horizon, RewardFunction), S_solve), S, ProgR, SNew, 1)
 	;
+          %  Wumpus World
           %  Since the learning might propose an impossible action,
           %  we have to check if the goal transPr can be fulfilled.
           %  Otherwise we re-plan.
@@ -707,6 +724,15 @@ transPr( applyLearnedPolicy([PolHead | PolTail],
              ProgR = applyPolicy(PolicyReplanned),
              SNew = S
           )
+          %  /Wumpus World
+
+          %%  In case of the ReadyBots we do not suggest re-planning.
+          %%  Instead, please comment out the above lines for the
+          %%  else case and uncomment the following lines instead.
+%          transPr( PolHead, S, PolHeadR, SNew, 1),
+%          append(PolHeadR, PolTail, PolR),
+%          ProgR = applyLearnedPolicy(PolR,
+%                              solve(Prog, Horizon, RewardFunction), S_solve)
 	).
 % </DP was here>
 	

@@ -292,14 +292,6 @@ ipl_get_all_fluent_names(S, Result) :-
                    project_from_n_to_1(EvaluableFB, S, Fluents1D)
                  ),
                  ResultTmp2 ),
- %  Add our custom multivariate fluents.
-% term_to_bytes(mvar_rew_exploration, MvarB),
-% term_to_bytes(mvar_rew_sum, MvarSumB),
-% term_to_bytes(mvar_rew_home, MvarHomeB),
-% ResultTmp3 = [MvarB | ResultTmp2],
-% ResultTmp4 = [MvarSumB | ResultTmp3],
-% ResultTmp5 = [MvarHomeB | ResultTmp4],
-%        flatten( ResultTmp5, ResultFlat ),
         flatten( ResultTmp2, ResultFlat ),
         list_to_ord_set( ResultFlat, Result ).
 
@@ -752,30 +744,6 @@ stream_ready( Stream ) :-
 %  Returns String of the line where pattern is found.
 %  Helper predicate for chatting with C4.5.
 :- mode print_skip(++, ++, -).
-%print_skip( Stream, _Pattern, String ) :-
-%        not stream_ready( out ), !,
-%        printf("[print_skip] ***Error*** Stream '%w' is not ready for I/O ",
-%               [Stream]),
-%        printf("while trying to skip!\n", []),
-%        flush(stdout),
-%        String = "".
-
-%print_skip( Stream, _Pattern, String ) :-
-%        at_eof( Stream ), !,
-%        printf("[print_skip] ***Error*** Got empty Stream '%w' ", [Stream]),
-%        printf("while trying to skip!\n", []),
-%        flush(stdout),
-%        String = "".
-
-%print_skip( Stream, Pattern, String ) :-
-%        stream_ready( out ),
-%        read_string(Stream, end_of_line, _, String),
-%        ( substring(String, Pattern, _) ->
-%           true
-%        ;
-%           print_skip( Stream, Pattern, String )
-%        ).
-
 print_skip( Stream, Pattern, String ) :-
 %        ( stream_ready( Stream ) ->
         repeat,
@@ -801,21 +769,6 @@ print_skip( Stream, Pattern, String ) :-
 %  Returns String of the line where pattern is found.
 %  Helper predicate for chatting with C4.5.
 :- mode quiet_skip(++, ++, -).
-/*quiet_skip( Stream, _Pattern, String ) :-
-        not stream_ready( out ), !,
-        printf("[quiet_skip] ***Error*** Stream '%w' is not ready for I/O ",
-               [Stream]),
-        printf("while trying to skip!\n", []),
-        flush(stdout),
-        String = "".
-
-quiet_skip( Stream, _Pattern, String ) :-
-        at_eof( Stream ), !,
-        printf("[quiet_skip] ***Error*** Got empty Stream '%w' ", [Stream]),
-        printf("while trying to skip!\n", []),
-        flush(stdout),
-        String = "".
-*/
 quiet_skip( Stream, Pattern, String ) :-
 %        ( stream_ready( Stream ) ->
         repeat,
@@ -870,23 +823,24 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
         clean_up_markers(Policy, PolicyValidMarkers),
         printf(stdout, "Policy with clean markers: %w\n", [PolicyValidMarkers]),
         flush(stdout),
+        term_to_bytes(PolicyValidMarkers, PolicyValidMarkersB),
         %  Create a hash key for the policy.
         getval(policy_hash_table, PolicyHashTable),
         %  Construct a Hash Key for the context "[Solve, PolicyValidMarkers]".
         %  The same Policy might appear in different solve contexts,
         %  and might have very different values in different solves.
         %  So we will keep apart policies from different solve contexts.
-        term_hash([solve(Prog, Horizon, RewardFunction), PolicyValidMarkers],
+        term_hash([solve(Prog, Horizon, RewardFunction), PolicyValidMarkersB],
                   -1, 1000, PolicyHashKey),
         printf(stdout, "Policy has hash key %w.\n", [PolicyHashKey]),
         term_string(PolicyHashKey, PolicyHashKeyString),
         ( not(hash_contains(PolicyHashTable, PolicyHashKey)) ->
            %  Policy encountered for the first time.
-           hash_set(PolicyHashTable, PolicyHashKey, PolicyValidMarkers),
+           hash_set(PolicyHashTable, PolicyHashKey, PolicyValidMarkersB),
            setval(policy_hash_table, PolicyHashTable),
            %  Store the hash table on hard disk for later retrieval.
 %           printf(stdout, "store_hash_list().\n", []),
-           store_hash_list(PolicyHashTable, 'policies.hash')%,
+           store_hash_list_binary(PolicyHashTable, 'policies.hash')%,
 %           printf(stdout, "succeeded in store_hash_list().\n", [])
         ;
            true
@@ -1015,25 +969,6 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
         printf(NameStream, "| separated by commas and terminated by ", []),
         printf(NameStream, "a fullstop.\n", []),
         printf(NameStream, "\n", []),
-%%%        Deprecated... we store the policy in a hash table instead.
-%%%        %  Replace commas, as C4.5 forbids them in class names.
-%%%        term_string(Policy, PolicyString),
-%%%        replace_string(PolicyString, ",", "\\,", PolicyStringNoComma),
-%%%%        printf(NameStream, "%w", [PolicyStringNoComma]),
-%%%        term_string(Value, ValueString),
-%%%        term_string(TermProb, TermProbString),
-        %  TODO: PolicyTreeString can get too big for
-        %        reasonable processing.
-        %        We replace it by the placeholder "Tree", as
-        %        it only is used for DT-debugging anyway.
-%%        term_string(PolicyTree, PolicyTreeString),
-%%        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
-%%%       PolicyTreeStringNoComma = "Tree",
-%%%       concat_string(["(", PolicyStringNoComma, " <Value_", ValueString, ">",
-%%%       concat_string(["(", PolicyHashKeyString, " <Value_", ValueString, ">",
-%%%                      " <TermProb_", TermProbString, ">", 
-%%%                      " <PolicyTree_", PolicyTreeStringNoComma, ">)"],
-%%%                      DecisionString),
         concat_string(["Policy_", PolicyHashKeyString],
                        DecisionString),
         printf(NameStream, "%w", [DecisionString]),
@@ -1175,22 +1110,6 @@ continue_names_file( PolicyHashKeyString, HashKeyString, DecisionString ) :-
         open(FileName, read, NameStreamRead),
         read_string(NameStreamRead, end_of_file, _Length, NameStreamString),
         close(NameStreamRead),
-%%%        term_string(Policy, PolicyString),
-%%%%        printf(stdout, "PolicyString: %w.\n", [PolicyString]),
-%%%        %  replace commas in policy, as C4.5 forbids them in class names
-%%%        replace_string(PolicyString, ",", "\\,",
-%%%                       PolicyStringNoComma),
-%%%        term_string(Value, ValueString),
-%%%        term_string(TermProb, TermProbString),
-        %  TODO: PolicyTreeString can get too big for
-        %        reasonable processing.
-        %        We replace it by the placeholder "Tree", as
-        %        it only is used for DT-debugging anyway.
-%%        term_string(PolicyTree, PolicyTreeString),
-%%        replace_string(PolicyTreeString, ",", "\\,", PolicyTreeStringNoComma),
-%%%        PolicyTreeStringNoComma = "Tree",
-        %  TODO: Only learn the policy! Store some average values in memory
-        %  for each of them to provide for extract_consult_results!
         concat_string(["Policy_", PolicyHashKeyString],
                        DecisionString),
         concat_string([DecisionString, ","],
@@ -1325,7 +1244,9 @@ create_hash_lists_from_files( SolveHashTable,
         read_string(Stream2, end_of_line, _, PolicyHashKeysS),
         read_string(Stream2, end_of_line, _, _),
         read_string(Stream2, end_of_line, _, _),
-        read_string(Stream2, end_of_line, _, PolicyHashValuesS),
+        %  Read in all lines that are left, as we stored the list of
+        %  policies as byte value, which stretches over several lines.
+        read_string(Stream2, end_of_file, _, PolicyHashValuesS),
         printf(stdout, "successfully.\n", []),
         close(Stream2),
         printf(stdout, "Creating PolicyHashTable ... ", []),
@@ -1333,7 +1254,8 @@ create_hash_lists_from_files( SolveHashTable,
         printf(stdout, "successfully.\n", []), flush(stdout),
         printf(stdout, "Instantiating PolicyHashTable ... ", []),
         term_string(PolicyHashKeys, PolicyHashKeysS),
-        term_string(PolicyHashValues, PolicyHashValuesS),
+        %  Leave the policies in byte form.
+        bytes_to_term(PolicyHashValuesS, PolicyHashValues),
         hash_set_recursively( PolicyHashKeys, PolicyHashValues,
                               PolicyHashTable ),
         printf(stdout, "successfully.\n", []),
@@ -1418,11 +1340,11 @@ hash_set_recursively( HashKeys, HashValues, HashTable ) :-
         hash_set_recursively(RemainingKeys, RemainingValues,
                              HashTable).
         
-%  Replaces all markers by the marker(true, true). Exceptions are the 
-%  marker(true, false) and the marker(false, true). Those are probably intended
-%  by the modeller to break a policy. But if, on the other hand,
-%  we deal with continuous fluent values (e.g., 3D positional vectors)
-%  in the marker we would get all different policies.
+
+%  Replaces all markers containing variables that had been instantiated during
+%  planning, by markers containing fresh variables.
+%  Note, that the following markers are hard-coded and found through inspection
+%  of the ReadyBot code!
 :- mode clean_up_markers(++, -).
 clean_up_markers(Policy, Result) :-
         %  We use an accumulator and tail-recursion
@@ -1442,16 +1364,110 @@ clean_up_markers(Policy, Result) :-
 :- mode clean_up_markers(++, ++, -).
 clean_up_markers([], Result, Result) :- !.
 
+%  For the ReadyBots leave in the following custom markers.
+clean_up_markers([marker(f_SawOpponent=false, true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_SawOpponent=false, true) | Rest], Result).
+
+clean_up_markers([marker(f_SawOpponent=true, false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_SawOpponent=true, false) | Rest], Result).
+
+clean_up_markers([marker(f_SawOpponent, true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_SawOpponent, true) | Rest], Result).
+ 
+clean_up_markers([marker(f_SawOpponent, false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_SawOpponent, false) | Rest], Result).
+
+clean_up_markers([marker(f_BotHasGoodWeapon=false, true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_BotHasGoodWeapon=false, true) | Rest], Result).
+
+clean_up_markers([marker(f_BotHasGoodWeapon=true, false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_BotHasGoodWeapon=true, false) | Rest], Result).
+
+clean_up_markers([marker(f_BotHasGoodWeapon, true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_BotHasGoodWeapon, true) | Rest], Result).
+
+clean_up_markers([marker(f_BotHasGoodWeapon, false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_BotHasGoodWeapon, false) | Rest], Result).
+
+clean_up_markers([marker(f_ItemTypeAvailable(Item), true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_ItemTypeAvailable(Item), true) | Rest], Result).
+
+clean_up_markers([marker(f_ItemTypeAvailable(Item), false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_ItemTypeAvailable(Item), false) | Rest], Result).
+
+clean_up_markers([marker(f_ItemTypeAvailable(Item)=false, true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_ItemTypeAvailable(Item)=false, true) | Rest], Result).
+
+clean_up_markers([marker(f_ItemTypeAvailable(Item)=true, false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_ItemTypeAvailable(Item)=true, false) | Rest], Result).
+
+clean_up_markers([marker(and([f_BotHasGoodWeapon=false, f_ItemTypeAvailable(weapon)=true]), true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(and([f_BotHasGoodWeapon=false, f_ItemTypeAvailable(weapon)=true]), true) | Rest], Result).
+
+clean_up_markers([marker(and([f_BotHasGoodWeapon=false, f_ItemTypeAvailable(weapon)=true]), false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(and([f_BotHasGoodWeapon=false, f_ItemTypeAvailable(weapon)=true]), false) | Rest], Result).
+
+clean_up_markers([marker(neg(0=0), true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(neg(0=0), true) | Rest], Result).
+
+clean_up_markers([marker(neg(0=0), false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(neg(0=0), false) | Rest], Result).
+
+clean_up_markers([marker(neg(1=0), true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(neg(1=0), true) | Rest], Result).
+
+clean_up_markers([marker(neg(1=0), false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(neg(1=0), false) | Rest], Result).
+
+clean_up_markers([marker(neg(0=1), true) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(neg(0=1), true) | Rest], Result).
+
+clean_up_markers([marker(neg(0=1), false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(neg(0=1), false) | Rest], Result).
+
+%  Marker for test in collect(Type, Horizon)
+clean_up_markers([marker(and( [ Loc = epf_BotLocation, getNextVisNavNodes( Loc, Horizon, Type, 0.9, TmpVisList ),
+                                lif( TmpVisList = [], getNextVisNavNodes( Loc, Horizon, Type, 0.5, VisList ),
+                                VisList = TmpVisList ), lif( neg( VisList = [] ), VisList = [HeadElement|_TailElements],
+                                HeadElement = nothing ), NewHorizon = Horizon - 1 ] ),
+                         true) | PolTail], Rest, Result) :- !,
+%  Replace instantiated Variables by new variables and write those variable names to the Policy.
+% printf(stdout, "\n\n ***** \n Found a collect test marker with Loc = %w\n", [Loc]),
+% printf(stdout, "\n\n ***** \n Replaced it with the variable MarkerVarLoc\n ***** \n \n", []),
+% flush(stdout),
+        clean_up_markers(PolTail, [marker(and( [ MarkerVarLoc = epf_BotLocation, getNextVisNavNodes( MarkerVarLoc, Horizon, Type, 0.9, MarkerVarTmpVisList ),
+                                                 lif( MarkerVarTmpVisList = [], getNextVisNavNodes( MarkerVarLoc, Horizon, Type, 0.5, MarkerVarVisList ),
+                                                 MarkerVarVisList = MarkerVarTmpVisList ), lif( neg( MarkerVarVisList = [] ), MarkerVarVisList = [MarkerVarHeadElement|_MarkerVarTailElements],
+                                                 MarkerVarHeadElement = nothing ), MarkerVarNewHorizon = Horizon - 1 ] ),
+                                          true) | Rest], Result).
+
+%  Marker for test in collect(Type, Horizon)
+clean_up_markers([marker(and( [ Loc = epf_BotLocation, getNextVisNavNodes( Loc, Horizon, Type, 0.9, TmpVisList ),
+                                lif( TmpVisList = [], getNextVisNavNodes( Loc, Horizon, Type, 0.5, VisList ),
+                                VisList = TmpVisList ), lif( neg( VisList = [] ), VisList = [HeadElement|_TailElements],
+                                HeadElement = nothing ), NewHorizon = Horizon - 1 ] ),
+                         false) | PolTail], Rest, Result) :- !,
+%  Replace instantiated Variables by new variables and write those variable names to the Policy.
+        clean_up_markers(PolTail, [marker(and( [ MarkerVarLoc = epf_BotLocation, getNextVisNavNodes( MarkerVarLoc, Horizon, Type, 0.9, MarkerVarTmpVisList ),
+                                                 lif( MarkerVarTmpVisList = [], getNextVisNavNodes( MarkerVarLoc, Horizon, Type, 0.5, MarkerVarVisList ),
+                                                 MarkerVarVisList = MarkerVarTmpVisList ), lif( neg( MarkerVarVisList = [] ), MarkerVarVisList = [MarkerVarHeadElement|_MarkerVarTailElements],
+                                                 MarkerVarHeadElement = nothing ), MarkerVarNewHorizon = Horizon - 1 ] ),
+                                          false) | Rest], Result).
+
+%%
+clean_up_markers([marker(f_SawOpponent=true, false) | PolTail], Rest, Result) :- !,
+        clean_up_markers(PolTail, [marker(f_SawOpponent=true, false) | Rest], Result).
+
 clean_up_markers([marker(true, false) | PolTail], Rest, Result) :- !,
         clean_up_markers(PolTail, [marker(true, false) | Rest], Result).
 
 clean_up_markers([marker(false, true) | PolTail], Rest, Result) :- !,
         clean_up_markers(PolTail, [marker(false, true) | Rest], Result).
 
-clean_up_markers([marker(_C, _T) | PolTail], Rest, Result) :- !,
+clean_up_markers([marker(C, T) | PolTail], Rest, Result) :- !,
 %        clean_up_markers(PolTail, [marker(true, true) | Rest], Result).
 % printf(stdout, "\n clean_up_markers[marker(_C, _T)]: PolTail %w\n", [PolTail]), flush(stdout),
-        clean_up_markers(PolTail, Rest, Result).
+        clean_up_markers(PolTail, [marker(C, T) | Rest], Result).
 
 clean_up_markers([Term | PolTail], Rest, Result) :-
         not(compound(Term)), !,
@@ -1494,25 +1510,7 @@ clean_up_markers([Term1=Term2 | PolTail], Rest, Result) :-
         clean_up_markers(Term1, Term1Clean),
         clean_up_markers(Term2, Term2Clean),
         clean_up_markers(PolTail, [Term1Clean=Term2Clean | Rest], Result).
-/*
-clean_up_markers([Term | PolTail], Rest, Result) :-
-        %  As Term is no list and it is a compound,
-        %  it must be a structure (e.g., Term=if(A,B,C)).
-        %  We have to recurse into the arguments.
-        Term =.. [Functor | Args],
-        Functor = if,
- printf(stdout, "------- Term: [%w | Args]\n", [Functor, Args]), flush(stdout),
-        !,
-        arg(1, Term, Cond),
-        arg(2, Term, Prog1),
-        arg(3, Term, Prog2),
-        clean_up_markers(Cond, CleanCond),
-        clean_up_markers(Prog1, CleanProg1),
-        clean_up_markers(Prog2, CleanProg2),
-        CleanTerm =.. [Functor | [CleanCond, CleanProg1, CleanProg2]],
- printf(stdout, "------- CleanTerm: %w\n", [CleanTerm]), flush(stdout),
-        clean_up_markers(PolTail, [CleanTerm | Rest], Result).
-*/
+
 clean_up_markers([Term | PolTail], Rest, Result) :-
         %  As Term is no list and it is a compound,
         %  it must be a structure (e.g., Term=if(A,B,C)).
@@ -1527,6 +1525,8 @@ clean_up_markers([Term | PolTail], Rest, Result) :-
 
 
 % }}}
+
+
 
 % --------------------------------------------------------- %
 %  Consultation of Learned Decision Trees                   %
@@ -1741,7 +1741,7 @@ ask_c45_for_decision_aux( in, out, err, S, IndicatorString,
            ;
               subf(AttributeName, ValTmp, S)
            )                   
-           )  % TODO: REMOVE ME AFTER TESTING MULTIVARIATE FLUENTS
+           )
         ),
         %  Replace commas, as C4.5 forbids them in
         %  attribute values.
@@ -1845,7 +1845,8 @@ extract_consultation_results( DecisionString,
          ( not(hash_contains(PolicyHashTable, PolicyHashKey)) ->
             printf(stdout, "Error: No hash entry for this PolicyHashKey in PolicyHashTable!\n", []), flush(stdout)
          ;
-            hash_get(PolicyHashTable, PolicyHashKey, Policy),
+            hash_get(PolicyHashTable, PolicyHashKey, PolicyB),
+            bytes_to_term(PolicyB, Policy),
             printf(stdout, "Policy: %w\n", [Policy]), flush(stdout)
          ),
 
