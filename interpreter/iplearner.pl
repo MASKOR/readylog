@@ -67,9 +67,13 @@ initialise_iplearner :-
         setval(param_exog_prim_fluents, Result),
         printf(stdout, "setval(param_exog_prim_fluents, %w)\n", [Result]),
         %  Constant giving a maximum threshold for the hypothesis error [0,1].
-        %  If the error of the decision tree of a solve context it below that
-        %  error, we switch to the consultation phase for that solve.
-        setval(max_hypothesis_error, 0.2),
+        %  If adaptive IPL is enabled and the error of the decision tree of a
+        %  solve context it below that error, we switch to the consultation
+        %  phase for that solve.
+        setval(max_hypothesis_error, 0.1),
+        %  Constant defining the minimum of required training instances for
+        %  adaptive IPL to switch to the consultation phase.
+        setval( minimum_examples, 20 ),
 %        %  Create a hash table to store the filenames (keys) for
 %        %  the different solve contexts (values).
 %        hash_create(SolveHashTable), setval(solve_hash_table, SolveHashTable),
@@ -163,18 +167,6 @@ initialise_ipl_fluents :-
 %        printf(stdout, "ipl.Fluents: %w\n", [Fluents]),
         setval(ipl_fluents, Fluents).
 
-%        string_length(FS, FSLength),
-%        ReducedLength is (FSLength - 2),
-%        substring(FS, 2, ReducedLength, FSNoBrackets),
-%        split_string( FSNoBrackets, ",", " \t", FStringList),
-%        findall( X,
-%                 ( member(XS, FStringList),
-%                   term_string(X, XS)
-%                 ),
-%                 Fluents),
-%        printf(stdout, "ipl.Fluents: %w\n", [Fluents]),
-%        setval(ipl_fluents, Fluents).
-
 %  Returns an ordered set Result of all fluent names as Prolog terms.
 :- mode get_all_fluent_names(-).
 get_all_fluent_names(Result) :-
@@ -190,10 +182,48 @@ get_all_fluent_names(Result) :-
                      lookahead(_, _, _, _), bel(_), ltp(_)],
 %        ignore_fluents(IFL), 
 %        append(BuiltInTemp, IFL, BuiltIn),
-        %  The list of all defined fluents.
+
+        %  In the following we give three hard-coded variants of IPL
+        %  learning.
+        %  The first one (default) is a standard agent for any
+        %  domain with only univariate attributes (only fluents).
+        %  The second one is used for a Wumpus World agent
+        %  with multivariate attributes.
+        %  The third one is used for a ReadyBot IPL agent with
+        %  multivariate attributes.
+        %  Please comment/uncomment the next lines accordingly.
+
+        %%  Univariate Agent  %%
         FluentLTmp=[PrimFList, ContFList, ExogPrimFList, ExogContFList],
+
+        %%  Multivariate Wumpus World Agent  %%
+        %  For a test of multi-variate attributes, we build some fluents
+        %  for the wumpus world by hand. We try to cover the correlations
+        %  from the reward function in the evaluation of those fluents.
+        %  The list of all defined fluents.
+%        FluentLTmp=[PrimFList, ContFList, ExogPrimFList, ExogContFList,
+%                    mvar_rew_exploration, mvar_rew_sum, mvar_rew_home],
+
+        %%  Multivariate ReadyBot IPL Agent  %%
+%        FluentLTmp=[PrimFList, ContFList, ExogPrimFList, ExogContFList,
+%                    mvar_rew_dm, mvar_rew_bot_has_good_weapon, mvar_rew_get_my_score, mvar_rew_get_player_max_score,
+%                    mvar_rew_has_double_damage, mvar_rew_weapon1, mvar_rew_health1, mvar_rew_health2, mvar_rew_health3,
+%                    mvar_rew_armor1, mvar_rew_armor2, mvar_rew_armor3, mvar_rew_armor4, mvar_rew_double,
+%                    mvar_rew_score1, mvar_rew_score2,
+%                    mvar_prog_saw_opponent, mvar_prog_item_type_available_supershield,
+%                    mvar_prog_item_type_available_shield, mvar_prog_item_type_available_health, mvar_prog_item_type_available_weapon],
+        %  For using the double_damage item
+        %  (not suggested for the Level 'Albatross')
+        %  please use the following multivariate attribute list.
+%        FluentLTmp=[PrimFList, ContFList, ExogPrimFList, ExogContFList,
+%                    mvar_rew_dm, mvar_rew_bot_has_good_weapon, mvar_rew_get_my_score, mvar_rew_get_player_max_score,
+%                    mvar_rew_has_double_damage, mvar_rew_weapon1, mvar_rew_health1, mvar_rew_health2, mvar_rew_health3,
+%                    mvar_rew_armor1, mvar_rew_armor2, mvar_rew_armor3, mvar_rew_armor4, mvar_rew_double,
+%                    mvar_rew_score1, mvar_rew_score2,
+%                    mvar_prog_saw_opponent, mvar_prog_item_type_available_doubledamage, mvar_prog_item_type_available_supershield,
+%                    mvar_prog_item_type_available_shield, mvar_prog_item_type_available_health, mvar_prog_item_type_available_weapon],                    
+
         flatten(FluentLTmp, FluentL),
-%        BuiltInTmp = [BuiltIn, RegL], flatten(BuiltInTmp, BuiltInL),
         BuiltInTmp = [BuiltInTemp, RegL],
         flatten(BuiltInTmp, BuiltInL),
         subtract(FluentL, BuiltInL, ResultList),
@@ -262,6 +292,14 @@ ipl_get_all_fluent_names(S, Result) :-
                    project_from_n_to_1(EvaluableFB, S, Fluents1D)
                  ),
                  ResultTmp2 ),
+ %  Add our custom multivariate fluents.
+% term_to_bytes(mvar_rew_exploration, MvarB),
+% term_to_bytes(mvar_rew_sum, MvarSumB),
+% term_to_bytes(mvar_rew_home, MvarHomeB),
+% ResultTmp3 = [MvarB | ResultTmp2],
+% ResultTmp4 = [MvarSumB | ResultTmp3],
+% ResultTmp5 = [MvarHomeB | ResultTmp4],
+%        flatten( ResultTmp5, ResultFlat ),
         flatten( ResultTmp2, ResultFlat ),
         list_to_ord_set( ResultFlat, Result ).
 
@@ -275,6 +313,11 @@ get_all_fluent_values(S, Result) :-
         ipl_get_all_fluent_names(S, Fluents),
         findall( ValFStringNoComma,
                  ( member(F, Fluents),
+                   %  Check if fluent is a custom multivariate fluent.
+                   bytes_to_term(F, FT),
+                   ( get_mvar_value(FT, S, ValF) ->
+                        true
+                     ;
                    %  Check if fluent is instantiated and we can
                    %  evaluate it,
                    %  or if it is a projection of an n-dimensional
@@ -303,7 +346,8 @@ get_all_fluent_values(S, Result) :-
                       printf(stdout, "Fluent %w is not valid. ", [F]),
                       printf(stdout, "Fluent is ignored.\n", []),
                       false
-                   ),
+                   )   %%,
+                   ),  %% REMOVE ME, ONCE MULTIVAR TESTING IS GONE!
                    %  Replace commas, as C4.5 forbids them in
                    %  attribute values.
                    %  Note, that, in general, ValF is a list!
@@ -541,6 +585,9 @@ get_element(I, List, Element) :-
 %  still collect training data and train the decision tree for the given
 %  solve-context, or we are in the consultation phase for this solve-context.
 :- mode determine_ipl_phase(++, ++, -).
+%  Uncomment next three lines to manually toggle the consultation phase
+%  for all solve contexts. You must manually run C4.5 on each solve
+%  context to generate the decision trees first!
 %determine_ipl_phase( _Solve, _S, Phase ) :-
 %        !,
 %        Phase = "consult".
@@ -591,19 +638,92 @@ determine_ipl_phase( HashKey, _S, Phase ) :-
         not(hash_contains(SolveHashTable, HashKey)),
         !,
         %  solve context encountered for the first time.
+        printf(stdout, "This solve was encountered for the first time.\n", []),
         Phase = "train".
 
-determine_ipl_phase( _HashKey, _S, Phase ) :-
-%%        %  solve context has been encountered before.
-%%        hypothesis_error(HashKey, Error),
-%%        getval( max_hypothesis_error, MaxError ),
-%%        ( Error > MaxError ),
+determine_ipl_phase( HashKey, _S, Phase ) :-
+        %  solve context has been encountered before.
+        adaptive_ipl,
+        printf(stdout, "Computing hypothesis error...\n", []),
+        hypothesis_error(HashKey, Error),
         !,
-        Phase = "train".
+        getval( max_hypothesis_error, MaxError ),
+        ( Error < MaxError ->
+           printf(stdout, "Triggering IPL Consultation Phase,\n", []),
+           printf(stdout, "since Hypothesis Error with %w is below %w\n",
+                 [Error, MaxError]),
+           %  TODO: The current implementation of adaptive IPL does
+           %  replace the solve context by a decision tree, once the
+           %  error becomes small enough, but it does *not* continue
+           %  training the tree and test if the error still decreases!
+           Phase = "consult"
+        ;
+           printf(stdout, "Continuing Training,\n", []),
+           printf(stdout, "since Hypothesis Error with %w is above %w\n",
+                 [Error, MaxError]),
+           Phase = "train"
+        ).
 
 determine_ipl_phase( _HashKey, _S, Phase ) :-
-        %  Since above clause failed, we know: ( Error =< MaxError )
-        Phase = "consult".
+        %  This is the case when adaptive IPL is disabled,
+        %  we want to train till we decide otherwise and
+        %  manually trigger the consultation phase (by uncommenting
+        %  the first clause).
+        Phase = "train".
+
+%  Creates a decision tree for the solve context with hash key HashKey,
+%  and parses the estimated error of the *pruned* tree on *seen* data.
+:- mode hypothesis_error(++, -).
+hypothesis_error(HashKey, Error) :-
+        term_string(HashKey, HashKeyString),
+        concat_string(["solve_context_", HashKeyString], FileStem),
+%        printf(stdout, "Executing C4.5...\n", []),
+        exec(["c4.5", "-f",
+              FileStem],
+             [in, out, err], Pid),
+%        printf(stdout, "successfully.\n", []),
+        ( read_string(out, end_of_file, _, Output) ->
+%            printf(stdout, "Writing output to file...\n", []),
+            open('output.tmp', write, OutputFile),
+            printf(OutputFile, "%w", [Output]),
+            close(OutputFile),
+            close(in),
+            close(out),
+            close(err),
+            wait(Pid, _Stat),
+%            printf(stdout, "successfully.\n", []),
+            system("grep 'cases' output.tmp | sed -e 's/Read //g' | sed -e 's/ cases.*//g' > output.cases.tmp"),
+            open('output.cases.tmp', read, CasesFile),
+            read_string(CasesFile, end_of_line, _, CasesString) ->
+            printf(stdout, "C4.5 says it found %w cases.\n", [CasesString]),
+            flush(stdout),
+            close(CasesFile),
+            delete('output.cases.tmp'),
+            term_string(Cases, CasesString),
+            getval(minimum_examples, MinimumExamples),
+            ( Cases < MinimumExamples ->
+               printf(stdout, "Found less than %w examples -> continue training\n", [MinimumExamples]),
+               delete('output.tmp'),
+               false
+            ;
+               system("grep '<<' output.tmp | sed -e 's/(/ /g' | sed -e 's/%)//g' | awk '{print $6}' > output.error.tmp"),
+               open('output.error.tmp', read, ErrorFile),
+               read_string(ErrorFile, end_of_line, _, ErrorString) ->
+               printf(stdout, "C4.5 says it found an error of %w percent.\n", [ErrorString]),
+               flush(stdout),
+               close(ErrorFile),
+               delete('output.tmp'),
+               term_string(ErrorPercent, ErrorString),
+               Error is (ErrorPercent / 100.0)
+            )
+        ;
+            close(in),
+            close(out),
+            close(err),
+            wait(Pid, _Stat),
+            false
+        ).
+        
 
 
 %  Creates a hash key for the solve context/the policies and their filenames.
@@ -927,6 +1047,7 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
         printf(NameStream, "| (notated as a comma-separated list).\n", []),
         printf(NameStream, "\n", []),
         ipl_get_all_fluent_names(S, FluentNames),
+ 
         %  As we are not given the domain for discrete fluents
         %  by the Readylog programmer, we simply declare the
         %  domain for discrete fluents as discrete with 1000
@@ -940,6 +1061,10 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
              %                                for. We will use our own test.
              %                                (The test implies that we can
              %                                evaluate the fluent.)
+             ( get_mvar_value(FluentTerm, S, _ValF) ->
+               printf(NameStream, "%w: discrete 10000.\n", [FluentTerm])
+             ;  
+
              ( ( is_continuous(Fluent, S) ) ->
                    ( is_projected_fluent(Fluent) ->
                          %  Decipher name stem of n-dimensional fluent.
@@ -989,6 +1114,7 @@ construct_names_file( solve(Prog, Horizon, RewardFunction), PolicyHashKeyString,
                       )
                    )
              )
+             ) %% REMOVE ME ONCE MULTIVAR TESTING IS DONE!
         ),
         close(NameStream).
 
@@ -1463,16 +1589,8 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
             true
         ),
         %  Run the C4.5/Prolog interface as another process.
-     %   ( exists('../../libraries/c45_lib/consultobj/ConsultObjectTest2') ->
-     %      ConsultObjectTest2 = 
-     %         "../../libraries/c45_lib/consultobj/ConsultObjectTest2"
-     %   ;
-     %      ( exists('/home/drcid/readybot/golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2') ->
-%        ConsultObjectTest2 = '../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2',
-     %      ;
-     %         printf(stdout, "ERROR: Didn't find ConsultObjectTest2 executable\n", [])
-     %      )
-     %   ),
+        %  When using with the ReadyBots, please comment the next 8 lines,
+        %  and uncomment the lines marked with %% below!
         ( not(exists("../../libraries/c45_lib/consultobj/ConsultObjectTest2")) ->
             printf(stdout, "Error: ../../libraries/c45_lib/consultobj/ConsultObjectTest2 not found!\n", [])
         ;
@@ -1481,6 +1599,7 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
         exec(["../../libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
               FullPath],
              [in, out, err], Pid),
+
 %%        ( not(exists("../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2")) ->
 %%            printf(stdout, "Error: ../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2 not found!\n", [])
 %%        ;
@@ -1489,6 +1608,7 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
 %%        exec(["../golog/ipl_agent/libraries/c45_lib/consultobj/ConsultObjectTest2", "-f",
 %%              FullPath],
 %%             [in, out, err], Pid),
+
         %  Do the Loop
         %  "C4.5 asks for attribute value ->
         %   Readylog provides Fluent Value ->
@@ -1500,7 +1620,6 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
                                  DecisionString, Success ),
 %        at_eof(out), %  Somehow doesn't work as intended
 %                     %  with the pipe stream
-%        ( ground(DecisionString) ; ground(Success) ),
         ( nonvar(DecisionString) ; nonvar(Success) ),
         !,
         close(in),
@@ -1533,8 +1652,8 @@ consult_dtree_aux( _Prog, _Horizon, _RewardFunction, S, FileStem,
 %  the (C++) C4.5/Prolog interface library "c45_lib".
 :- mode ask_c45_for_decision(++, ++, ++, ++, ?, ?).        
 ask_c45_for_decision( in, out, err, S, DecisionString, Success ) :-
-%         print_skip( out, "####", IndicatorString ),
-        quiet_skip( out, "####", IndicatorString ) ->
+%        print_skip( out, "####", IndicatorString ),
+        quiet_skip( out, "####", IndicatorString ),
         ask_c45_for_decision_aux( in, out, err, S, IndicatorString,
                                   DecisionString, Success ).
 
@@ -1610,35 +1729,19 @@ ask_c45_for_decision_aux( in, out, err, S, IndicatorString,
 
            DegeneratedList = [Fluent1D],
            get_value_from_n_dim_fluent(Fluent1D, S, ValTmp)
-           
-%           %  Convert the fluent name from human-readable
-%           %  form to evaluable byte form.
-%
-%           term_string(CurrentDim, CurrentDimS),
-%           term_string(TotalDim, TotalDimS),
-%           bytes_to_term(FluentStemString, FluentStemT),
-%           printf(stdout, "FluentStemT: %w.\n", [FluentStemT]),
-%           term_to_bytes(FluentStemT, FluentStemB),
-                   
-%           Fluent1DTmp = projected_fluent(CurrentDim, TotalDim, FluentStemB),
-%%           printf(stdout, "Fluent1DTmp: %w.\n", [Fluent1DTmp]),
-%           term_to_bytes(Fluent1DTmp, Fluent1D),
-%%           printf(stdout, "Fluent1D: %w.\n", [Fluent1DTmp]),
-%
-%% ipl_get_all_fluent_names(S, ResultList),
-%%           print_list(ResultList),
-%
-%           get_value_from_n_dim_fluent(Fluent1D, S, ValTmp)
-
         ;
            %  Fluent is not a projection of an n-dimensional fluent.
            term_string(AttributeName, AttributeNameS),
            %  Fluent is instantiated and 1-dimensional.
+           ( get_mvar_value(AttributeName, S, ValTmp) ->
+              true 
+           ;
            ( exog_fluent(AttributeName) ->
               exog_fluent_getValue(AttributeName, ValTmp, S)
            ;
               subf(AttributeName, ValTmp, S)
-           )
+           )                   
+           )  % TODO: REMOVE ME AFTER TESTING MULTIVARIATE FLUENTS
         ),
         %  Replace commas, as C4.5 forbids them in
         %  attribute values.
@@ -1762,6 +1865,525 @@ extract_consultation_results( DecisionString,
          ;
             true
          ).
+
+%  Evaluates a custom multivariate fluent.
+:- mode get_mvar_value(++, ++, -).
+
+get_mvar_value(_MVar, _S, _Val) :-
+        not(multivariate),
+        !,
+        false.
+
+%%  WUMPUS WORLD MULTIVARIATE ATTRIBUTES  %%
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_exploration,
+        !,
+        %  Compute the correlated value from the reward function.
+        printf(stdout, "Computing value of multivariate fluent mvar_rew_exploration...\n", []),
+        exog_fluent_getValue( epf_distance_to_closest_safe_cell, Val1, S),
+        exog_fluent_getValue( epf_num_visited, Val2, S),
+        exog_fluent_getValue( epf_num_facedShades, Val3, S),
+        Val1Tmp is (Val1 * -10),
+        Val2Tmp is (Val2 * 20),
+        Val is (Val1Tmp + Val2Tmp + Val3),
+        printf(stdout, "Value of multivariate fluent mvar_rew_exploration: %w\n", [Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_sum,
+        !,
+        %  Compute the correlated final value from the reward function.
+        printf(stdout, "Computing value of multivariate fluent mvar_rew_sum...\n", []),
+        exog_fluent_getValue( epf_wumpus_alive, WA, S ),
+        exog_fluent_getValue( epf_sense_gold, SG, S ),
+        exog_fluent_getValue( epf_distance_to_closest_safe_cell, DTCSC, S),
+        exog_fluent_getValue( epf_num_visited, NV, S),
+        exog_fluent_getValue( epf_num_facedShades, NFS, S),
+        exog_fluent_getValue( epf_turning_back_again, TBA, S),
+        exog_fluent_getValue( epf_remaining_time, RT, S),
+        exog_fluent_getValue( epf_returned_safely, RS, S),
+        ( WA = true ->
+            RewardKillWumpus = 0
+        ;
+            RewardKillWumpus = 50
+        ),
+        ( SG = true ->
+            RewardFoundGold = 100
+        ;
+            RewardFoundGold = 0
+        ),
+        RewardExplorationTmp1 is (DTCSC * -10),
+        RewardExplorationTmp2 is (NV * 20),
+        RewardExploration is (RewardExplorationTmp1 + RewardExplorationTmp2 + NFS),
+        ( TBA = true ->
+            RewardDoNotTurnInCirclesStupidly = -100
+        ;
+            RewardDoNotTurnInCirclesStupidly = 0
+        ),
+        ( RT > 0 ->
+           ( RS = true ->
+               RewardTime = 0
+           ;
+               RewardTime = 0
+           )
+        ;
+           ( RS = true ->
+               RewardTime = 0
+           ;
+               RewardTime = -500
+           )
+        ),
+        Val is ( RewardKillWumpus +
+                 RewardFoundGold +
+                 RewardExploration +
+                 RewardDoNotTurnInCirclesStupidly +
+                 RewardTime ),
+        printf(stdout, "Value of multivariate fluent mvar_rew_sum: %w\n", [Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_home,
+        !, %  We insert a cut here to make the predicate fail, if it is called
+           %  with a univariate fluent.
+        %  Compute the correlated final value from the reward function.
+        printf(stdout, "Computing value of multivariate fluent mvar_rew_home...\n", []),
+        exog_fluent_getValue( epf_start_pos_X, SX, S),
+        exog_fluent_getValue( epf_start_pos_Y, SY, S),
+        exog_fluent_getValue( epf_agent_pos_X, AX, S),
+        exog_fluent_getValue( epf_agent_pos_Y, AY, S),
+        ( SX = AX ->
+           Val = 100
+        ;
+           PreDiffX is (SX - AX),
+           ( PreDiffX > 0 ->
+              DiffX is -PreDiffX
+           ;
+              DiffX = PreDiffX
+           ),
+           PreDiffY is (SY - AY),
+           ( PreDiffY > 0 ->
+              DiffY is -PreDiffY
+           ;
+              DiffY = PreDiffY
+           ),
+           Val is (DiffX + DiffY)
+        ),
+        printf(stdout, "Value of multivariate fluent mvar_rew_home: %w\n", [Val]).
+
+
+%%  READYBOT MULTIVARIATE ATTRIBUTES  %%
+ 
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_prog_saw_opponent,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( subf(f_SawOpponent, ValTmp, S) ->
+           Val = ValTmp
+        ; 
+           Val = false
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_prog_item_type_available_doubledamage,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( subf(f_ItemTypeAvailable(doubledamage), ValTmp, S) ->
+           Val = ValTmp
+        ;
+           Val = false
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_prog_item_type_available_supershield,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( subf(f_ItemTypeAvailable(supershield), ValTmp, S) ->
+           Val = ValTmp
+        ;
+           Val = false
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_prog_item_type_available_shield,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( subf(f_ItemTypeAvailable(shield), ValTmp, S) ->
+           Val = ValTmp
+        ;
+           Val = false
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_prog_item_type_available_health,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        % subf(f_ItemTypeAvailable(health), Val, S) fails in practice in
+        % level Albatross. Maybe, because the item is never available in
+        % this level!? In this case, we assign Val = false.
+        ( subf(f_ItemTypeAvailable(health), ValTmp, S) ->
+           Val = ValTmp
+        ;
+           Val = false
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_prog_item_type_available_weapon,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        % subf(f_ItemTypeAvailable(weapon), Val, S) fails in practice in
+        % level Albatross. Maybe, because the item is never available in
+        % this level!? In this case, we assign Val = false.
+        ( subf(f_ItemTypeAvailable(weapon), ValTmp, S) ->
+           Val = ValTmp
+        ;
+           Val = false
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_bot_has_good_weapon,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( subf(f_BotHasGoodWeapon, ValTmp, S) ->
+           Val = ValTmp
+        ;
+           Val = false
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_get_my_score,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( subf(f_GetMyScore, ValTmp, S) ->
+           Val = ValTmp
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_get_player_max_score,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( subf(f_GetPlayerMaxScore, ValTmp, S) ->
+           Val = ValTmp
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_has_double_damage,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( (getInventorySlot( doubledamage, DoubleDamageSlot ),
+           exog_fluent_getValue(epf_BotInventoryAvailable( DoubleDamageSlot ), ValTmp, S) ) ->
+           Val = ValTmp
+        ;
+           Val = false
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_weapon1,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( subf(f_BotHasGoodWeapon, HasGoodWeaponTmp, S) ->
+           HasGoodWeapon = HasGoodWeaponTmp
+        ;
+           HasGoodWeapon = false
+        ),
+        ( (HasGoodWeapon = true) ->
+           Val = 50
+        ;
+           Val = -50
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_health1,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        exog_fluent_getValue(epf_BotHealth, Health, S),
+        ( (Health < 150) ->
+           Val = -1
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_health2,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        exog_fluent_getValue(epf_BotHealth, Health, S),
+        ( (Health < 100) ->
+           Val = -5
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_health3,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        exog_fluent_getValue(epf_BotHealth, Health, S),
+        ( (Health < 50) ->
+           Val = -30
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_armor1,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        exog_fluent_getValue(epf_BotArmor, Armor, S),
+        ( (Armor > 20) ->
+           Val = 10
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_armor2,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        exog_fluent_getValue(epf_BotArmor, Armor, S),
+        ( (Armor > 45) ->
+           Val = 10
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_armor3,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        exog_fluent_getValue(epf_BotArmor, Armor, S),
+        ( (Armor > 95) ->
+           Val = 20
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_armor4,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        exog_fluent_getValue(epf_BotArmor, Armor, S),
+        ( (Armor > 135) ->
+           Val = 20
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_double,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( ( getInventorySlot( doubledamage, DoubleDamageSlot ),
+            exog_fluent_getValue(epf_BotInventoryAvailable( DoubleDamageSlot ), HasDoubleDamageTmp, S) ) ->
+           HasDoubleDamage = HasDoubleDamageTmp
+        ;
+           HasDoubleDamage = 0
+        ),
+        ( (HasDoubleDamage = 0) ->
+           Val = 0
+        ;
+           Val = 30
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_score1,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( ( subf(f_GetMyScore, MyScoreTmp, S),
+            subf(f_GetPlayerMaxScore, MaxScoreTmp, S) ) ->
+          MaxScore = MaxScoreTmp,
+          MyScore = MyScoreTmp
+        ;
+          MaxScore = 0,
+          MyScore = 0
+        ),
+        Diff is (MaxScore - MyScore),
+        Val is (Diff * -200).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_score2,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        ( ( subf(f_GetMyScore, MyScoreTmp, S),
+            subf(f_GetPlayerMaxScore, MaxScoreTmp, S) ) ->
+          MaxScore = MaxScoreTmp,
+          MyScore = MyScoreTmp
+        ;
+          MaxScore = 0,
+          MyScore = 0
+        ),
+        ( (MaxScore = MyScore ; (pf_Action = attack, pf_Action = charge, pf_Action = moveattack)) ->
+           Val = 500
+        ;
+           Val = 0
+        ).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_dm,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent %w...\n", [MVar]),
+        get_mvar_value(mvar_rew_weapon1, S, RewardWeapon1),
+        get_mvar_value(mvar_rew_health1, S, RewardHealth1),
+        get_mvar_value(mvar_rew_health2, S, RewardHealth2),
+        get_mvar_value(mvar_rew_health3, S, RewardHealth3),
+        get_mvar_value(mvar_rew_score1, S, RewardScore1),
+        get_mvar_value(mvar_rew_score2, S, RewardScore2),
+        get_mvar_value(mvar_rew_armor1, S, RewardArmor1),
+        get_mvar_value(mvar_rew_armor2, S, RewardArmor2),
+        get_mvar_value(mvar_rew_armor3, S, RewardArmor3),
+        get_mvar_value(mvar_rew_armor4, S, RewardArmor4),
+        get_mvar_value(mvar_rew_double, S, RewardDouble),
+        Val is (RewardWeapon1 +
+                RewardHealth1 +
+                RewardHealth2 +
+                RewardHealth3 +
+                RewardScore1 +
+                RewardScore2 +
+                RewardArmor1 +
+                RewardArmor2 +
+                RewardArmor3 +
+                RewardArmor4 +
+                RewardDouble).
+%        printf(stdout, "Value of multivariate fluent %w: %w\n", [MVar, Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_exploration,
+        !,
+        %  Compute the correlated value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent mvar_rew_exploration...\n", []),
+        exog_fluent_getValue( epf_distance_to_closest_safe_cell, Val1, S),
+        exog_fluent_getValue( epf_num_visited, Val2, S),
+        exog_fluent_getValue( epf_num_facedShades, Val3, S),
+        Val1Tmp is (Val1 * -10),
+        Val2Tmp is (Val2 * 20),
+        Val is (Val1Tmp + Val2Tmp + Val3).
+%        printf(stdout, "Value of multivariate fluent mvar_rew_exploration: %w\n", [Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_sum,
+        !,
+        %  Compute the correlated final value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent mvar_rew_sum...\n", []),
+        exog_fluent_getValue( epf_wumpus_alive, WA, S ),
+        exog_fluent_getValue( epf_sense_gold, SG, S ),
+        exog_fluent_getValue( epf_distance_to_closest_safe_cell, DTCSC, S),
+        exog_fluent_getValue( epf_num_visited, NV, S),
+        exog_fluent_getValue( epf_num_facedShades, NFS, S),
+        exog_fluent_getValue( epf_turning_back_again, TBA, S),
+        exog_fluent_getValue( epf_remaining_time, RT, S),
+        exog_fluent_getValue( epf_returned_safely, RS, S),
+        ( WA = true ->
+            RewardKillWumpus = 0
+        ;
+            RewardKillWumpus = 50
+        ),
+        ( SG = true ->
+            RewardFoundGold = 100
+        ;
+            RewardFoundGold = 0
+        ),
+        RewardExplorationTmp1 is (DTCSC * -10),
+        RewardExplorationTmp2 is (NV * 20),
+        RewardExploration is (RewardExplorationTmp1 + RewardExplorationTmp2 + NFS),
+        ( TBA = true ->
+            RewardDoNotTurnInCirclesStupidly = -100
+        ;
+            RewardDoNotTurnInCirclesStupidly = 0
+        ),
+        ( RT > 0 ->
+           ( RS = true ->
+               RewardTime = 0
+           ;
+               RewardTime = 0
+           )
+        ;
+           ( RS = true ->
+               RewardTime = 0
+           ;
+               RewardTime = -500
+           )
+        ),
+        Val is ( RewardKillWumpus +
+                 RewardFoundGold +
+                 RewardExploration +
+                 RewardDoNotTurnInCirclesStupidly +
+                 RewardTime ).
+%        printf(stdout, "Value of multivariate fluent mvar_rew_sum: %w\n", [Val]).
+
+get_mvar_value(MVar, S, Val) :-
+        MVar = mvar_rew_home,
+        !, %  We insert a cut here to make the predicate fail, if it is called
+           %  with a univariate fluent.
+        %  Compute the correlated final value from the reward function.
+%        printf(stdout, "Computing value of multivariate fluent mvar_rew_home...\n", []),
+        exog_fluent_getValue( epf_start_pos_X, SX, S),
+        exog_fluent_getValue( epf_start_pos_Y, SY, S),
+        exog_fluent_getValue( epf_agent_pos_X, AX, S),
+        exog_fluent_getValue( epf_agent_pos_Y, AY, S),
+        ( SX = AX ->
+           Val = 100
+        ;
+           PreDiffX is (SX - AX),
+           ( PreDiffX > 0 ->
+              DiffX is -PreDiffX
+           ;
+              DiffX = PreDiffX
+           ),
+           PreDiffY is (SY - AY),
+           ( PreDiffY > 0 ->
+              DiffY is -PreDiffY
+           ;
+              DiffY = PreDiffY
+           ),
+           Val is (DiffX + DiffY)
+        ).
+%        printf(stdout, "Value of multivariate fluent mvar_rew_home: %w\n", [Val]).
+
 
 %% DEPRECATED %%
 /*        

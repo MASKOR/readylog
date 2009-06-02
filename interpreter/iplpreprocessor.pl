@@ -1518,9 +1518,15 @@ apply_tau_prime_H( [{P_List} | [pickBest(F, Domain, Delta) | Omega_Prime]],
 %%%  Empty program (with nondeterministic choice in solve context)  %%%
 apply_tau_prime_H( [{P_List}], _Horizon, [], Tau_Prime_H_Program ) :-
         !,
+        string_to_list(P_List, Program_Unsorted),
+%        printf(stdout, "Unsorted program list: %w\n", [Program_Unsorted]),
+        %  Sort programs in P_List lexicographically (ASCII).
+        sort(0, <, Program_Unsorted, Program_Sorted),
+%        printf(stdout, "Sorted program list: %w\n", [Program_Sorted]),
+        list_to_string(Program_Sorted, Program_String),
         %  To enhance readability we put in some brackets
         %  around the programs to choose from
-        concat_string(["[", P_List, "]"], Tmp1),
+        concat_string(["[", Program_String, "]"], Tmp1),
         replace_string(Tmp1, " ", "", Tmp2 ),
         replace_string(Tmp2, ",", "], [", Tmp3 ),
         %  Before integration, we had exchanged commas in tests,
@@ -1530,15 +1536,20 @@ apply_tau_prime_H( [{P_List}], _Horizon, [], Tau_Prime_H_Program ) :-
         %  And we replace semicolons, which we used to separate
         %  consecutive actions, by commas.
         replace_string(Tmp4, ";", ",", P_List_Clean),
-        %  TODO: sort P_List
         Program_New = [nondet([P_List_Clean])],
         Tau_Prime_H_Program = Program_New.
 
 apply_tau_prime_H( [{P_List}], _Horizon, Program, Tau_Prime_H_Program ) :-
         !,
+        string_to_list(P_List, Program_Unsorted),
+%        printf(stdout, "Unsorted program list: %w\n", [Program_Unsorted]),
+        %  Sort programs in P_List lexicographically (ASCII).
+        sort(0, <, Program_Unsorted, Program_Sorted),
+%        printf(stdout, "Sorted program list: %w\n", [Program_Sorted]),
+        list_to_string(Program_Sorted, Program_String),
         %  To enhance readability we put in some brackets
         %  around the programs to choose from
-        concat_string(["[", P_List, "]"], Tmp1),
+        concat_string(["[", Program_String, "]"], Tmp1),
         replace_string(Tmp1, " ", "", Tmp2 ),
         replace_string(Tmp2, ",", "], [", Tmp3 ),
         %  Before integration, we had exchanged commas in tests,
@@ -1548,7 +1559,6 @@ apply_tau_prime_H( [{P_List}], _Horizon, Program, Tau_Prime_H_Program ) :-
         %  And we replace semicolons, which we used to separate
         %  consecutive actions, by commas.
         replace_string(Tmp4, ";", ",", P_List_Clean),
-        %  TODO: sort P_List
         Program_New = [Program | nondet([P_List_Clean])],
         Tau_Prime_H_Program = Program_New.
 
@@ -1572,8 +1582,13 @@ apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2},
                          P_String_Joined ),
-        %  TODO: sort P_String_Joined
-        Tau_Prime_H_Program = [nondet(P_String_Joined)].
+        string_to_list(P_String_Joined, P_List_Joined_Unsorted),
+%        printf(stdout, "Unsorted program list: %w\n", [P_List_Joined_Unsorted]),
+        %  Sort programs in P_List_Joined lexicographically (ASCII).
+        sort(0, <, P_List_Joined_Unsorted, P_List_Joined_Sorted),
+%        printf(stdout, "Sorted program list: %w\n", [P_List_Joined_Sorted]),
+        list_to_string(P_List_Joined_Sorted, P_String_Final),
+        Tau_Prime_H_Program = [nondet([P_String_Final])].
 
 apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
                    Horizon, Program, Tau_Prime_H_Program ) :- !,
@@ -1594,8 +1609,13 @@ apply_tau_prime_H( [{P_List} | if(Cond, Sigma1, Sigma2)],
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2},
                          P_String_Joined ),
-        %  TODO: sort P_String_Joined
-        Program_New = [Program | nondet(P_String_Joined)],
+        string_to_list(P_String_Joined, P_List_Joined_Unsorted),
+%        printf(stdout, "Unsorted program list: %w\n", [P_List_Joined_Unsorted]),
+        %  Sort programs in P_List_Joined lexicographically (ASCII).
+        sort(0, <, P_List_Joined_Unsorted, P_List_Joined_Sorted),
+%        printf(stdout, "Sorted program list: %w\n", [P_List_Joined_Sorted]),
+        list_to_string(P_List_Joined_Sorted, P_String_Final),
+        Program_New = [Program | nondet([P_String_Final])],
         Tau_Prime_H_Program = Program_New.
 
 apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
@@ -1617,8 +1637,13 @@ apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2},
                          P_String_Joined ),
-        %  TODO: sort P_String_Joined
-        Tau_Prime_H_Program = [nondet(P_String_Joined)].
+        string_to_list(P_String_Joined, P_List_Joined_Unsorted),
+%        printf(stdout, "Unsorted program list: %w\n", [P_List_Joined_Unsorted]),
+        %  Sort programs in P_List_Joined lexicographically (ASCII).
+        sort(0, <, P_List_Joined_Unsorted, P_List_Joined_Sorted),
+%        printf(stdout, "Sorted program list: %w\n", [P_List_Joined_Sorted]),
+        list_to_string(P_List_Joined_Sorted, P_String_Final),
+        Tau_Prime_H_Program = [nondet([P_String_Final])].
 
 apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
                    Horizon, Program, Tau_Prime_H_Program ) :- !,
@@ -1639,8 +1664,13 @@ apply_tau_prime_H( [{P_List} | [if(Cond, Sigma1, Sigma2) | Omega_Prime]],
         substring( P_String2, 9, ReducedLength2, Final_P_String2),
         join_prog_lists( {Final_P_String1}, {Final_P_String2},
                          P_String_Joined ),
-        %  TODO: sort P_String_Joined
-        Program_New = [Program | nondet(P_String_Joined)],
+        string_to_list(P_String_Joined, P_List_Joined_Unsorted),
+%        printf(stdout, "Unsorted program list: %w\n", [P_List_Joined_Unsorted]),
+        %  Sort programs in P_List_Joined lexicographically (ASCII).
+        sort(0, <, P_List_Joined_Unsorted, P_List_Joined_Sorted),
+%        printf(stdout, "Sorted program list: %w\n", [P_List_Joined_Sorted]),
+        list_to_string(P_List_Joined_Sorted, P_String_Final),
+        Program_New = [Program | nondet([P_String_Final])],
         Tau_Prime_H_Program = Program_New.
 
 %  Shortcut, if else-branch is not provided.
@@ -1933,11 +1963,7 @@ apply_tau(solve([if(Cond, Sigma1, Sigma2)], Horizon, RewardFunction),
            term_string(Cond, CondString),
            concat_string( ["if( ", CondString, ", [", Sigma1_Final,
                            "], [", Sigma2_Final, "] )"], FinalString ),
-           % TODO: When given large nondet lists, string_to_list
-           % replaces the end by elipsis ...
            string_to_list(FinalString, Tau_Program)
-%           term_string(Tau_Program, FinalString)
-%           Tau_Program = FinalString
         ).
 
 apply_tau(solve([if(Cond, Sigma1, Sigma2) | Omega], Horizon, RewardFunction),
@@ -2099,14 +2125,33 @@ apply_tau(solve([[pickBestBindDomainVariables(PreSolveProg), nondet(ChoiceList)]
         Tau_Program = [pickBestBindDomainVariables(PreSolveProg) |
                        Tau_Program_Tmp].
 
-%%%  Primitive Action, Stochastic Action  %%%
+%%% Stochastic Action  %%%
+apply_tau(solve([Term], Horizon, _RewardFunction), Tau_Program ) :-
+        stoch_proc(Term), !,
+        ( Horizon > 0 ->
+           Tau_Program = [Term, exogf_Update]
+        ;
+           Tau_Program = []
+        ).
+
+apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program ) :-
+        stoch_proc(Term), !,
+        Horizon_New is (Horizon - 1),
+        apply_tau(solve(Omega, Horizon_New, RewardFunction), Tau_Program_Tmp),
+        StochProg = [Term, exogf_Update],
+        ( Horizon > 0 ->
+           Tau_Program = [StochProg | Tau_Program_Tmp]
+        ;
+           Tau_Program = Tau_Program_Tmp
+        ).
+
+%%%  Primitive Action   %%%
 apply_tau(solve([Term], Horizon, _RewardFunction), Tau_Program ) :-
         ( Horizon > 0 ->
            Tau_Program = [Term]
         ;
            Tau_Program = []
         ).
-
 
 apply_tau(solve([Term | Omega], Horizon, RewardFunction), Tau_Program ) :-
         Horizon_New is (Horizon - 1),
@@ -2243,4 +2288,5 @@ autorun :-
 
 :- writeln("** loading iplpreprocessor.pl\t\t DONE").
 
+%  Please uncomment next line, when using the makefile from the ReadyBots.
 :- autorun.

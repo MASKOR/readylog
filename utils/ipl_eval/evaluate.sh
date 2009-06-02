@@ -307,14 +307,18 @@ if [ -f $1.eval.train ]
    set terminal postscript eps color enhanced
    set output "$1.train.eps"
    set xlabel "Training Instances"
+   set xrange [ 0 : 18500 ]
    set xtics 500
    set mxtics 100
    set ylabel "Accuracy [in %]"
    set yrange [ 0 : 100 ]
    set ytics 10
    set mytics 5
-   set title "Learning Curve on Training Data"
-   plot "$1.eval.train" using 1:(100-\$4) notitle w l
+   set title "Learning Curves of Univariate IPL Agent"
+#  This was on the unpruned trees:
+#   plot "$1.eval.train" using 1:(100-\$4) notitle w l
+#  This is on the pruned trees:
+   plot "$1.eval.train" using 1:(100-\$7) notitle w l
 EOF1
    echo "done :)"
    echo "graph stored in $1.train.eps"
@@ -330,14 +334,18 @@ if [ -f $1.eval.test ]
    set terminal postscript eps color enhanced
    set output "$1.test.eps"
    set xlabel "Training Instances"
+   set xrange [ 0 : 18500 ]
    set xtics 500
    set mxtics 100
    set ylabel "Accuracy [in %]"
    set yrange [ 0 : 100 ]
    set ytics 10
    set mytics 5
-   set title "Learning Curve on Unseen Data"
-   plot "$1.eval.test" using 1:(100-\$4) notitle w l
+   set title "Learning Curves of Univariate IPL Agent"
+#  This was on the unpruned trees:
+#   plot "$1.eval.test" using 1:(100-\$4) notitle w l
+#  This is on the pruned trees:
+   plot "$1.eval.test" using 1:(100-\$7) notitle w l
 EOF2
    echo "done :)"
    echo "graph stored in $1.test.eps"
@@ -354,16 +362,21 @@ if [[ '-f $1.eval.train' && '-f $1.eval.test' ]]
    set key right bottom
    set output "$1.combined.eps"
    set xlabel "Training Instances"
-   set xtics 500
-   set mxtics 5
+   set xrange [ 0 : 18500 ]
+   set xtics 2500
+   set mxtics 10
    set ylabel "Accuracy [in %]"
    set yrange [ 0 : 100 ]
    set ytics 10
-   set mytics 5
-   set title "Learning Curves"
+   set mytics 10
+   set title "Learning Curves of Univariate IPL Agent"
    set line style 1 lt 6 lw 1
-   plot "$1.eval.train" using 1:(100-\$4) ti "on training data" with lines, \
-        "$1.eval.test" using 1:(100-\$4) ti "on unseen data" w l ls 1
+#  This was on the unpruned trees:
+#   plot "$1.eval.train" using 1:(100-\$4) ti "on training data" with lines, \
+#        "$1.eval.test" using 1:(100-\$4) ti "on unseen data" w l ls 1
+#  This is on the pruned trees:
+   plot "$1.eval.train" using 1:(100-\$7) ti "on training data" with lines, \
+        "$1.eval.test" using 1:(100-\$7) ti "on unseen data" w l ls 1
 EOF3
    echo "done :)"
    echo "graph stored in $1.combined.eps"

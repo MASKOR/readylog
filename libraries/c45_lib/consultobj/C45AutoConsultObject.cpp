@@ -361,7 +361,7 @@ void C45AutoConsultObject::AutoInterpretTreeProlog( )
   float Uncertainty=1.0;
 
  //   cout << "C45AutoConsultObject(AutoInterpretTreeProlog): Entering" << endl;
-//  AutoClear();
+  AutoClear();
 
   /*  Find the likelihood of an item's being of each class  */
   AutoClassifyCaseProlog(DecisionTree, 1.0);
@@ -523,7 +523,7 @@ void C45AutoConsultObject::AutoClassifyCaseProlog( Tree Subtree, float Weight )
   short s;
   ClassNo c;
 
-  //  cout << "C45AutoConsultObject(AutoClassifyCaseProlog): Entering" << endl;
+//    cout << "C45AutoConsultObject(AutoClassifyCaseProlog): Entering" << endl;
 
   /*  A leaf  */
   if ( ! Subtree->NodeType )
@@ -820,6 +820,11 @@ void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)
     // into account any probability values like C4.5 usually does.
     DiscrValue dv;
     char * value;
+    
+    for ( dv = 1; dv <= MaxAttVal[Att]; ++dv )
+      {
+	RangeDesc[Att].Probability[dv] = 0.0;
+      }
 
     cout << "#### Here comes the attribute name ####" << endl;
     cout << AttName[Att] << endl;
@@ -846,6 +851,11 @@ void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)
  	    cout << AttributeValueList[(MaxAttVal[Att]-1)] << endl;
  	    exit(0);
  	  }
+    else
+    {
+     // We are sure that the attribute value is correct with P = 1.0.
+     RangeDesc[Att].Probability[dv] = 1.0;
+    }
 
     return;
 }
@@ -880,29 +890,20 @@ void C45AutoConsultObject::AutoReadContin( Attribute Att, Tree T, vector<string>
 // Auto Read Continous data by asking the Prolog program.
 void C45AutoConsultObject::AutoReadContinProlog( Attribute Att, Tree T )
 {
-  char * value;
-  string AttValueString;
-  AttValueString = "test";
-  value = (char *)AttValueString.c_str();
-  char * pointerToMinus;
-  pointerToMinus = strchr(value,'-');
-  if ( pointerToMinus == NULL )       // there is no '-' in it...
-    {
-      RangeDesc[Att].UpperBound = atof( value );
-      RangeDesc[Att].LowerBound = atof( value );
-    }
-  else                                // there is a '-'
-    {
-      RangeDesc[Att].LowerBound = atof( value );
-      RangeDesc[Att].UpperBound = atof( pointerToMinus+1 );
-    }
-  if ( RangeDesc[Att].LowerBound > RangeDesc[Att].UpperBound )
-    {
-      cout << "C45AutoConsultObject(AutoReadContinProlog): Reading Continous Range failed."
-	   << "Upperbound < Lowerbound!" << endl;
-      exit(0);
-    }
-  return;
+    char * value;
+
+    cout << "#### Here comes the attribute name ####" << endl;
+    cout << AttName[Att] << endl;
+    string valueString;
+    getline(cin, valueString);
+//        cin >> valueString;
+    cout << "[C4.5] Prolog says the value of " << AttName[Att] << " is: "
+         << valueString << endl;
+    cout << "--------" << endl << endl;
+
+    value = (char *)valueString.c_str();
+ 
+   return;
 }
 
 
@@ -932,6 +933,26 @@ void C45AutoConsultObject::AutoClear()
   return;
 }
 
+// has to be done before the next question!
+void C45AutoConsultObject::AutoClearProlog()
+{
+  for ( Attribute a = 0; a <= MaxAtt; ++a )
+    {
+      RangeDesc[a].Asked = false;
+      RangeDesc[a].Known = false;
+    }
+  for ( ClassNo c = 0; c <= MaxClass; ++c )
+    {
+      LowClassSum[c] = 0;
+      ClassSum[c] = 0;
+    }
+  for ( int i = 0; i <= m_NumberOfClasses; i++)
+    {
+      m_vAutoQueryPrologAnswer[0] = "";
+    }
+
+  return;
+}
 
 // prints the chosen decision
 // and puts it in the AutoQueryAnswer String

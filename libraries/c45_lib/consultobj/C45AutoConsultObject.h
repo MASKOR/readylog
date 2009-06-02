@@ -147,9 +147,14 @@ class C45AutoConsultObject : public C45ConsultObject
 
 
   /** This method clears all relevant data and
-   *   is invoked each time by the Question/QuestionProlog method.
+   *   is invoked each time by the Question method.
    */
   void AutoClear();
+
+  /** This method clears all relevant data and
+   *   is invoked each time by the QuestionProlog method.
+   */
+  void AutoClearProlog();
 
 
   /** This Interprets the tree and is invoked

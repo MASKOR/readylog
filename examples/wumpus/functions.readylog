@@ -67,6 +67,33 @@ function( reward_heuristic(X,Y), V,
               ])
         ).
 
+/** non-parameterized reward function.
+ * this reward function already gives hints on where to go
+ * by giving the negative manhattan dist to goal as the reward
+ */
+function( reward_go_home, V, 
+          and([ epf_start_pos_X = X,
+                epf_start_pos_Y = Y,
+                lif( ( epf_agent_pos_X = X,
+                       epf_agent_pos_Y = Y ), 
+                     V=100,
+                     and([ epf_agent_pos_X = PosX,
+                           epf_agent_pos_Y = PosY,
+                           PreDiffX = X - PosX,
+                           lif( PreDiffX > 0,
+                                DiffX = -PreDiffX,
+                                DiffX =  PreDiffX ),
+                           PreDiffY = Y - PosY,
+                           lif( PreDiffY > 0,
+                                DiffY = -PreDiffY,
+                                DiffY =  PreDiffY ),
+                           V = DiffX+DiffY
+                         ]) 
+                   )
+              ])
+        ).
+
+
 /** reward function for finding gold.
  */
 function( reward_search_gold, Reward,

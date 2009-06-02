@@ -1121,32 +1121,6 @@ place_agent_aux( Seed ) :- !,
         mod( SeedTmp2, 2147483647, NewSeed2),
         random_number(NewSeed2, YMin, YMax, PosY),
         printf("Trying to put agent to [%w, %w]\n", [PosX, PosY]),
-        /** Spin agent around randomly */
-        SeedTmp3 is (NewSeed2 * 23), 
-        mod( SeedTmp3, 2147483647, NewSeed3),
-        random_number(NewSeed3, 1, 4, DirTmp),
-        ( DirTmp = 1 ->
-           Dir = "east"
-        ;
-           true
-        ),
-        ( DirTmp = 2 ->
-           Dir = "south"
-        ;
-           true
-        ),
-        ( DirTmp = 3 ->
-           Dir = "west"
-        ;
-           true
-        ),
-        ( DirTmp = 4 ->
-           Dir = "north"
-        ;
-           true
-        ),
-        setval( real_agent_dir, Dir ),
-        setval( wm_agent_dir, Dir ),
         getval( real_wumpus_pos_X, WumpusX ),
         getval( real_wumpus_pos_Y, WumpusY ),
         ( ( pit(PosX, PosY); [WumpusX, WumpusY] = [PosX, PosY] ) ->
@@ -1154,6 +1128,38 @@ place_agent_aux( Seed ) :- !,
               place_agent_aux(NewSeed2)
         ;
               printf("Placing agent at [%w, %w].\n", [PosX,PosY]),
+              /** Spin agent around randomly */
+              SeedTmp3 is (NewSeed2 * 23), 
+              mod( SeedTmp3, 2147483647, NewSeed3),
+              random_number(NewSeed3, 1, 4, DirTmp),
+              ( DirTmp = 1 ->
+                 setval( real_agent_direction, "east" ),
+                 setval( wm_agent_direction, east ),
+                 printf("Turning the agent east.\n", [])
+              ;
+                 true
+              ),
+              ( DirTmp = 2 ->
+                 setval( real_agent_direction, "south" ),
+                 setval( wm_agent_direction, south ),
+                 printf("Turning the agent south.\n", [])
+              ;
+                 true
+              ),
+              ( DirTmp = 3 ->
+                 setval( real_agent_direction, "west" ),
+                 setval( wm_agent_direction, west ),
+                 printf("Turning the agent west.\n", [])
+              ;
+                 true
+              ),
+              ( DirTmp = 4 ->
+                 setval( real_agent_direction, "north" ),
+                 setval( wm_agent_direction, north ),
+                 printf("Turning the agent north.\n", [])
+              ;
+                 true
+              ),
               setval( real_agent_pos_X, PosX ),
               setval( real_agent_pos_Y, PosY ),
               setval( wm_agent_pos_X, PosX ),
@@ -1186,6 +1192,7 @@ place_agent_aux( Seed ) :- !,
               update_shades(ShadeList),
               /** compute how many shades cells are initially lying
                *  in front of the agent */
+              getval( real_agent_direction, Dir ),
               count_faced_shades( [PosX, PosY], Dir, NumShaded ),
               setval( real_num_facedShades, NumShaded ),
               setval( real_carry_gold, false ),

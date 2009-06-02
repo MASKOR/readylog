@@ -84,16 +84,22 @@ dp_profile :- toggle_iplearn,
               reset_values.
 
 dp :- toggle_iplearn,
+      %toggle_adaptive_ipl,
       initialise_iplearner,
       ( exists('wumpus.log') ->
          delete('wumpus.log')
       ;
          true
       ),
+      ( exists('learned_policy.log') ->
+         delete('learned_policy.log')
+      ;
+         true
+      ),
       open('wumpus.log', write, StreamLog),
       vis_wumpus,
       initialise_shades,
-      TotalRuns = 5000,
+      TotalRuns = 10000,
       printf(StreamLog, "# TotalRuns = %w\n", [TotalRuns]),
       setval(total_gold_found, 0),
       setval(avg_user_time_per_level, 0.0),
@@ -122,34 +128,51 @@ dp :- toggle_iplearn,
           statistics(times, [LevelEndTimeUser,
                              LevelEndTimeSystem,
                              LevelEndTimeReal]),
-          LevelTimeDiffUserTmp is (LevelEndTimeUser - LevelStartTimeUser),
-          round(LevelTimeDiffUserTmp, LevelTimeDiffUser),
-          LevelTimeDiffSystemTmp is (LevelEndTimeSystem - LevelStartTimeSystem),
-          round(LevelTimeDiffSystemTmp, LevelTimeDiffSystem),
-          LevelTimeDiffRealTmp is (LevelEndTimeReal - LevelStartTimeReal),
-          round(LevelTimeDiffRealTmp, LevelTimeDiffReal),
+%%
+          LevelTimeDiffUser is (LevelEndTimeUser - LevelStartTimeUser),
+          LevelTimeDiffSystem is (LevelEndTimeSystem - LevelStartTimeSystem),
+          LevelTimeDiffReal is (LevelEndTimeReal - LevelStartTimeReal),
+%%
+%          LevelTimeDiffUserTmp is (LevelEndTimeUser - LevelStartTimeUser),
+%          round(LevelTimeDiffUserTmp, LevelTimeDiffUser),
+%          LevelTimeDiffSystemTmp is (LevelEndTimeSystem - LevelStartTimeSystem),
+%          round(LevelTimeDiffSystemTmp, LevelTimeDiffSystem),
+%          LevelTimeDiffRealTmp is (LevelEndTimeReal - LevelStartTimeReal),
+%          round(LevelTimeDiffRealTmp, LevelTimeDiffReal),
           printf("######## Finished level %w in %w seconds. ########\n",
                  [I, LevelTimeDiffReal]), flush(stdout),
+%          printf(StreamLog, "[%w, %w, %w] \t \t ", [LevelTimeDiffUser,
+%                                                    LevelTimeDiffSystem,
+%                                                    LevelTimeDiffReal]),
           printf(StreamLog, "[%w, %w, %w] \t \t ", [LevelTimeDiffUser,
                                                     LevelTimeDiffSystem,
                                                     LevelTimeDiffReal]),
 
           getval(avg_user_time_per_level, AvgUserTimePerLevel),
           AvgUserTimePerLevelSum is (AvgUserTimePerLevel + LevelTimeDiffUser),
-          AvgUserTimePerLevelDiv is (AvgUserTimePerLevelSum / 2.0),
-          round(AvgUserTimePerLevelDiv, AvgUserTimePerLevelNew),
+%%
+          AvgUserTimePerLevelNew is (AvgUserTimePerLevelSum / 2.0),
+%%
+%          AvgUserTimePerLevelDiv is (AvgUserTimePerLevelSum / 2.0),
+%          round(AvgUserTimePerLevelDiv, AvgUserTimePerLevelNew),
           setval(avg_user_time_per_level, AvgUserTimePerLevelNew),
 
           getval(avg_system_time_per_level, AvgSystemTimePerLevel),
           AvgSystemTimePerLevelSum is (AvgSystemTimePerLevel + LevelTimeDiffSystem),
-          AvgSystemTimePerLevelDiv is (AvgSystemTimePerLevelSum / 2.0),
-          round(AvgSystemTimePerLevelDiv, AvgSystemTimePerLevelNew),
+%%
+          AvgSystemTimePerLevelNew is (AvgSystemTimePerLevelSum / 2.0),
+%%
+%          AvgSystemTimePerLevelDiv is (AvgSystemTimePerLevelSum / 2.0),
+%          round(AvgSystemTimePerLevelDiv, AvgSystemTimePerLevelNew),
           setval(avg_system_time_per_level, AvgSystemTimePerLevelNew),
 
           getval(avg_real_time_per_level, AvgRealTimePerLevel),
           AvgRealTimePerLevelSum is (AvgRealTimePerLevel + LevelTimeDiffReal),
-          AvgRealTimePerLevelDiv is (AvgRealTimePerLevelSum / 2.0),
-          round(AvgRealTimePerLevelDiv, AvgRealTimePerLevelNew),
+%%
+          AvgRealTimePerLevelNew is (AvgRealTimePerLevelSum / 2.0),
+%%
+%          AvgRealTimePerLevelDiv is (AvgRealTimePerLevelSum / 2.0),
+%          round(AvgRealTimePerLevelDiv, AvgRealTimePerLevelNew),
           setval(avg_real_time_per_level, AvgRealTimePerLevelNew),
 
           ( FoundGold ->
@@ -168,16 +191,22 @@ dp :- toggle_iplearn,
           float(TGF, TGFf),
           float(I, If),
           TGFPercentTmp1 is (TGFf / If),
-          TGFPercentTmp2 is (TGFPercentTmp1 * 100.0),
-          round(TGFPercentTmp2, TGFPercent),
+%%
+          TGFPercent is (TGFPercentTmp1 * 100.0),
+%%
+%          TGFPercentTmp2 is (TGFPercentTmp1 * 100.0),
+%          round(TGFPercentTmp2, TGFPercent),
           printf("######## Found %w of %w possible goldbars (%w percent). ########\n\n",
                  [TGF, I, TGFPercent]), flush(stdout),
           printf(StreamLog, "%w \t \t \t ", [TGF]),
           printf(StreamLog, "%w \n", [TGFPercent]),
 
           LevelsLeft is (TotalRuns - I),
-          RealTimeRemainingTmp is (LevelsLeft * AvgRealTimePerLevelNew),
-          round(RealTimeRemainingTmp, TimeRemaining),
+%%
+          TimeRemaining is (LevelsLeft * AvgRealTimePerLevelNew),
+%%
+%          RealTimeRemainingTmp is (LevelsLeft * AvgRealTimePerLevelNew),
+%          round(RealTimeRemainingTmp, TimeRemaining),
           seconds_to_hms(TimeRemaining, ETAHours, ETAMinutes, ETASeconds),
           printf("######## Estimated time left for solving all levels: %w:%w:%w (H:M:S). ########\n",
                  [ETAHours, ETAMinutes, ETASeconds]), flush(stdout),

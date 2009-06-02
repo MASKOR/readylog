@@ -200,6 +200,15 @@ proc( find_gold(Seed, FoundGold),
       ]
     ).
 
+proc( sorting_test,
+      [
+         solve( [ nondet( [ program2, progam1, a, z,
+                            proc2, proc1 ] )
+                          ], 1, reward_search_gold )
+      ]
+    ).
+
+
 proc( search_gold,
       [
          cout(" --- search gold --- \n"),
@@ -231,11 +240,6 @@ proc( search_gold,
                                             turn_left,
                                             turn_right,
                                             shoot
-                                        ] ),
-                                  nondet( [ go_forward,
-                                            turn_left,
-                                            turn_right,
-                                            shoot
                                         ] )
                                 ],
                                 [ nondet( [ go_forward,
@@ -249,14 +253,10 @@ proc( search_gold,
                                   nondet( [ go_forward,
                                             turn_left,
                                             turn_right
-                                          ] ),
-                                  nondet( [ go_forward,
-                                            turn_left,
-                                            turn_right
                                           ] )
                                  ]
                                )
-                          ], 4, reward_search_gold ),
+                          ], 3, reward_search_gold ),
 
 %/** The above solve is not in standard form! The IPL preprocessor should
 % *  transform it into:
@@ -334,7 +334,7 @@ proc( carry_gold_home,
                                         turn_left,
                                         turn_right
                                     ] )
-                            ], 3, reward_heuristic(HomeX,HomeY)
+                            ], 3, reward_go_home
                           )
                    ])  %  endwhile
 %         solve( goto(HomeX,HomeY), 5, reward_heuristic(HomeX,HomeY) )
@@ -364,7 +364,7 @@ proc( go_home,
                                         turn_left,
                                         turn_right
                                     ] )
-                            ], 3, reward_heuristic(HomeX,HomeY)
+                            ], 3, reward_go_home
                           )
                    ])  %  endwhile
       ]

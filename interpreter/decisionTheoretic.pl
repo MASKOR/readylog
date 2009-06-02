@@ -521,6 +521,7 @@ bestDoM([Proc | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
 	Proc =.. [ProcName|Args_s],
 	subfl(Args_s, Args_eval_s, S),
 	Proc_sub =.. [ProcName|Args_eval_s],
+% <DP was here>
         ( iplearn ->
                 ipl_proc(Proc_sub,Body)
         ;

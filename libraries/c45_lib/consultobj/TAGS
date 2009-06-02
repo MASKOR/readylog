@@ -65,7 +65,7 @@ void Retry( Attribute Att, Tree T )Retry287,5625
 void SkipLine( char c )SkipLine305,6009
 void Clear()Clear323,6345
 
-C45AutoConsultObject.cpp,2355
+C45AutoConsultObject.cpp,2426
 #define _C45_AUTOCONSULTOBJECT_CPP__C45_AUTOCONSULTOBJECT_CPP_25,985
 C45AutoConsultObject::C45AutoConsultObject() C45AutoConsultObject45,1564
 C45AutoConsultObject::C45AutoConsultObject( char * fileName )C45AutoConsultObject82,2863
@@ -79,18 +79,19 @@ vector< vector<string> > C45AutoConsultObject::Question( vector<string> values )
 vector<string> C45AutoConsultObject::QuestionProlog( )QuestionProlog279,9419
 void C45AutoConsultObject::AutoInterpretTree( vector<string> values )AutoInterpretTree304,10320
 void C45AutoConsultObject::AutoInterpretTreeProlog( )AutoInterpretTreeProlog358,11779
-void C45AutoConsultObject::AutoClassifyCase( Tree Subtree, float Weight, vector<string> values )AutoClassifyCase414,13307
-void C45AutoConsultObject::AutoClassifyCaseProlog( Tree Subtree, float Weight )AutoClassifyCaseProlog518,15941
-void C45AutoConsultObject::AutoCheckValue( Attribute Att, Tree T, vector<string> values )AutoCheckValue624,18576
-void C45AutoConsultObject::AutoCheckValueProlog( Attribute Att, Tree T )AutoCheckValueProlog656,19244
-void C45AutoConsultObject::AutoReadDiscr(Attribute Att, Tree T, vector<string> values)AutoReadDiscr683,19654
-int C45AutoConsultObject::CppWhich( string Val, short Att, short First, short Last)CppWhich796,22450
-void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)AutoReadDiscrProlog817,23305
-void C45AutoConsultObject::AutoReadContin( Attribute Att, Tree T, vector<string> values )AutoReadContin856,24699
-void C45AutoConsultObject::AutoReadContinProlog( Attribute Att, Tree T )AutoReadContinProlog881,25543
-void C45AutoConsultObject::AutoClear()AutoClear911,26428
-void C45AutoConsultObject::AutoDecision( ClassNo c, float p, float lb, float ub)AutoDecision938,27026
-void C45AutoConsultObject::AutoDecisionProlog( ClassNo c, float p, float lb, float ub)AutoDecisionProlog964,27946
+void C45AutoConsultObject::AutoClassifyCase( Tree Subtree, float Weight, vector<string> values )AutoClassifyCase414,13305
+void C45AutoConsultObject::AutoClassifyCaseProlog( Tree Subtree, float Weight )AutoClassifyCaseProlog518,15939
+void C45AutoConsultObject::AutoCheckValue( Attribute Att, Tree T, vector<string> values )AutoCheckValue624,18574
+void C45AutoConsultObject::AutoCheckValueProlog( Attribute Att, Tree T )AutoCheckValueProlog656,19242
+void C45AutoConsultObject::AutoReadDiscr(Attribute Att, Tree T, vector<string> values)AutoReadDiscr683,19652
+int C45AutoConsultObject::CppWhich( string Val, short Att, short First, short Last)CppWhich796,22448
+void C45AutoConsultObject::AutoReadDiscrProlog(Attribute Att, Tree T)AutoReadDiscrProlog817,23303
+void C45AutoConsultObject::AutoReadContin( Attribute Att, Tree T, vector<string> values )AutoReadContin866,24938
+void C45AutoConsultObject::AutoReadContinProlog( Attribute Att, Tree T )AutoReadContinProlog891,25782
+void C45AutoConsultObject::AutoClear()AutoClear912,26309
+void C45AutoConsultObject::AutoClearProlog()AutoClearProlog937,26875
+void C45AutoConsultObject::AutoDecision( ClassNo c, float p, float lb, float ub)AutoDecision959,27340
+void C45AutoConsultObject::AutoDecisionProlog( ClassNo c, float p, float lb, float ub)AutoDecisionProlog985,28260
 
 C45ConsultObject.cpp,384
 #define _C45_CONSULTOBJECT_CPP__C45_CONSULTOBJECT_CPP_29,1376

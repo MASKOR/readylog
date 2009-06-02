@@ -290,31 +290,58 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
             ;
                  %  Phase = "consult"
                  %  Consult learned decision tree to get policy.
+	         statistics(times, [CPUT_BC, SYST_BC, RealT_BC]),
                  consult_dtree(Prog, Horizon, RewardFunction, [clipOnline|S], 
                                PolicyConsult, ValueConsult, TermProbConsult,
                                TreeConsult,
                                ConsultSuccess),
+	         
+                 statistics(times, [CPUT_AC, SYST_AC, RealT_AC]),
+                 %  statistics
+ 	         CPUDiffC is CPUT_AC - CPUT_BC,
+   	         SYSDiffC is SYST_AC - SYST_BC,
+	         RealDiffC is RealT_AC - RealT_BC,
+                 getval(consultation_time_cpu, CTcpu),
+                 getval(consultation_time_sys, CTsys),
+                 getval(consultation_time_real, CTreal),
+                 CTcpuNew is (CTcpu + CPUDiffC),
+                 CTsysNew is (CTsys + SYSDiffC),
+                 CTrealNew is (CTreal + RealDiffC),
+                 setval(consultation_time_cpu, CTcpuNew),
+                 setval(consultation_time_sys, CTsysNew),
+                 setval(consultation_time_real, CTrealNew),
+                      getval(learned_policy_consultations_total, LPCTtimesOld),
+                      LPCTtimes is (LPCTtimesOld + 1),
+                 ( exists('consult_times.log') ->
+                    open('consult_times.log', append, TimesLog),
+                    printf(TimesLog, "--------------- CONSULTATION TIMES --------------\n", []),
+                    printf(TimesLog, "[# of consultations, CPU, SYS, REAL]\n", []),
+                    printf(TimesLog, "%w %w %w %w.\n", [LPCTtimes, CTcpuNew, CTsysNew, CTrealNew]),
+                    printf(TimesLog, "-------------------------------------------------\n\n", []),
+                    close(TimesLog)
+                 ;
+                    open('consult_times.log', write, TimesLog),
+                    printf(TimesLog, "--------------- CONSULTATION TIMES --------------\n", []),
+                    printf(TimesLog, "[# of consultations, CPU, SYS, REAL]\n", []),
+                    printf(TimesLog, "%w %w %w %w.\n", [LPCTtimes, CTcpuNew, CTsysNew, CTrealNew]),
+                    printf(TimesLog, "-------------------------------------------------\n\n", []),
+                    close(TimesLog)
+                 ),
+
                  ( ConsultSuccess ->
                       %  If the decision tree returned a valid policy, use it.
                       Policy = PolicyConsult,
                       Value = ValueConsult,
                       TermProb = TermProbConsult,
-                      Tree = TreeConsult
-/*
-                      %  Cut out the hash key string from the decision string
-                      %  "Policy_HashKey".
-                      append_strings("Policy_", PolicyHashKeyString,
-                                     PolicyConsult),
-                      term_string(PolicyHashKey, PolicyHashKeyString),
-                      hash_get(PolicyHashTable, PolicyHashKey, Policy),
-                      getval(policy_value_hash_table, PolicyValueHashTable),
-                      hash_get(PolicyValueHashTable, PolicyHashKey, Value),
-                      getval(policy_termprob_hash_table,
-                             PolicyTermprobHashTable),
-                      hash_get(PolicyTermprobHashTable, PolicyHashKey,
-                               TermProb),
-                      getval(policy_tree_hash_table, PolicyTreeHashTable),
-                      hash_get(PolicyTreeHashTable, PolicyHashKey, Tree)*/
+                      Tree = TreeConsult,
+
+                      %  statistics
+                      getval(learned_policy_consultations_successful, LPCS),
+                      LPCS_new is (LPCS + 1),
+                      setval(learned_policy_consultations_successful, LPCS_new),
+                      getval(learned_policy_consultations_total, LPCT),
+                      LPCT_new is (LPCT + 1),
+                      setval(learned_policy_consultations_total, LPCT_new)
                  ;
                       %  Otherwise, stick to DT planning.
 	              bestDoM(Prog, [clipOnline|S], Horizon, PolicyConv,
@@ -323,7 +350,12 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
                       Policy = PolicyConv,
                       Value = ValueConv,
                       TermProb = TermProbConv,
-                      Tree = TreeConv
+                      Tree = TreeConv,
+
+                      %  statistics
+                      getval(learned_policy_consultations_total, LPCT),
+                      LPCT_new is (LPCT + 1),
+                      setval(learned_policy_consultations_total, LPCT_new)
                  )
 
             )
@@ -349,6 +381,14 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	printf("\n\nTimes: %w\nValue: %w\nTermProb: %w\n",
 	       [[CPUDiff, SYSDiff, RealDiff], Value, TermProb]), !,
 				% 	transPr(applyPolicy(Policy), S, Policy_r, S_r, _Prob).
+        getval(avg_solve_time, AST),
+        ASTTmp is (AST + CPUDiff),
+        ASTNew is (ASTTmp/2.0),
+        setval(avg_solve_time, ASTNew),
+        open('avg_solve_time.log', write, SolveTimeLog),
+        printf(SolveTimeLog, "--------------- AVG SOLVE TIME --------------\n", []),
+        printf(SolveTimeLog, "%w\n", [ASTNew]),
+        close(SolveTimeLog),
 	(
 	  dtdebug ->
 	  printf("Tree: %w\n", [Tree])
@@ -370,9 +410,54 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
                   printf("Learning instance written successfully.\n", []),
                   Policy_r = applyPolicy(Policy)
                ;
-                  %  Phase = "consult" 
-	          Policy_r = applyLearnedPolicy(Policy, solve(Prog, Horizon,
-                                                RewardFunction), S)
+                  %  Phase = "consult"
+                  Policy_r = applyLearnedPolicy(Policy, solve(Prog, Horizon,
+                                                RewardFunction), S),
+                  %  Print and write out statistics in log file
+                  getval(learned_policy_consultations_total, LPCTcurr),
+                  getval(learned_policy_consultations_successful, LPCScurr),
+                  setval(learned_policy_applications_total, LPCScurr),
+                  LPATcurr = LPCScurr,
+                  LPCFcurr is (LPCTcurr - LPCScurr),
+                  LPCratio is (LPCScurr / LPCTcurr),
+
+                  getval(learned_policy_applications_failed, LPAFcurr),
+                  LPAScurr is (LPCScurr - LPAFcurr),
+                  LPAratio is (LPAScurr / LPCScurr),
+
+                  ( exists('learned_policy.log') ->
+                     open('learned_policy.log', append, StreamLog),
+                     printf(StreamLog, "--------------- CONSULTATION --------------\n", []),
+                     printf(StreamLog, "%w total consultations of learned policies.\n", [LPCTcurr]),
+                     printf(StreamLog, "%w successful consultations of learned policies.\n", [LPCScurr]),
+                     printf(StreamLog, "%w failed consultations of learned policies.\n", [LPCFcurr]),
+                     printf(StreamLog, "%w ratio of consultation success to total consultations.\n", [LPCratio]),
+                     printf(StreamLog, "%w %w << consultations vs. ratio.\n", [LPCTcurr, LPCratio]),
+                     printf(StreamLog, "--------------- APPLICATION ---------------\n", []),
+                     printf(StreamLog, "%w total applications of learned policies.\n", [LPATcurr]),
+                     printf(StreamLog, "%w successful (complete) applications of learned policies.\n", [LPAScurr]),
+                     printf(StreamLog, "%w failed (complete) applications of learned policies.\n", [LPAFcurr]),
+                     printf(StreamLog, "%w ratio of application success to total applications.\n", [LPAratio]),
+                     printf(StreamLog, "%w %w << applications vs. ratio.\n", [LPATcurr, LPAratio]),
+                     printf(StreamLog, "-------------------------------------------\n\n", []),
+                     close(StreamLog)
+                  ;
+                     open('learned_policy.log', write, StreamLog),
+                     printf(StreamLog, "--------------- CONSULTATION --------------\n", []),
+                     printf(StreamLog, "%w total consultations of learned policies.\n", [LPCTcurr]),
+                     printf(StreamLog, "%w successful consultations of learned policies.\n", [LPCScurr]),
+                     printf(StreamLog, "%w failed consultations of learned policies.\n", [LPCFcurr]),
+                     printf(StreamLog, "%w ratio of consultation success to total consultations.\n", [LPCratio]),
+                     printf(StreamLog, "%w %w << consultations vs. ratio.\n", [LPCTcurr, LPCratio]),
+                     printf(StreamLog, "--------------- APPLICATION ---------------\n", []),
+                     printf(StreamLog, "%w total applications of learned policies.\n", [LPATcurr]),
+                     printf(StreamLog, "%w successful (complete) applications of learned policies.\n", [LPAScurr]),
+                     printf(StreamLog, "%w failed (complete) applications of learned policies.\n", [LPAFcurr]),
+                     printf(StreamLog, "%w ratio of application success to total applications.\n", [LPAratio]),
+                     printf(StreamLog, "%w %w << applications vs. ratio.\n", [LPATcurr, LPAratio]),
+                     printf(StreamLog, "-------------------------------------------\n\n", []),
+                     close(StreamLog)
+                  )
                )
              )
         ;
@@ -526,6 +611,11 @@ transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
 	    TruthValue -> PolR = applyLearnedPolicy(PolTail,
                                              solve(Prog, Horizon, RewardFunction), S_solve)
 	  ;
+            %  statistics
+            getval(learned_policy_applications_failed, LPAF),
+            LPAF_new is (LPAF + 1),
+            setval(learned_policy_applications_failed, LPAF_new),
+
 	    printColor(red, "BREAKING POLICY (true-case)\n", []),
 	    %printColor(yellow, "CONDITION:%w\n", [Cond]),
 	    printColor(cyan, "SITUATION:%w\n", [S]),
@@ -543,6 +633,11 @@ transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
 	    not(TruthValue) -> PolR = applyLearnedPolicy(PolTail,
                                                   solve(Prog, Horizon, RewardFunction), S_solve)
 	  ;
+            %  statistics
+            getval(learned_policy_applications_failed, LPAF),
+            LPAF_new is (LPAF + 1),
+            setval(learned_policy_applications_failed, LPAF_new),
+
 	    printColor(red, "BREAKING POLICY (false-case)\n", []),
 	    %printColor(yellow, "CONDITION:%w\n", [Cond]),
 	    printColor(cyan, "SITUATION:%w\n", [S]),
@@ -595,6 +690,11 @@ transPr( applyLearnedPolicy([PolHead | PolTail],
              append(PolHeadR, PolTail, PolR),
 	     ProgR = applyLearnedPolicy(PolR, solve(Prog, Horizon, RewardFunction), S_solve)
           ;
+             %  statistics
+             getval(learned_policy_applications_failed, LPAF),
+             LPAF_new is (LPAF + 1),
+             setval(learned_policy_applications_failed, LPAF_new),
+
 	     printColor(red, "BREAKING POLICY (impossible action)\n", []),
 	     printColor(cyan, "SITUATION:%w\n", [S]),
    	     printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
