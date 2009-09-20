@@ -38,7 +38,7 @@ void init_win (int wd, int ht) /* Make window and allocate colors.     */
 
   printf("Creating window ...");   /* make some size of window */
   fflush(stdout);
-  WINDOW = j_make_window(wd, ht, "white", NULL, NULL, 1);
+  WINDOW = j_make_window(wd, ht, (char *)"white", NULL, NULL, 1);
 
   printf("\nAllocating colors ..."); /* allocate gray values */
   fflush(stdout);
@@ -47,15 +47,15 @@ void init_win (int wd, int ht) /* Make window and allocate colors.     */
       sprintf(name, "gray%d", (MAX_COLORS - 1) - i);
       COLORS[i] = (int) find_color_val(name, WINDOW);
     } 
-  COLORS[81] = (int) find_color_val("red", WINDOW);
-  COLORS[82] = (int) find_color_val("navy", WINDOW);
-  COLORS[83] = (int) find_color_val("yellow", WINDOW);
-  COLORS[84] = (int) find_color_val("cyan", WINDOW);
-  COLORS[85] = (int) find_color_val("green", WINDOW);
-  COLORS[86] = (int) find_color_val("brown", WINDOW);
-  COLORS[87] = (int) find_color_val("magenta", WINDOW);
-  COLORS[88] = (int) find_color_val("gray60", WINDOW);
-  COLORS[89] = (int) find_color_val("gold", WINDOW);
+  COLORS[81] = (int) find_color_val((char *)"red", WINDOW);
+  COLORS[82] = (int) find_color_val((char *)"navy", WINDOW);
+  COLORS[83] = (int) find_color_val((char *)"yellow", WINDOW);
+  COLORS[84] = (int) find_color_val((char *)"cyan", WINDOW);
+  COLORS[85] = (int) find_color_val((char *)"green", WINDOW);
+  COLORS[86] = (int) find_color_val((char *)"brown", WINDOW);
+  COLORS[87] = (int) find_color_val((char *)"magenta", WINDOW);
+  COLORS[88] = (int) find_color_val((char *)"gray60", WINDOW);
+  COLORS[89] = (int) find_color_val((char *)"gold", WINDOW);
   printf("\n");
 
 }
@@ -741,7 +741,6 @@ void draw_dir(ACTION a, int X, int Y) {
   
   start_x = X*ROW_SIZE;
   start_y = GY - ((Y+1)*ROW_SIZE);
-
   switch (a) {
   case NORTH: 
     j_draw_line(start_x+5,start_y+55,start_x+15,start_y+35,COLORS[81],3,0,0,WINDOW);
@@ -765,6 +764,8 @@ void draw_dir(ACTION a, int X, int Y) {
     break;
   case GOTOR: 
   case GOTOG: 
+  case TLEFT: 
+  case TRIGHT: 
     break;
   }
 
@@ -812,13 +813,15 @@ void draw_goto(ACTION a, int toX, int toY, int X, int Y ) {
   case WEST: 
   case SOUTH: 
   case REST: 
+  case TLEFT: 
+  case TRIGHT: 
     break;
   case GOTOR: 
-    j_draw_string(start_x+5,start_y+35, "GR", COLORS[81],WINDOW);
+    j_draw_string(start_x+5,start_y+35, (char *)"GR", COLORS[81],WINDOW);
     j_draw_string(start_x+5,start_y+55, buff, COLORS[81],WINDOW);
     break;
   case GOTOG: 
-    j_draw_string(start_x+5,start_y+35, "GG", COLORS[81],WINDOW);
+    j_draw_string(start_x+5,start_y+35, (char *)"GG", COLORS[81],WINDOW);
     j_draw_string(start_x+5,start_y+55, buff, COLORS[81],WINDOW);
     break;
   }
@@ -858,6 +861,8 @@ void draw_opt_vals() {
       break;
     case GOTOR: 
     case GOTOG: 
+    case TLEFT: 
+    case TRIGHT: 
       break;
     }
     
@@ -899,6 +904,8 @@ void draw_pol(ACTION a, int X, int Y) {
     break;
   case GOTOR: 
   case GOTOG: 
+  case TLEFT: 
+  case TRIGHT: 
     break;
   }
 
@@ -937,6 +944,8 @@ void draw_direction(ACTION a, STATE s)
     break;
   case GOTOR: 
   case GOTOG: 
+  case TLEFT: 
+  case TRIGHT: 
     break;
   }
 }
@@ -1019,7 +1028,7 @@ void start_display(int X, int Y) {
   
   draw_world();
   
-  j_name_window(WINDOW, "Grid World");
+  j_name_window(WINDOW, (char *)"Grid World");
 }
 	
 // STATE start_display()

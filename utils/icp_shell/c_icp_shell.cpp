@@ -55,6 +55,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
+#include <cmath>
 #include "getkey.h"
 
 // Return Minimum
@@ -393,7 +395,7 @@ std::string read_line( std::vector<std::string> KeywordVec, std::vector<std::str
 
       } else std::cout << "\a" << std::flush;
       
-    } else if (31 < ch <= 127) {
+    } else if ( 31 < ch && ch <= 127) {
       // "normal" key pressed
 
       std::string buffer = "";

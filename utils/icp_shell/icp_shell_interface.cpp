@@ -60,7 +60,7 @@ check_unify(EC_word ec) {
     if ( isnan(tmp) ) {
       std::cerr << "*********                N A N            ********" << std::endl;
     }
-    if ( abs( isinf(tmp) ) ) {
+    if ( isinf(tmp) ) {
       std::cerr << "*********                I N F            ********" << std::endl;
     }
   }

@@ -57,8 +57,10 @@ int p_create_digraph()
 
       // cout << "Created graph " << graph_name << endl;
 
-      agedgeattr(G, "label", "");
-      agnodeattr(G, "label", "");
+      //agedgeattr(G, "label", "");
+      //agnodeattr(G, "label", "");
+      agedgeattr(G, (char *)"label", (char *)"");
+      agnodeattr(G, (char *)"label", (char *)"");
 
       return EC_succeed;
     }
@@ -108,7 +110,7 @@ int p_add_labelled_node()
 	  return EC_fail;
 	}
       
-      agset(node, "label", label);
+      agset(node, (char *)"label", label);
 	  
       // cout << "Created node " << name << endl;
 
@@ -203,7 +205,7 @@ int p_add_labelled_edge()
 	  return EC_fail;
 	}
 
-      agset(edge, "label", label);
+      agset(edge, (char *)"label", label);
      
       return EC_succeed;
     }
