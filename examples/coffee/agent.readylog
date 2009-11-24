@@ -1,0 +1,368 @@
+/* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
+ *
+ *           $Id: agent.readylog 68 2007-12-06 18:30:15Z stf $
+ *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
+ *   description: application of ReadyLog in the Maze domain.
+ *
+ * ************************************************************************ */
+
+:- write(" --> loading agent.readylog ...\n").
+
+%:- lib(toplevel).
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  INCLUDES                            %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% ReadyLog interpreter
+:- ensure_loaded("../../interpreter/readylog/readylog.pl").
+%% eXogenous stuff
+:- ensure_loaded("exog.readylog").
+
+%% MazeDomain definition
+:- ensure_loaded("maze.readylog").
+%% Functions
+:- ensure_loaded("functions.readylog").
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  LIBRARIES                           %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% GridVisualization
+:- load("../../ecl/keyboard.so").
+:- ["../../include/keyboard.pl"].
+%% GridVisualization
+:- load("../../ecl/gridvis.so").
+:- ["../../include/gridvis.pl"].
+
+      
+%% ================================================================== %%
+%%  PROCEDURES                                                        %%
+%% ================================================================== %%
+
+
+/** goto(x,y) using prim_actions */
+proc(goto(X,Y),
+     [
+        %cout( blue, " ***** proc goto(%w,%w) ***** \n", [X,Y]),
+        ?( Target = [X,Y] ),
+        %
+        while( neg( pos = Target ), %[X,Y] ),
+                    nondet( [ go_up, 
+                              go_right,
+                              go_down,
+                              go_left ] )
+                  )
+     ]
+    ).
+
+/** goto(x,y) using deterministic procedures */
+proc(goto_det(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        %
+        while( neg( pos = Target ),
+               nondet( [ up_det, 
+                         right_det,
+                         down_det,
+                         left_det ] )
+             )
+     ]
+    ).
+
+/** goto(x,y) using stochastic procedures */
+proc(goto_stoch(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        %exogf_Update,
+        while( neg( pos = Target ),
+               nondet( [ up_st, 
+                         right_st,
+                         down_st,
+                         left_st ] )
+             )
+     ]
+    ).
+
+/** goto(x,y) using procedures that check for visited poses */
+proc(goto_memo(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        %exogf_Update,
+        while( neg( pos = Target ),
+               nondet( [ up_mem, 
+                         right_st,
+                         down_st,
+                         left_st%,
+                         %rest
+                         ] )
+%                          right_mem,
+%                          down_mem,
+%                          left_mem ] )
+             )
+     ]
+    ).
+
+
+/** goto(x,y) using an elobarated sub-procedure.
+ * needed to make sure fluent are 'new' in every iteration 
+ */
+proc(goto_vis(X,Y),
+     [
+        ?( Target = [X,Y] ),
+        %exogf_Update,
+        while( neg( pos = Target ),
+               visit_nondet
+             )
+     ]
+    ).
+
+/** procedure that selectively builds a list of procedures to consider in nondet.
+ * we only consider actions that not lead to poses we already visited 
+ */
+proc(visit_nondet,
+     [
+        ?( pos = [X,Y] ),
+        ?( UpY = Y + 1 ),
+        ?( DownY = Y - 1 ),
+        ?( LeftX = X - 1 ),
+        ?( RightX = X + 1 ),
+        ?( NDA_list_init = [rest] ),
+        %cout( NDA_list_init ),
+        if( neg( visited( X,UpY ) ),
+            ?(NDA_list_up = adl( [up_st], NDA_list_init )),
+            ?(NDA_list_up = NDA_list_init )),
+        %cout( NDA_list_up ),
+        if( neg( visited( X,DownY ) ),
+            ?(NDA_list_down = adl( [down_st], NDA_list_up )),
+            ?(NDA_list_down = NDA_list_up )),
+        %cout( NDA_list_down ),
+        if( neg( visited( LeftX,Y ) ),
+            ?(NDA_list_left = adl( [left_st], NDA_list_down )),
+            ?(NDA_list_left = NDA_list_down )),
+        %cout( NDA_list_left ),
+        if( neg( visited( RightX,Y ) ),
+            ?(NDA_list = adl( [right_st], NDA_list_left)),
+            ?(NDA_list = NDA_list_left )),
+        %cout( NDA_list )%,
+        nondet( NDA_list )
+     ]
+    ).
+
+/** helper function to add an element to a list */
+function( adl(E,L), V,
+          append( E, L, V ) ).
+
+%% ================================================================== %%
+%%  ACTION PROCEDURES                                                 %%
+%% ================================================================== %%
+
+proc( up_mem,
+      [
+         ?( pos = [PosX,PosY] ),
+         ?( NewX = PosX + 1 ),
+         ?( NewY = PosY ),
+         if( and( [ is_pos(NewX,NewY) , 
+                    f_is_wall(PosX,PosY,NewX,NewY)=false,
+                    neg(visited(NewX,NewY))
+                  ]),
+             % then:
+             go_up,
+             % else: % must not be empty!!
+             cout("nogo_up")
+           )
+      ]
+    ).
+
+proc( down_mem,
+      [
+         ?( pos = [PosX,PosY] ),
+         ?( NewX = PosX - 1 ),
+         ?( NewY = PosY ),
+         if( and([ is_pos(NewX,NewY),
+                   neg( is_wall(PosX,PosY,NewX,NewY ))%,
+                   %neg(visited(NewX,NewY))
+                 ]),
+             go_down,
+             % else: % must not be empty!!
+             cout("nogo_down")
+           )
+      ]
+    ).
+
+proc( left_mem,
+      [
+         ?( pos = [PosX,PosY] ),
+         ?( NewX = PosX ),
+         ?( NewY = PosY - 1 ),
+         if( and([ is_pos(NewX,NewY),
+                   neg(is_wall(PosX,PosY,NewX,NewY))%,
+                   %neg(visited(NewX,NewY))
+                 ]),
+             go_left,
+             % else: % must not be empty!!
+             cout("nogo_left")
+           )
+      ]
+    ).
+
+proc( right_mem,
+      [
+         ?( pos = [PosX,PosY] ),
+         ?( NewX = PosX ),
+         ?( NewY = PosY + 1 ),
+         if( and([ is_pos(NewX,NewY),
+                   neg(is_wall(PosX,PosY,NewX,NewY))%,
+                   %neg(visited(NewX,NewY))
+                 ]),
+             go_right,
+             % else: % must not be empty!!
+             cout("nogo_right")
+           )
+      ]
+    ).
+
+
+/** procedure that selectively builds a list of procedures to consider in nondet.
+ * we only consider actions that not lead to poses we already visited 
+ */
+proc(visit_nondet_det,
+     [
+        ?( pos = [X,Y] ),
+        ?( UpY = Y + 1 ),
+        ?( DownY = Y - 1 ),
+        ?( LeftX = X - 1 ),
+        ?( RightX = X + 1 ),
+        %?( NDA_list_init = [rest] ),
+        ?( NDA_list_init = [] ),
+        %cout( NDA_list_init ),
+        if( neg( visited( X,UpY ) ),
+            ?(NDA_list_up = adl( [up_det], NDA_list_init )),
+            ?(NDA_list_up = NDA_list_init )),
+        %cout( NDA_list_up ),
+        if( neg( visited( X,DownY ) ),
+            ?(NDA_list_down = adl( [down_det], NDA_list_up )),
+            ?(NDA_list_down = NDA_list_up )),
+        %cout( NDA_list_down ),
+        if( neg( visited( LeftX,Y ) ),
+            ?(NDA_list_left = adl( [left_det], NDA_list_down )),
+            ?(NDA_list_left = NDA_list_down )),
+        %cout( NDA_list_left ),
+        if( neg( visited( RightX,Y ) ),
+            ?(NDA_list = adl( [right_det], NDA_list_left)),
+            ?(NDA_list = NDA_list_left )),
+        %cout( NDA_list )%,
+        nondet( NDA_list )
+     ]
+    ).
+
+
+%% ================================================================== %%
+%%  FIND AND GET ITEM                                                 %%
+%% ================================================================== %%
+
+proc( findus,
+      [
+         cout(" === STARTING FINDUS === \n"),
+         exogf_Update,
+         %% save current pos to return item
+         ?( pos = [X,Y] ),
+         search_item( XI, YI ),
+         cout( green, " *** found item at %w,%w *** \n", [XI,YI] ),
+         goto_item( XI, YI ),
+         grab_item,
+         reset_visited,
+         while( (epf_carry_item, pos \= [X,Y]) ,
+                [carry_item( X, Y ),
+                 exogf_Update]
+              ),
+         if( epf_carry_item, 
+             drop_item,
+             [ reset_visited,
+               search_item(XIneu,YIneu),
+               goto_item( XIneu, YIneu),
+               grab_item ]
+           ),
+         cout(" === FINISHING FINDUS === \n")
+      ]
+    ).
+
+proc( search_item( XI, YI ), %ItemPosID ), %XI, YI ),
+      [
+         cout(" --- search item --- \n"),
+         exogf_Update,
+         while( f_sense_item = 0,
+                [
+                   %exogf_Update,
+                   solve( [ % visit_nondet_det
+                             nondet( [ go_up,
+                                       go_down,
+                                       go_right,
+                                       go_left ] ),
+                             nondet( [ go_up,
+                                       go_down,
+                                       go_right,
+                                       go_left ] )
+                          ], 2, reward_search_item ),
+                   exogf_Update
+                ]
+              ),
+         ?( f_sense_item = SenseID ),
+         cout( red, " +++ SenseID = %w \n", [SenseID] ),
+         ?( IPOS = f_item_pos_by_id( SenseID ) ),
+         ?( IPOS = [XI, YI] )
+      ]
+    ).
+
+proc( goto_item(X,Y) ,
+      [
+         cout( yellow, " --- goto item --- \n", [] ),
+         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
+      ]
+    ).
+
+proc( grab_item,
+      [
+         cout(" --- grab item --- \n"),
+         ?( pos = [X,Y] ),
+         pickup_item
+      ]
+    ).
+
+proc( carry_item(X,Y),
+      [
+         cout(" --- home item --- \n"),
+         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
+      ]
+    ).
+
+%% ================================================================== %%
+%%  TESTING PROCEDURES                                                %%
+%% ================================================================== %%
+
+proc( testf,
+      [
+         exogf_Update,
+         ?( epf_sense_item = V ),
+         cout(V)
+      ]
+    ).
+
+proc( tstf_num,
+      [
+         exogf_Update,
+         ?( num_visited = V ),
+         cout( red, " *+*+* num_visited = %w *+*+* \n%b", [V])
+      ]
+    ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- write(" <-- loading agent.readylog done.\n").
