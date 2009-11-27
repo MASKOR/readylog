@@ -6,12 +6,19 @@ xTra( A, S ) :- starter( _A, A ), print_action( A, S ).
 xTra( A, S ) :- finisher( _A, A ), print_action( A, S ).
 print_action( A, S ) :-
     printColor( black, "\nPerforming '", [] ),
-    printColor( red, "%w", [A] ),
+    printColor( green, "%w", [A] ),
     printColor( black, "' in sit '", [] ), 
-    printColor( red, "%w", [S] ),
+    printColor( green, "%w", [S] ),
     printColor( black, "'\n\n", [] ).
 
     
 write_eq(N,V) :- write(N), write(' = '), write(V), nl.
 write_res(E,H) :- write_eq('E',E), write_eq('H', H).
+
+printDebug( Color, Text, Variables ) :-
+    printColor( Color, Text, Variables ).
+    
+% Nur für spy
+dbgFinishTrans :- true.
+
 

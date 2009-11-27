@@ -62,6 +62,13 @@ room(office402).
 room(office403).
 room(office404).
 
+/* ------------ primitive  actions --------------- */
+
+prim_action( noop ).
+poss( noop, true ).
+causes_val( noop, at, at ).
+
+
 /* ------------- complex actions ----------------- */
 complex_action( calibrate, start_calibrate, stop_calibrate, calibrating ).
 complex_action( drop(X), start_drop(X), stop_drop(X), dropping ).
@@ -72,10 +79,10 @@ complex_action( pickup(X), start_pickup(X), stop_pickup(X), pickingup ).
 % define both poss(.) and causes_val(.) for the complex_action itself
 % and default poss(starter) and causes_val(finisher) to these terms
 %
-poss( calibrate(X), holding=false ).
-poss( drop(X),      neg(holding=false) ).
-poss( go(R),        room(R) ).
-poss( pickup(X),    true ).
+poss( calibrate, holding=false ).
+poss( drop(X),   neg(holding=false) ).
+poss( go(R),     room(R) ).
+poss( pickup(X), true ).
 
 % (vvv SSAs of the complex action's effects on the world vvv)
 causes_val( calibrate, calibrated, L, and([L=true]) ).
@@ -102,7 +109,9 @@ initial_val( calibrated , false ) .
 
 /* ---------------- constraints ---------------- */
 
+constraints(noop,[]).
 constraints(pickup(X),[[calibrate,meets,pickup(X)]]).
+
 
 
 /* ---------------- procedures ----------------- */

@@ -4,8 +4,8 @@
 
 function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
 
-son :- icp(serve_request).
-sof :- icp(solve(serve_request,10,reward)).
+son  :- icp(serve_request).
+sof  :- icp(solve(serve_request,10,reward)).
 
 % Interesting Queries
 q1 :- trans(stop_go(office),[start_go(office),s0],E,H), write_res(E,H).    
@@ -16,6 +16,21 @@ q5 :- trans(start_drop(cup),[stop_pickup(cup),start_pickup(cup),s0],E,H).
 q6 :- trans(stop_drop(cup),[start_drop(cup),stop_pickup(cup),start_pickup(cup),s0],E,H), holds(holding=X,H).
 q7 :- ( starter(E,start_go(office)) ; finisher(E,start_go(office)) ), write(E).
 q8 :- trans(start_pickup(cup),[s0],E,H), write_res(E,H). 
+
+q8a :- trans(start_pickup(cup),[s0],E0,H0),
+    printColor( black, "E0 = '%w'\n", [E0] ),
+    printColor( black, "H0 = '%w'\n", [H0] ),
+    trans(E0,H0,E1,H1),
+    printColor( black, "E1 = '%w'\n", [E1] ),
+    printColor( black, "H1 = '%w'\n", [H1] ),
+    trans(E1,H1,E2,H2),
+    printColor( black, "E2 = '%w'\n", [E2] ),
+    printColor( black, "H2 = '%w'\n", [H2] ),
+    trans(E2,H2,E3,H3),
+    printColor( black, "E3 = '%w'\n", [E3] ),
+    printColor( black, "H3 = '%w'\n", [H3] ).
+    
+    
 
 % procedure pickup cup
 proc( 
