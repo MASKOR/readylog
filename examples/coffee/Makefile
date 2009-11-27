@@ -44,6 +44,8 @@ ECLIPSE = eclipse
 
 all: preprocess
 
+test: clean run
+
 ##
 
 preprocess:

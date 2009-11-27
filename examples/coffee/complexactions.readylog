@@ -1,0 +1,40 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                               COMPLEX ACTIONS                                %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% A complex action is an action with a duration. We follow the ideas
+% presented in DeGiacomo1999 and Hu2007 in representing complex actions
+% by as states the agent is in... [ConGolog S.24ff])
+% Complex actions are tuples A = (a,s,f,F) with
+% a.. action name, s.. starter, f.. finisher, F.. Fluent
+
+% Abbreviations for dealing with complex actions
+% 
+starter( A, X )  :- complex_action( A, X, _, _ ).
+finisher( A, X ) :- complex_action( A, _, X, _ ).
+fluent( A, X )   :- complex_action( A, _, _, X ).
+
+% The finisher of a complex action causes the same fluent to change
+% in the same way as the complex action itself did.
+% (vvv SSA of the complex action's fluent vvv)
+causes_val( S, F, yes, true ) :- starter(A,S),  fluent(A,F).
+causes_val( S, F, no,  true ) :- finisher(A,S), fluent(A,F).
+% (^^^ SSA of the complex action's fluent ^^^)
+causes_val( S, F, V, C ) :- finisher(A,S), causes_val(A,F,V,C).
+
+% As ReadyLog requires to identify primitive actions for several
+% reasons and because we already proposed this conceptually, we define
+% that each starter and each finisher are primitive actions.
+%
+prim_action( Act ) :- starter( _A, Act ).
+prim_action( Act ) :- finisher( _A, Act ).
+
+% For similar reasons, readylog needs to know that each complex action's
+% fluent is considered a primitive fluent.
+prim_fluent( F )      :- fluent( _A , F ).
+initial_val( F , no ) :- fluent( _A, F ).
+
+% The starter of a complex action is possible, iff the complex action
+% itself is possible
+poss( X, C ) :- starter(A,X), poss(A,C).
+poss( X, F=yes ) :- finisher(A,X), fluent(A,F).

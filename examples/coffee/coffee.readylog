@@ -14,7 +14,7 @@
  *
  * ************************************************************************ */
 
-:- write(" --> loading agent.readylog ...\n").
+:- write(" --> loading coffee.readylog ...\n").
 
 %:- lib(toplevel).
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -25,11 +25,19 @@
 :- ensure_loaded("../../interpreter/readylog/readylog.pl").
 %% eXogenous stuff
 :- ensure_loaded("exog.readylog").
-
 %% MazeDomain definition
 :- ensure_loaded("maze.readylog").
 %% Functions
 :- ensure_loaded("functions.readylog").
+
+%% Debugging stuff
+:- ensure_loaded("debug.readylog").
+%% Complex action stuff
+:- ensure_loaded("complexactions.readylog").
+%% Constraint stuff
+:- ensure_loaded("constraints.readylog").
+%% Testing stuff
+:- ensure_loaded("testing.readylog").
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  LIBRARIES                           %%
@@ -42,59 +50,6 @@
 :- load("../../ecl/gridvis.so").
 :- ["../../include/gridvis.pl"].
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                   UTILITIES                                  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-xTra( A, S ) :- starter( _A, A ), print_action( A, S ).
-xTra( A, S ) :- finisher( _A, A ), print_action( A, S ).
-print_action( A, S ) :-
-    printColor( black, "\nPerforming '", [] ),
-    printColor( red, "%w", [A] ),
-    printColor( black, "' in sit '", [] ), 
-    printColor( red, "%w", [S] ),
-    printColor( black, "'\n\n", [] ).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                               COMPLEX ACTIONS                                %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% A complex action is an action with a duration. We follow the ideas
-% presented in DeGiacomo1999 and Hu2007 in representing complex actions
-% by as states the agent is in... [ConGolog S.24ff])
-% Complex actions are tuples A = (a,s,f,F) with
-% a.. action name, s.. starter, f.. finisher, F.. Fluent
-
-% Abbreviations for dealing with complex actions
-% 
-starter( A, X )  :- complex_action( A, X, _, _ ).
-finisher( A, X ) :- complex_action( A, _, X, _ ).
-fluent( A, X )   :- complex_action( A, _, _, X ).
-
-% The finisher of a complex action causes the same fluent to change
-% in the same way as the complex action itself did.
-% (vvv SSA of the complex action's fluent vvv)
-causes_val( S, F, yes, true ) :- starter(A,S),  fluent(A,F).
-causes_val( S, F, no,  true ) :- finisher(A,S), fluent(A,F).
-% (^^^ SSA of the complex action's fluent ^^^)
-causes_val( S, F, V, C ) :- finisher(A,S), causes_val(A,F,V,C).
-
-% As ReadyLog requires to identify primitive actions for several
-% reasons and because we already proposed this conceptually, we define
-% that each starter and each finisher are primitive actions.
-%
-prim_action( Act ) :- starter( _A, Act ).
-prim_action( Act ) :- finisher( _A, Act ).
-
-% For similar reasons, readylog needs to know that each complex action's
-% fluent is considered a primitive fluent.
-prim_fluent( F )      :- fluent( _A , F ).
-initial_val( F , no ) :- fluent( _A, F ).
-
-% The starter of a complex action is possible, iff the complex action
-% itself is possible
-poss( X, C ) :- starter(A,X), poss(A,C).
-poss( X, F=yes ) :- finisher(A,X), fluent(A,F).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                           COFFEE DOMAIN PRIMITIVES                           %
@@ -108,22 +63,27 @@ room(office403).
 room(office404).
 
 /* ------------- complex actions ----------------- */
+complex_action( calibrate, start_calibrate, stop_calibrate, calibrating ).
+complex_action( drop(X), start_drop(X), stop_drop(X), dropping ).
 complex_action( go(R), start_go(R), stop_go(R),  going ).
 complex_action( pickup(X), start_pickup(X), stop_pickup(X), pickingup ).
-complex_action( drop(X), start_drop(X), stop_drop(X), dropping ).
 %
 % To keep the idea of complex actions as high level as possible, we
 % define both poss(.) and causes_val(.) for the complex_action itself
 % and default poss(starter) and causes_val(finisher) to these terms
 %
-poss(go(R), room(R)).
-poss(pickup(X), true).
-poss(drop(X), neg(holding=none)).
-causes_val(go(R), at, L, and([L=R])).
+poss( calibrate(X), holding=false ).
+poss( drop(X),      neg(holding=false) ).
+poss( go(R),        room(R) ).
+poss( pickup(X),    true ).
+
 % (vvv SSAs of the complex action's effects on the world vvv)
-causes_val(pickup(X), holding, L, and([L=X])).
-causes_val(drop(X), holding, L, and([L=false])).
-causes_val(drop(X), request, L, and([L=false])).
+causes_val( calibrate, calibrated, L, and([L=true]) ).
+causes_val( drop(X),   holding,    L, and([L=false]) ).
+causes_val( drop(X),   request,    L, and([L=false]) ).
+causes_val( go(R),     at,         L, and([L=R]) ).
+causes_val( pickup(X), holding,    L, and([L=X]) ).
+causes_val( pickup(X), calibrated, L, and([L=false]) ).
 % (^^^ SSAs of the complex action's effects on the world ^^^)
 
 /* ---------------- fluents ----------------- */
@@ -137,19 +97,25 @@ initial_val( request, office ).
 prim_fluent( holding ).
 initial_val( holding , false ) .
 
+prim_fluent( calibrated ).
+initial_val( calibrated , false ) .
+
+/* ---------------- constraints ---------------- */
+
+constraints(pickup(X),[[calibrate,meets,pickup(X)]]).
+
+
 /* ---------------- procedures ----------------- */
 
 proc(
     drop_cup(R),
     [start_go(R),stop_go(R),start_drop(cup),stop_drop(cup)]    
 ).
-dc :- icp(drop_cup(office)).
 
 proc(
     fetch_cup,
     [start_go(kitchen),stop_go(kitchen),start_pickup(cup),stop_pickup(cup)]
 ).
-fc :- icp(fetch_cup).
 
 proc(
     serve_request, 
@@ -159,19 +125,7 @@ proc(
             fetch_cup )
     )
 ).
+    
 
-son :- icp(serve_request).
-sof :- icp(solve(serve_request,10,reward)).
-
-function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
-
-
-% Interesting Queries
-% - trans(stop_go(office),[start_go(office),s0],E,H). -> YES
-% - trans(stop_go(office),[s0],E,H). -> NO
-% - trans(stop_go(office),[start_go(office),s0],E,H),holds(at=X,[s0]),holds(at=Y,H).
-% - trans(start_drop(cup),[s0],E,H).
-% - trans(start_drop(cup),[stop_pickup(cup),start_pickup(cup),s0],E,H).
-% - trans(stop_drop(cup),[start_drop(cup),stop_pickup(cup),start_pickup(cup),s0],E,H), holds(holding=X,H).
 
 % }}}

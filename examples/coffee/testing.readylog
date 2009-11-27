@@ -1,0 +1,53 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                  TESTING                                     %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
+
+son :- icp(serve_request).
+sof :- icp(solve(serve_request,10,reward)).
+
+% Interesting Queries
+q1 :- trans(stop_go(office),[start_go(office),s0],E,H), write_res(E,H).    
+q2 :- trans(stop_go(office),[s0],E,H), write_res(E,H). % no
+q3 :- trans(stop_go(office),[start_go(office),s0],E,H),holds(at=X,[s0]),holds(at=Y,H).
+q4 :- trans(start_drop(cup),[s0],E,H), write_res(E,H).
+q5 :- trans(start_drop(cup),[stop_pickup(cup),start_pickup(cup),s0],E,H).
+q6 :- trans(stop_drop(cup),[start_drop(cup),stop_pickup(cup),start_pickup(cup),s0],E,H), holds(holding=X,H).
+q7 :- ( starter(E,start_go(office)) ; finisher(E,start_go(office)) ), write(E).
+q8 :- trans(start_pickup(cup),[s0],E,H), write_res(E,H). 
+
+% procedure pickup cup
+proc( 
+    pcup ,
+    [start_pickup(cup), stop_pickup(cup)] 
+).
+
+qt1(B) :- constraint(A,Pi,B) -> write(A), write(' '), write(Pi), write(' '), write(B).
+qt2(B) :- ( starter(E,B) ; finisher(E,B) ), 
+    constraint(A,Pi,E) -> write(A), write(' '), write(Pi), write(' '), write(E).
+    
+dc :- icp(drop_cup(office)).
+fc :- icp(fetch_cup).
+
+ht1t :- holds( constraint(calibrate, meets, pickup(cup), start_pickup(cup)), 
+              [stop_calibrate, start_calibrate, s0]).
+ht1f :- ( not holds( neg(constraint(calibrate, meets, pickup(cup), start_pickup(cup))),
+                     [stop_calibrate, start_calibrate, s0]) -> write('#fail') ).
+    
+% Sollte ausgeben, dass die Constraint "calibrate meets pickup(cup)" bereits 
+% erfüllt ist und die constraint "stop_go(kitchen) meets pickup(cup)" noch zu
+% erfüllen wäre.
+tt1 :- todo( [[calibrate,meets,pickup(cup)],[go(kitchen),meets,pickup(cup)]], 
+             start_pickup(cup), 
+             [stop_calibrate, start_calibrate, s0],
+             Cond ),
+             write_eq( 'Cond', Cond ).
+    
+% Sollte ausgeben, dass bereits die Constraint "calibrate meets pickup(cup)" 
+% noch zu erfüllen ist
+tt2 :- todo( [[calibrate,meets,pickup(cup)],[go(kitchen),meets,pickup(cup)]], 
+             start_pickup(cup), 
+             [start_go(kitchen), stop_calibrate, start_calibrate, s0],
+             Cond ),
+             write_eq( 'Cond', Cond ).
