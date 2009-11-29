@@ -31,6 +31,13 @@ todo( [H|T], A, S, Cond ) :-
     )
   ),
   printColor( red, "  </Checking constraints>\n", [] ).
+  
+needs_attention( E, S, C ) :- 
+    parent(E,Tr),
+    constraints(Tr,L),
+    todo(L,E,S,C),
+    C\=nil,
+    printDebug( blue, "  found unsatisfied constraint '%w'\n", [C]).
     
 apply_constraint(E,Ac,Pi,Tr,S,E1,S1) :-
     printColor( red, "  <Apply Constraint>\n", [] ),

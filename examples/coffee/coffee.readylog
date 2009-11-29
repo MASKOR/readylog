@@ -64,16 +64,16 @@ room(office404).
 
 /* ------------ primitive  actions --------------- */
 
-prim_action( noop ).
-poss( noop, true ).
-causes_val( noop, at, at ).
+prim_action( beep ).
+poss( beep, true ).
+causes_val( beep, at, at ).
 
 
 /* ------------- complex actions ----------------- */
-complex_action( calibrate, start_calibrate, stop_calibrate, calibrating ).
-complex_action( drop(X), start_drop(X), stop_drop(X), dropping ).
-complex_action( go(R), start_go(R), stop_go(R),  going ).
-complex_action( pickup(X), start_pickup(X), stop_pickup(X), pickingup ).
+complex_action( calibrate   , start_calibrate, stop_calibrate, calibrating ).
+complex_action( drop(X)     , start_drop(X)  , stop_drop(X)  , dropping ).
+complex_action( go(R)       , start_go(R)    , stop_go(R)    , going ).
+complex_action( pickup(X)   , start_pickup(X), stop_pickup(X), pickingup ).
 %
 % To keep the idea of complex actions as high level as possible, we
 % define both poss(.) and causes_val(.) for the complex_action itself
@@ -99,7 +99,7 @@ prim_fluent( at ).
 initial_val( at, kitchen ).
 
 prim_fluent( request ).
-initial_val( request, office ).
+initial_val( request, office404 ).
 
 prim_fluent( holding ).
 initial_val( holding , false ) .
@@ -111,7 +111,6 @@ initial_val( calibrated , false ) .
 
 constraints(noop,[]).
 constraints(pickup(X),[[calibrate,meets,pickup(X)]]).
-
 
 
 /* ---------------- procedures ----------------- */
@@ -130,7 +129,7 @@ proc(
     serve_request, 
     while( and([request=R,neg(R=false)]),
         if( holding=cup, 
-            drop_cup(H),
+            drop_cup(R),
             fetch_cup )
     )
 ).
