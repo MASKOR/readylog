@@ -26,14 +26,12 @@
 %% eXogenous stuff
 :- ensure_loaded("exog.readylog").
 %% MazeDomain definition
-:- ensure_loaded("maze.readylog").
+%:- ensure_loaded("maze.readylog").
 %% Functions
 :- ensure_loaded("functions.readylog").
 
 %% Debugging stuff
 :- ensure_loaded("debug.readylog").
-%% Complex action stuff
-:- ensure_loaded("complexactions.readylog").
 %% Constraint stuff
 :- ensure_loaded("constraints.readylog").
 %% Testing stuff

@@ -107,3 +107,19 @@ do_apply_constraint(E,Ac,meets,Tr,S,E1,S1) :-
       ) 
     ),
     printColor( green, "    </Apply MEETS>\n", [] ).
+    
+do_apply_constraint(Alpha,A,before,B,S,D1,S1) :-
+    (
+        starter( B, Alpha ) ,
+        starter( A, As ),
+        finisher( A , Af ),
+        fluent( A, F )
+    )
+    -> 
+    (
+        holds( F=true, S ) 
+        ->
+        D1 = [ Af, B ]      
+        ;
+        D1 = [ As, Af, B ]      
+    ).
