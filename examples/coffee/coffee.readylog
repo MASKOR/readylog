@@ -22,7 +22,7 @@
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
 %% ReadyLog interpreter
-:- ensure_loaded("../../interpreter/readylog/readylog.pl").
+:- ensure_loaded("../../interpreter/steadylog/readylog.pl").
 %% eXogenous stuff
 :- ensure_loaded("exog.readylog").
 %% MazeDomain definition
@@ -64,12 +64,13 @@ room(office404).
 
 /* ------------ primitive  actions --------------- */
 
-prim_action( beep ).
-poss( beep, true ).
-causes_val( beep, at, at ).
+prim_action( noop ).
+poss( noop, true ).
+causes_val( noop, at, at ).
 
 
 /* ------------- complex actions ----------------- */
+complex_action( beep        , start_beep     , stop_beep     , beeping ).
 complex_action( calibrate   , start_calibrate, stop_calibrate, calibrating ).
 complex_action( drop(X)     , start_drop(X)  , stop_drop(X)  , dropping ).
 complex_action( go(R)       , start_go(R)    , stop_go(R)    , going ).
@@ -79,12 +80,14 @@ complex_action( pickup(X)   , start_pickup(X), stop_pickup(X), pickingup ).
 % define both poss(.) and causes_val(.) for the complex_action itself
 % and default poss(starter) and causes_val(finisher) to these terms
 %
+poss( beep     , true ).
 poss( calibrate, holding=false ).
 poss( drop(X),   neg(holding=false) ).
 poss( go(R),     room(R) ).
 poss( pickup(X), true ).
 
 % (vvv SSAs of the complex action's effects on the world vvv)
+causes_val( beep,      at,         L, and([at=L]) ).
 causes_val( calibrate, calibrated, L, and([L=true]) ).
 causes_val( drop(X),   holding,    L, and([L=false]) ).
 causes_val( drop(X),   request,    L, and([L=false]) ).
@@ -110,7 +113,8 @@ initial_val( calibrated , false ) .
 /* ---------------- constraints ---------------- */
 
 constraints(noop,[]).
-constraints(pickup(X),[[calibrate,meets,pickup(X)]]).
+constraints(pickup(X),[[calibrate, meets, pickup(X)]]).
+constraints(drop(X),  [[beep,      meets, drop(X)]]).
 
 
 /* ---------------- procedures ----------------- */

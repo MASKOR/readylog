@@ -32,10 +32,10 @@ todo( [H|T], A, S, Cond ) :-
   ),
   printColor( red, "  </Checking constraints>\n", [] ).
   
-needs_attention( E, S, C ) :- 
-    parent(E,Tr),
+needs_attention( A, S, C ) :- 
+    parent(A,Tr),
     constraints(Tr,L),
-    todo(L,E,S,C),
+    todo(L,A,S,C),
     C\=nil,
     printDebug( blue, "  found unsatisfied constraint '%w'\n", [C]).
     
@@ -81,7 +81,7 @@ do_apply_constraint(E,Ac,meets,Tr,S,E1,S1) :-
                                 % Falls A bereits gilt: [wf(A-), E] an bestehenden
                                 % Plan präfixen und wiedervorlegen
                                 printColor( green, "      fluent '%w' holds.\n", [F] ),
-                                P = [ wf(Af), E ],
+                                P = [ Af, E ], % müsste eig. P = [ wf(Af), E ], sein
                                 printDebug( green, "      prefix is '%w'\n", [P] )
                                 , E1 = P
                                 , S1 = S
@@ -91,7 +91,7 @@ do_apply_constraint(E,Ac,meets,Tr,S,E1,S1) :-
                                 % Sonst: [A+,wf(A-),E] wiedervorlegen
                                 printColor( green, "      fluent '%w' holds NOT.\n", [F] ),
                                 starter( Ac, As ), 
-                                P = [ As, wf(Af), E],
+                                P = [ As, Af, E], % müsste eig. P = [ As, wf(Af), E] sein
                                 printDebug( green, "      prefix is '%w'\n", [P] )
                                 , E1 = P 
                                 , S1 = S
