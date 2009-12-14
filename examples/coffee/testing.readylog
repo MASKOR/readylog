@@ -4,8 +4,10 @@
 
 function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
 
-son  :- icp(serve_request).
-sof  :- icp(solve(serve_request,10,reward)).
+son :- icp(serve_request).
+sof :- icp(solve(serve_request,10,reward)).
+
+won :- icp(walk_around).
 
 % Interesting Queries
 q1 :- trans(stop_go(office),[start_go(office),s0],E,H), write_res(E,H).    
@@ -66,3 +68,66 @@ tt2 :- todo( [[calibrate,meets,pickup(cup)],[go(kitchen),meets,pickup(cup)]],
              [start_go(kitchen), stop_calibrate, start_calibrate, s0],
              Cond ),
              write_eq( 'Cond', Cond ).
+             
+             
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%       
+% CONTAINS                                                                     %
+% Hier befinden sich die Tests zu CONTAINS und dessen Hilfsmethoden            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+% Annahme: Es gibt eine Constraint "beep contains fiep".
+test_do_apply_contains :-
+    test_apply_contains_Bs, reset_assertions,
+    test_apply_contains_Bf, reset_assertions,
+    test_apply_contains_Af_Bfl, reset_assertions,
+    test_apply_contains_Af_assertion, reset_assertions.
+    
+
+% Annahme: Es gibt eine Constraint "beep contains fiep", es wurden noch keine
+% Aktionen ausgeführt und die erste auszuführende Aktion ist "start_fiep".
+% Es sollte die Aktion "start_beep" ausgeführt werden und die Aktion 
+% "start_fiep" als Restprogramm vorgeschlagen werden.
+test_apply_contains_Bs :-
+    apply_contains_Bs( start_fiep, start_beep, start_fiep, [s0], E1, S1),
+    print_state(S1,E1).
+
+% Annahme: Es gibt eine Constraint "beep contains fiep", es liegt eine Assertion
+% "stop_beep after stop_fiep" vor und es wird versucht Bf auszuführen. Es 
+% sollte nun so sein, dass Bf ausgeführt wird und das Programm sich Af als 
+% nächste Aktion vorlegt. 
+test_apply_contains_Bf :- 
+    assrt( [stop_beep, after, stop_fiep] ), 
+    apply_contains_Bf(stop_fiep, stop_fiep, fieping, [start_fiep, start_beep, s0],E1,S1), 
+    print_state(S1,E1).
+
+% Annahme: Es gibt eine Constraint "beep contains fiep", die Aktionen 
+% start_beep, start_fiep wurden in dieser Reihenfolge ausgeführt und nun ist 
+% stop_beep auszuführen. 
+% Es sollte nun die Assertion "stop_beep after stop_fiep" angelegt werden und 
+% die Aktion stop_beep ignoriert werden.
+test_apply_contains_Af_Bfl :-
+    apply_contains_Af_Bfl( stop_beep, 
+                           stop_beep, 
+                           stop_fiep,
+                           beeping, 
+                           [ start_fiep, start_beep, s0 ],
+                           E1,
+                           S1),
+    print_state(S1,E1).
+
+% Annahme: Es gibt eine Constraint "beep contains fiep", die Aktionen 
+% start_beep, start_fiep, stop_fiep wurden in dieser Reihenfolge ausgeführt und
+% nun ist stop_beep auszuführen. Hierzu liegt die Assertion 
+% "stop_beep after stop_fiep" auf dem Stack. 
+% Es sollte nun die Assertion abgeräumt werden und stop_beep als Restprogramm
+% vorgeschlagen werden (so dass es in einem nächsten Schritt zur Ausfürhung
+% gebracht werden kann).
+test_apply_contains_Af_assertion :-
+    assrt( [ stop_beep , after , stop_fiep ] ),
+    apply_contains_Af_assertion( stop_beep, 
+                                 stop_beep, 
+                                 stop_fiep, 
+                                 [ stop_fiep, start_fiep, start_beep, s0 ],
+                                 E1,
+                                 S1),
+    print_state(S1,E1).
