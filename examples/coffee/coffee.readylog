@@ -148,8 +148,8 @@ constraints(noop,[]).
 constraints(pickup(X), [ [ calibrate,   before,     pickup(X) ] ] ).
 constraints(drop(X),   [ [ beep,        meets,      drop(X) ] ] ).
 % Example 2
-constraints(walk,      [ [ sing,        overlaps,   walk ] ] ).
-constraints(walk,      [ [ chew,        contains,   walk ] ] ).
+constraints(walk,      [ [ sing,        overlaps,   walk ],       
+                         [ chew,        contains,   walk ] ] ).
 % Example 3
 constraints(cook,      [ 
                             [ fry,      starts,     cook ] ,
