@@ -4,10 +4,20 @@
 
 function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
 
-son :- icp(serve_request).
-sof :- icp(solve(serve_request,10,reward)).
+son :- icp(serve_request), reset_assertions.
+sof :- icp(solve(serve_request,10,reward)), reset_assertions.
 
-won :- icp(walk_around).
+won :- icp( walk_around ), reset_assertions.
+
+mon :- icp( make_dinner ), reset_assertions.
+
+%ttc1 :- has_timed_constraint( start_beep ).
+%ttc2 :- has_timed_constraint( stop_beep ).
+%ttc3 :- has_timed_constraint( beep ).
+%ttc4 :- has_timed_constraint( fubar ).
+%ttc5 :- has_timed_constraint( start_go ).
+%ttc6 :- has_timed_constraint( stop_go ).
+%ttc7 :- has_timed_constraint( go ).
 
 % Interesting Queries
 q1 :- trans(stop_go(office),[start_go(office),s0],E,H), write_res(E,H).    

@@ -66,7 +66,7 @@ causes_val( noop, at, at ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                               COMPLEX ACTIONS                                %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Example 1 vvv
+% vvv Example 1 vvv
 % The procedure serve_request contains MEETS and BEFORE constraints
 complex_action( beep        , start_beep     , stop_beep     , beeping ).
 complex_action( fiep        , start_fiep     , stop_fiep     , fieping ).
@@ -74,10 +74,16 @@ complex_action( calibrate   , start_calibrate, stop_calibrate, calibrating ).
 complex_action( drop(X)     , start_drop(X)  , stop_drop(X)  , dropping ).
 complex_action( go(R)       , start_go(R)    , stop_go(R)    , going ).
 complex_action( pickup(X)   , start_pickup(X), stop_pickup(X), pickingup ).
-% Example 2 vvv
+% vvv Example 2 vvv
+% Schedules OVERLAPS and CONTAINS
 complex_action( walk        , start_walk     , stop_walk     , walking ).
 complex_action( sing        , start_sing     , stop_sing     , singing ).
 complex_action( chew        , start_chew     , stop_chew     , chewing ).
+% vvv Example 3 vvv
+% Schedules STARRS and ENDS
+complex_action( cook        , start_cook     , stop_cook     , cooking ).
+complex_action( fry         , start_fry      , stop_fry      , frying ).
+complex_action( clean       , start_clean    , stop_clean    , cleaning ).
 %
 % To keep the idea of complex actions as high level as possible, we
 % define both poss(.) and causes_val(.) for the complex_action itself
@@ -89,10 +95,14 @@ poss( calibrate, holding=false ).
 poss( drop(X),   neg(holding=false) ).
 poss( go(R),     room(R) ).
 poss( pickup(X), true ).
-% Example 2 vvv
+% vvv Example 2 vvv
 poss( walk     , true ).
 poss( sing     , true ).
 poss( chew     , true ).
+% vvv Example 3 vvv
+poss( cook     , true ).
+poss( fry      , true ).
+poss( clean    , true ).
 
 % (vvv SSAs of the complex action's effects on the world vvv)
 causes_val( beep,      at,         L, and([at=L]) ).
@@ -103,10 +113,14 @@ causes_val( drop(X),   request,    L, and([L=false]) ).
 causes_val( go(R),     at,         L, and([L=R]) ).
 causes_val( pickup(X), holding,    L, and([L=X]) ).
 causes_val( pickup(X), calibrated, L, and([L=false]) ).
-% Example 2 actions vvv
+% vvv Example 2 actions vvv
 causes_val( walk,      at,         L, and([at=L]) ).
 causes_val( sing,      at,         L, and([at=L]) ).
 causes_val( chew,      at,         L, and([at=L]) ).
+% vvv Example 3 actions vvv
+causes_val( cook,      at,         L, and([at=L]) ).
+causes_val( fry,       at,         L, and([at=L]) ).
+causes_val( clean  ,   at,         L, and([at=L]) ).
 % (^^^ SSAs of the complex action's effects on the world ^^^)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -131,11 +145,16 @@ initial_val( calibrated , false ) .
 
 constraints(noop,[]).
 % Example 1
-constraints(pickup(X), [[calibrate, before,   pickup(X)]] ).
-constraints(drop(X),   [[beep,      meets,    drop(X)]] ).
+constraints(pickup(X), [ [ calibrate,   before,     pickup(X) ] ] ).
+constraints(drop(X),   [ [ beep,        meets,      drop(X) ] ] ).
 % Example 2
-constraints(walk,      [[sing,      overlaps, walk]] ).
-constraints(walk,      [[chew,      contains, walk]] ).
+constraints(walk,      [ [ sing,        overlaps,   walk ] ] ).
+constraints(walk,      [ [ chew,        contains,   walk ] ] ).
+% Example 3
+constraints(cook,      [ 
+                            [ fry,      starts,     cook ] ,
+                            [ clean,    ends,       cook ]
+                       ] ).  
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -161,10 +180,17 @@ proc(
     )
 ).
 
-% Example 2 vvv
+% vvv Example 2 vvv
 
 proc(
     walk_around,
-    [start_beep,start_walk,stop_beep,stop_walk]
-)
+    [ start_beep, start_walk, stop_beep, stop_walk ]
+).
     
+    
+% vvv Example 3 vvv
+
+proc(
+    make_dinner,
+    [ start_cook, stop_cook ]
+).
