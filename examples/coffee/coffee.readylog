@@ -84,6 +84,13 @@ complex_action( chew        , start_chew     , stop_chew     , chewing ).
 complex_action( cook        , start_cook     , stop_cook     , cooking ).
 complex_action( fry         , start_fry      , stop_fry      , frying ).
 complex_action( clean       , start_clean    , stop_clean    , cleaning ).
+
+% Example 4 - Several ocurrences of MEETS
+complex_action( cook4       , start_cook4    , stop_cook4    , cooking4 ).
+complex_action( beep4       , start_beep4    , stop_beep4    , beeping4 ).
+complex_action( fiep4       , start_fiep4    , stop_fiep4    , fieping4 ).
+complex_action( fry4        , start_fry4     , stop_fry4     , frying4 ).
+
 %
 % To keep the idea of complex actions as high level as possible, we
 % define both poss(.) and causes_val(.) for the complex_action itself
@@ -103,6 +110,11 @@ poss( chew     , true ).
 poss( cook     , true ).
 poss( fry      , true ).
 poss( clean    , true ).
+% vvv Example 4 vvv
+poss( cook4    , true ).
+poss( fry4     , true ).
+poss( beep4    , true ).
+poss( fiep4    , true ).
 
 % (vvv SSAs of the complex action's effects on the world vvv)
 causes_val( beep,      at,         L, and([at=L]) ).
@@ -121,6 +133,11 @@ causes_val( chew,      at,         L, and([at=L]) ).
 causes_val( cook,      at,         L, and([at=L]) ).
 causes_val( fry,       at,         L, and([at=L]) ).
 causes_val( clean  ,   at,         L, and([at=L]) ).
+% Example 4
+causes_val( beep4,     at,         L, and([at=L]) ).
+causes_val( fiep4,     at,         L, and([at=L]) ).
+causes_val( cook4,     at,         L, and([at=L]) ).
+causes_val( fry4,      at,         L, and([at=L]) ).
 % (^^^ SSAs of the complex action's effects on the world ^^^)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -155,6 +172,13 @@ constraints(cook,      [
                             [ fry,      starts,     cook ] ,
                             [ clean,    ends,       cook ]
                        ] ).  
+% Example 4 - Mehrfaches "Meets"
+constraints(cook4,     [ 
+                            [ beep,     meets,     cook4 ]
+                            ,[ fiep,     before,     cook4 ]
+                            ,[ chew,     before,     cook4 ]
+                            ,[ fry4,     meets,     cook4 ]
+                       ] ).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -194,3 +218,10 @@ proc(
     make_dinner,
     [ start_cook, stop_cook ]
 ).
+
+% vvv Example 4 vvv
+
+proc( 
+    meets,
+    [ start_cook4 ]
+    ).

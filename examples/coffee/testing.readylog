@@ -11,6 +11,8 @@ won :- icp( walk_around ), reset_assertions.
 
 mon :- icp( make_dinner ), reset_assertions.
 
+meets :- icp( meets ). %, reset_assertions.
+
 %ttc1 :- has_timed_constraint( start_beep ).
 %ttc2 :- has_timed_constraint( stop_beep ).
 %ttc3 :- has_timed_constraint( beep ).
@@ -18,6 +20,9 @@ mon :- icp( make_dinner ), reset_assertions.
 %ttc5 :- has_timed_constraint( start_go ).
 %ttc6 :- has_timed_constraint( stop_go ).
 %ttc7 :- has_timed_constraint( go ).
+
+surrender :- icp([surrender(a,meets,b,alpha,s),noop]).
+recover   :- icp(rc(a,meets,b,alpha)).
 
 % Interesting Queries
 q1 :- trans(stop_go(office),[start_go(office),s0],E,H), write_res(E,H).    
@@ -43,6 +48,14 @@ q8a :- trans(start_pickup(cup),[s0],E0,H0),
     printColor( black, "H3 = '%w'\n", [H3] ).
     
     
+tick0(N) :- tick( [stop_go(office404), start_go(office404), stop_pickup(cup), start_pickup(cup), stop_calibrate, start_calibrate, stop_go(kitchen), start_go(kitchen), s0], [start_calibrate, stop_go(kitchen), start_go(kitchen), s0], N ).
+tick1(N) :- tick( [a1,a2,a3], [b1,b2], N ).   
+tick2(L) :- tick( [a1,a2,b1,c1,c2], [b1,c1,c2], 2).
+tick3(L) :- tick( [a1,a2,b1,c1,c2], L, 2).
+    
+in_tick3_1 :- in_tick(d,[a,b,c,d,e]).
+in_tick3_2 :- in_tick(c,[a,b,c,d,e]).
+
 
 % procedure pickup cup
 proc( 
