@@ -2,8 +2,13 @@
 %                                DEBUG UTILITIES                               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+start :- spy dbgST, dbgFT, dbgRC, dbgWFE.
+
+reset :- reset_commitments.
+
 xTra( A, S ) :- starter( _A, A ), print_action( A, S ).
 xTra( A, S ) :- finisher( _A, A ), print_action( A, S ).
+
 print_action( A, S ) :-
     printColor( black, "\nPerforming '", [] ),
     printColor( green, "%w", [A] ),
@@ -19,6 +24,9 @@ printDebug( Color, Text, Variables ) :-
     printColor( Color, Text, Variables ).
     
 % Nur für spy
-dbgFinishTrans :- true.
-
+dbgST  :- true. % StartTrans
+dbgFT  :- true. % FinishTrans
+dbgRC  :- true. % Recover from commitments
+dbgWFE :- true. % WaitForExog
+dbgXX  :- true.
 

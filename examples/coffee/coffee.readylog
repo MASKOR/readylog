@@ -49,14 +49,11 @@
 %                           COFFEE DOMAIN PRIMITIVES                           %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-/* ---------------- invariants -------------------- */
 room(kitchen).
 room(office401).
 room(office402).
 room(office403).
 room(office404).
-
-/* ------------ primitive  actions --------------- */
 
 prim_action( noop ).
 poss( noop, true ).
@@ -71,74 +68,31 @@ causes_val( noop, at, at ).
 complex_action( beep        , start_beep     , stop_beep     , beeping ).
 complex_action( fiep        , start_fiep     , stop_fiep     , fieping ).
 complex_action( calibrate   , start_calibrate, stop_calibrate, calibrating ).
-complex_action( drop(X)     , start_drop(X)  , stop_drop(X)  , dropping ).
-complex_action( go(R)       , start_go(R)    , stop_go(R)    , going ).
+complex_action( goto(R)     , start_goto(R)  , stop_goto(R)  , going ).
 complex_action( pickup(X)   , start_pickup(X), stop_pickup(X), pickingup ).
-% vvv Example 2 vvv
-% Schedules OVERLAPS and CONTAINS
-complex_action( walk        , start_walk     , stop_walk     , walking ).
-complex_action( sing        , start_sing     , stop_sing     , singing ).
-complex_action( chew        , start_chew     , stop_chew     , chewing ).
-% vvv Example 3 vvv
-% Schedules STARRS and ENDS
-complex_action( cook        , start_cook     , stop_cook     , cooking ).
-complex_action( fry         , start_fry      , stop_fry      , frying ).
-complex_action( clean       , start_clean    , stop_clean    , cleaning ).
-
-% Example 4 - Several ocurrences of MEETS
-complex_action( cook4       , start_cook4    , stop_cook4    , cooking4 ).
-complex_action( beep4       , start_beep4    , stop_beep4    , beeping4 ).
-complex_action( fiep4       , start_fiep4    , stop_fiep4    , fieping4 ).
-complex_action( fry4        , start_fry4     , stop_fry4     , frying4 ).
 
 %
 % To keep the idea of complex actions as high level as possible, we
 % define both poss(.) and causes_val(.) for the complex_action itself
 % and default poss(starter) and causes_val(finisher) to these terms
 %
-poss( beep     , true ).
-poss( fiep     , true ).
-poss( calibrate, holding=false ).
-poss( drop(X),   neg(holding=false) ).
-poss( go(R),     room(R) ).
-poss( pickup(X), true ).
-% vvv Example 2 vvv
-poss( walk     , true ).
-poss( sing     , true ).
-poss( chew     , true ).
-% vvv Example 3 vvv
-poss( cook     , true ).
-poss( fry      , true ).
-poss( clean    , true ).
-% vvv Example 4 vvv
-poss( cook4    , true ).
-poss( fry4     , true ).
-poss( beep4    , true ).
-poss( fiep4    , true ).
+poss( beep     ,    true ).
+poss( fiep     ,    true ).
+poss( calibrate,    holding=false ).
+poss( goto(R),      room(R) ).
+poss( pickup(X),    true ).
 
 % (vvv SSAs of the complex action's effects on the world vvv)
 causes_val( beep,      at,         L, and([at=L]) ).
 causes_val( fiep,      at,         L, and([at=L]) ).
 causes_val( calibrate, calibrated, L, and([L=true]) ).
-causes_val( drop(X),   holding,    L, and([L=false]) ).
-causes_val( drop(X),   request,    L, and([L=false]) ).
-causes_val( go(R),     at,         L, and([L=R]) ).
+causes_val( goto(R),   at,         L, and([L=R]) ).
 causes_val( pickup(X), holding,    L, and([L=X]) ).
 causes_val( pickup(X), calibrated, L, and([L=false]) ).
-% vvv Example 2 actions vvv
-causes_val( walk,      at,         L, and([at=L]) ).
-causes_val( sing,      at,         L, and([at=L]) ).
-causes_val( chew,      at,         L, and([at=L]) ).
-% vvv Example 3 actions vvv
-causes_val( cook,      at,         L, and([at=L]) ).
-causes_val( fry,       at,         L, and([at=L]) ).
-causes_val( clean  ,   at,         L, and([at=L]) ).
-% Example 4
-causes_val( beep4,     at,         L, and([at=L]) ).
-causes_val( fiep4,     at,         L, and([at=L]) ).
-causes_val( cook4,     at,         L, and([at=L]) ).
-causes_val( fry4,      at,         L, and([at=L]) ).
 % (^^^ SSAs of the complex action's effects on the world ^^^)
+
+preemptive( beep ).
+preemptive( fiep ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                    FLUENTS                                   %
@@ -160,25 +114,16 @@ initial_val( calibrated , false ) .
 %                                 CONSTRAINTS                                  %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-constraints(noop,[]).
-% Example 1
-constraints(pickup(X), [ [ calibrate,   before,     pickup(X) ] ] ).
-constraints(drop(X),   [ [ beep,        meets,      drop(X) ] ] ).
-% Example 2
-constraints(walk,      [ [ sing,        overlaps,   walk ],       
-                         [ chew,        contains,   walk ] ] ).
-% Example 3
-constraints(cook,      [ 
-                            [ fry,      starts,     cook ] ,
-                            [ clean,    ends,       cook ]
-                       ] ).  
-% Example 4 - Mehrfaches "Meets"
-constraints(cook4,     [ 
-                            [ beep,     meets,     cook4 ]
-                            ,[ fiep,     before,     cook4 ]
-                            ,[ chew,     before,     cook4 ]
-                            ,[ fry4,     meets,     cook4 ]
-                       ] ).
+constraints(pickup(X), 
+    [ 
+        [ calibrate,    before,     pickup(X) ] 
+    ] ).
+
+constraints(goto(X), 
+    [ 
+        [ beep,         after,      goto(X) ] 
+    ] ).
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -190,38 +135,22 @@ proc(
     [start_go(R),stop_go(R),start_drop(cup),stop_drop(cup)]    
 ).
 
-proc(
-    fetch_cup,
-    [start_go(kitchen),stop_go(kitchen),start_pickup(cup),stop_pickup(cup)]
-).
+function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
 
 proc(
-    serve_request, 
-    while( and([request=R,neg(R=false)]),
-        if( holding=cup, 
-            drop_cup(R),
-            fetch_cup )
-    )
-).
-
-% vvv Example 2 vvv
-
-proc(
-    walk_around,
-    [ start_beep, start_walk, stop_beep, stop_walk ]
-).
-    
-    
-% vvv Example 3 vvv
-
-proc(
-    make_dinner,
-    [ start_cook, stop_cook ]
-).
-
-% vvv Example 4 vvv
-
-proc( 
-    meets,
-    [ start_cook4 ]
+    do_pickup,
+    [ start_pickup(cup), stop_pickup(cup) ]
     ).
+    
+before :- icp(do_pickup).
+    
+proc(
+    do_goto,
+    [ start_goto(kitchen), stop_goto(kitchen) ]
+    ).
+    
+after :- icp(do_goto).
+
+
+
+
