@@ -1,0 +1,40 @@
+EZX_ClearRectangle	drawx.c	/^void EZX_ClearRectangle(/
+EZX_ClearWindow	windowx.c	/^void EZX_ClearWindow(/
+EZX_CreateGC	windowx.c	/^EZX_CreateGC(/
+EZX_CreatePattern	grey.c	/^void EZX_CreatePattern(/
+EZX_DrawCircle	drawx.c	/^void EZX_DrawCircle(/
+EZX_DrawGrey	grey.c	/^void EZX_DrawGrey(/
+EZX_DrawLine	drawx.c	/^void EZX_DrawLine(/
+EZX_DrawPattern	grey.c	/^void EZX_DrawPattern(/
+EZX_DrawPoint	drawx.c	/^void EZX_DrawPoint(/
+EZX_DrawPoints	drawx.c	/^void EZX_DrawPoints(/
+EZX_DrawPolygon	drawx.c	/^void EZX_DrawPolygon(/
+EZX_DrawRectangle	drawx.c	/^void EZX_DrawRectangle(/
+EZX_DrawString	textx.c	/^void EZX_DrawString(/
+EZX_DrawStringAt	textx.c	/^void EZX_DrawStringAt(/
+EZX_DrawText	textx.c	/^void EZX_DrawText(/
+EZX_DrawTextAt	textx.c	/^void EZX_DrawTextAt(/
+EZX_EndWindow	windowx.c	/^void EZX_EndWindow(/
+EZX_EndX	initx.c	/^void EZX_EndX(/
+EZX_FillCircle	drawx.c	/^void EZX_FillCircle(/
+EZX_FillRectangle	drawx.c	/^void EZX_FillRectangle(/
+EZX_Flush	windowx.c	/^void EZX_Flush(/
+EZX_FormatAt	textx.c	/^void EZX_FormatAt(/
+EZX_FreeFont	textx.c	/^void EZX_FreeFont(/
+EZX_GetCursor	cursorx.c	/^int EZX_GetCursor(/
+EZX_GetCursors	cursorx.c	/^int EZX_GetCursors(/
+EZX_GetFontHeight	textx.c	/^int  EZX_GetFontHeight(/
+EZX_GetTextWidth	textx.c	/^int EZX_GetTextWidth(/
+EZX_InitDefaultColors	colorx.c	/^void EZX_InitDefaultColors(/
+EZX_InitPatterns	grey.c	/^void EZX_InitPatterns(/
+EZX_InitX	initx.c	/^void EZX_InitX(/
+EZX_MakeWindow	windowx.c	/^EZXW_p EZX_MakeWindow(/
+EZX_OpenWindow	windowx.c	/^static Window EZX_OpenWindow(/
+EZX_SetColor	colorx.c	/^void EZX_SetColor(/
+EZX_SetFillStyle	drawx.c	/^void EZX_SetFillStyle(/
+EZX_SetLineStyle	drawx.c	/^void EZX_SetLineStyle(/
+EZX_SetLineWidth	drawx.c	/^void EZX_SetLineWidth(/
+EZX_TestGetCursor	cursorx.c	/^int EZX_TestGetCursor(/
+EZX_UseFont	textx.c	/^void EZX_UseFont(/
+Mdemo	demo.c	/^main(/
+format_spec	textx.c	/^static void format_spec(/
