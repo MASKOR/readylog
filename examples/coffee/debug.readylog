@@ -29,4 +29,6 @@ dbgFT  :- true. % FinishTrans
 dbgRC  :- true. % Recover from commitments
 dbgWFE :- true. % WaitForExog
 dbgXX  :- true.
+dbgX1  :- true.
+dbgICPGO :- true.
 

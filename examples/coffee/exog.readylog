@@ -38,16 +38,11 @@ execute( Action, _Sense_val, S) :- !,
                xTra(Action, S) % we execute actions by passing them to xTra!
                  
             % <constraints>                
-                % If there are any constraints bound to Action, which require post
-                % execution satisfaction, then we check and try to resolve these.
                 , print_commitments
-                , dbgXX
-                , ( satisfy_constraints( Action, S, E1, S1, false ) ; true )
                 % If we were commited to perform Action, we fulfilled this 
                 % liability by now and have to release it from the commitments
                 % queue
                 , release( Action )
-                , dbgXX
                 % Furthermore, there may be commitments, which have to occur 
                 % after this instance of Action. These are now moved to the 
                 % normal commitments queue

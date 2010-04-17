@@ -63,36 +63,40 @@ causes_val( noop, at, at ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                               COMPLEX ACTIONS                                %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% vvv Example 1 vvv
-% The procedure serve_request contains MEETS and BEFORE constraints
-complex_action( beep        , start_beep     , stop_beep     , beeping ).
-complex_action( fiep        , start_fiep     , stop_fiep     , fieping ).
-complex_action( calibrate   , start_calibrate, stop_calibrate, calibrating ).
-complex_action( goto(R)     , start_goto(R)  , stop_goto(R)  , going ).
-complex_action( pickup(X)   , start_pickup(X), stop_pickup(X), pickingup ).
 
-%
-% To keep the idea of complex actions as high level as possible, we
-% define both poss(.) and causes_val(.) for the complex_action itself
-% and default poss(starter) and causes_val(finisher) to these terms
-%
-poss( beep     ,    true ).
-poss( fiep     ,    true ).
-poss( calibrate,    holding=false ).
-poss( goto(R),      room(R) ).
-poss( pickup(X),    true ).
 
-% (vvv SSAs of the complex action's effects on the world vvv)
-causes_val( beep,      at,         L, and([at=L]) ).
-causes_val( fiep,      at,         L, and([at=L]) ).
-causes_val( calibrate, calibrated, L, and([L=true]) ).
-causes_val( goto(R),   at,         L, and([L=R]) ).
-causes_val( pickup(X), holding,    L, and([L=X]) ).
-causes_val( pickup(X), calibrated, L, and([L=false]) ).
-% (^^^ SSAs of the complex action's effects on the world ^^^)
+complex_action( make_coffee   , start_make_coffee  , stop_make_coffee  , making_coffee ).
+complex_action( pickup(X)     , start_pickup(X)    , stop_pickup(X)    , picking_up(X) ).
+complex_action( goto(X)       , start_goto(X)      , stop_goto(X)      , going_to(X) ).
+complex_action( sm_clean      , start_sm_clean     , stop_sm_clean     , sm_cleaning ).
+complex_action( sm_calibrate  , start_sm_calibrate , stop_sm_calibrate , sm_calibrating ).
+complex_action( sm_beep       , start_sm_beep      , stop_sm_beep      , sm_beeping ).
+complex_action( sm_diagnose   , start_sm_diagnose  , stop_sm_diagnose  , sm_diagnosing ).
 
-preemptive( beep ).
-preemptive( fiep ).
+/**
+ * To keep the idea of complex actions as high level as possible, we define 
+ * both poss(.) and causes_val(.) for the complex_action itself and default 
+ * poss(starter) and causes_val(finisher) to these terms
+ */
+poss( make_coffee   , true ).
+poss( pickup(X)     , true ).
+poss( goto(R)       , room(R) ).
+poss( sm_clean      , true ).
+poss( sm_calibrate  , holding=false ).
+poss( sm_beep       , true ).
+poss( sm_diagnose   , true ).
+
+/**
+ * SSAs of the complex action's effects on the world
+ */
+causes_val( make_coffee  , at,         L, and([at=L]) ).
+causes_val( pickup(X)    , holding,    L, and([L=X]) ).
+causes_val( pickup(X)    , calibrated, L, and([L=false]) ).
+causes_val( goto(R)      , at,         L, and([L=R]) ).
+causes_val( sm_clean     , at,         L, and([at=L]) ).
+causes_val( sm_calibrate , calibrated, L, and([L=true]) ).
+causes_val( sm_beep      , at,         L, and([at=L]) ).
+causes_val( sm_diagnose  , at,         L, and([at=L]) ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                    FLUENTS                                   %
@@ -111,22 +115,6 @@ prim_fluent( calibrated ).
 initial_val( calibrated , false ) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                 CONSTRAINTS                                  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-constraints(pickup(X), 
-    [ 
-        [ calibrate,    before,     pickup(X) ] 
-    ] ).
-
-constraints(goto(X), 
-    [ 
-        [ beep,         after,      goto(X) ] 
-    ] ).
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                  PROCEDURES                                  %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -136,21 +124,6 @@ proc(
 ).
 
 function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
-
-proc(
-    do_pickup,
-    [ start_pickup(cup), stop_pickup(cup) ]
-    ).
-    
-before :- icp(do_pickup).
-    
-proc(
-    do_goto,
-    [ start_goto(kitchen), stop_goto(kitchen) ]
-    ).
-    
-after :- icp(do_goto).
-
 
 
 
