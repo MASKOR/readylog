@@ -11,7 +11,7 @@ won :- icp( walk_around ).
 
 mon :- icp( make_dinner ).
 
-meets :- icp( meets ). %.
+%meets :- icp( meets ). %.
 
 %ttc1 :- has_timed_constraint( start_beep ).
 %ttc2 :- has_timed_constraint( stop_beep ).
@@ -27,10 +27,10 @@ recover   :- icp(rc(a,meets,b,alpha)).
 % Interesting Queries
 q1 :- trans(stop_go(office),[start_go(office),s0],E,H), write_res(E,H).    
 q2 :- trans(stop_go(office),[s0],E,H), write_res(E,H). % no
-q3 :- trans(stop_go(office),[start_go(office),s0],E,H),holds(at=X,[s0]),holds(at=Y,H).
+q3 :- trans(stop_go(office),[start_go(office),s0],E,H),holds(at=X,[s0]),holds(at=Y,H), write(E), nl,write(X), nl, write(Y), nl.
 q4 :- trans(start_drop(cup),[s0],E,H), write_res(E,H).
-q5 :- trans(start_drop(cup),[stop_pickup(cup),start_pickup(cup),s0],E,H).
-q6 :- trans(stop_drop(cup),[start_drop(cup),stop_pickup(cup),start_pickup(cup),s0],E,H), holds(holding=X,H).
+q5 :- trans(start_drop(cup),[stop_pickup(cup),start_pickup(cup),s0],E,H), write(E), nl, write(H), nl.
+q6 :- trans(stop_drop(cup),[start_drop(cup),stop_pickup(cup),start_pickup(cup),s0],E,H), holds(holding=X,H), write(E), nl, write(X), nl.
 q7 :- ( starter(E,start_go(office)) ; finisher(E,start_go(office)) ), write(E).
 q8 :- trans(start_pickup(cup),[s0],E,H), write_res(E,H). 
 
@@ -46,15 +46,6 @@ q8a :- trans(start_pickup(cup),[s0],E0,H0),
     trans(E2,H2,E3,H3),
     printColor( black, "E3 = '%w'\n", [E3] ),
     printColor( black, "H3 = '%w'\n", [H3] ).
-    
-    
-tick0(N) :- tick( [stop_go(office404), start_go(office404), stop_pickup(cup), start_pickup(cup), stop_calibrate, start_calibrate, stop_go(kitchen), start_go(kitchen), s0], [start_calibrate, stop_go(kitchen), start_go(kitchen), s0], N ).
-tick1(N) :- tick( [a1,a2,a3], [b1,b2], N ).   
-tick2(L) :- tick( [a1,a2,b1,c1,c2], [b1,c1,c2], 2).
-tick3(L) :- tick( [a1,a2,b1,c1,c2], L, 2).
-    
-in_tick3_1 :- in_tick(d,[a,b,c,d,e]).
-in_tick3_2 :- in_tick(c,[a,b,c,d,e]).
 
 
 % procedure pickup cup
@@ -78,19 +69,14 @@ ht1f :- ( not holds( neg(constraint(calibrate, meets, pickup(cup), start_pickup(
 % Sollte ausgeben, dass die Constraint "calibrate meets pickup(cup)" bereits 
 % erfüllt ist und die constraint "stop_go(kitchen) meets pickup(cup)" noch zu
 % erfüllen wäre.
-tt1 :- todo( [[calibrate,meets,pickup(cup)],[go(kitchen),meets,pickup(cup)]], 
-             start_pickup(cup), 
-             [stop_calibrate, start_calibrate, s0],
-             Cond ),
-             write_eq( 'Cond', Cond ).
+%tt1 :- todo( [[calibrate,meets,pickup(cup)],[go(kitchen),meets,pickup(cup)]], 
+%             start_pickup(cup), 
+%             [stop_calibrate, start_calibrate, s0],
+%             Cond ),
+%             write_eq( 'Cond', Cond ).
     
 % Sollte ausgeben, dass bereits die Constraint "calibrate meets pickup(cup)" 
 % noch zu erfüllen ist
-tt2 :- todo( [[calibrate,meets,pickup(cup)],[go(kitchen),meets,pickup(cup)]], 
-             start_pickup(cup), 
-             [start_go(kitchen), stop_calibrate, start_calibrate, s0],
-             Cond ),
-             write_eq( 'Cond', Cond ).
              
              
 bparam(X) :- 

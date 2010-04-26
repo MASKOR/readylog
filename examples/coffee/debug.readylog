@@ -6,8 +6,9 @@ start :- spy dbgST, dbgFT, dbgRC, dbgWFE.
 
 reset :- reset_commitments.
 
-xTra( A, S ) :- starter( _A, A ), print_action( A, S ).
-xTra( A, S ) :- finisher( _A, A ), print_action( A, S ).
+xTra( A, S ) :- prim_action( A ), !, print_action( A, S ).
+xTra( A, S ) :- starter( _A, A ), !, print_action( A, S ).
+xTra( A, S ) :- finisher( _A, A ), !, print_action( A, S ).
 
 print_action( A, S ) :-
     printColor( black, "\nPerforming '", [] ),
@@ -16,7 +17,7 @@ print_action( A, S ) :-
     printColor( green, "%w", [S] ),
     printColor( black, "'\n\n", [] ).
     
-printConstraintList( Color, [] ).
+printConstraintList( _, [] ).
 printConstraintList( Color, [ H | T ] ) :- 
     H = [ A, Pi, B, _, C | _ ],
     printColor( Color, " - '%w %w %w' with condition:\n    '%w'\n", [ A, Pi, B, C ] ),
@@ -29,9 +30,9 @@ printConstraintList( Color, Header, List ) :-
     
 printTokens( [] ).
 printTokens( [ H | T ] ) :-  
-    H = [ A ],
+    H = A ,
     !, 
-    printColor( yellow, " (%w):\n", [ A ] ),
+    printColor( yellow, " (%w)\n", [ A ] ),
     printTokens( T ).    
 printTokens( [ H | T ] ) :-  
     H = [ A , B ],
@@ -41,7 +42,7 @@ printTokens( [ H | T ] ) :-
 printTokens( [ H | T ] ) :-
     H = [ A , B , C ],
     !, 
-    printColor( yellow, " (%w: %w -> %w):\n", [ A, B, C ] ),
+    printColor( yellow, " (%w: %w -> %w)\n", [ A, B, C ] ),
     printTokens( T ).    
 printTodo( List ) :- printColor( yellow, "Todo {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
 printMonitor( List ) :- printColor( yellow, "Monitor {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).

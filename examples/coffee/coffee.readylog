@@ -219,8 +219,8 @@ initial_val( calibrated , false ) .
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 proc(
-    drop_cup(R),
-    [start_go(R),stop_go(R),start_drop(cup),stop_drop(cup)]    
+    test_todo,
+    [ stop_t_01, stop_t_02, start_t_02, start_t_01 ]    
 ).
 
 function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
