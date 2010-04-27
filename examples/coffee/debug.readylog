@@ -26,27 +26,17 @@ printConstraintList( Color, [ H | T ] ) :-
 printConstraintList( Color, Header, List ) :- 
     printColor( Color, "%w\n", [ Header ] ),
     printConstraintList( Color, List ).
-    
-    
+       
 printTokens( [] ).
-printTokens( [ H | T ] ) :-  
-    H = A ,
-    !, 
-    printColor( yellow, " (%w)\n", [ A ] ),
-    printTokens( T ).    
-printTokens( [ H | T ] ) :-  
-    H = [ A , B ],
-    !, 
-    printColor( yellow, " (%w: %w)\n", [ A, B ] ),
-    printTokens( T ).
-printTokens( [ H | T ] ) :-
-    H = [ A , B , C ],
-    !, 
-    printColor( yellow, " (%w: %w -> %w)\n", [ A, B, C ] ),
-    printTokens( T ).    
+printTokens( [ sometime( A ) | T ] ) :-   !, printColor( yellow, " Sometime '%w'\n", [ A ] ), printTokens( T ).    
+printTokens( [ after( A, B ) | T ] ) :-   !, printColor( yellow, " '%w' After '%w'\n", [ A, B ] ), printTokens( T ).
+printTokens( [ within( A, N ) | T ] ) :-  !, printColor( yellow, " '%w' within '%w'\n", [ A, N ] ), printTokens( T ).
+printTokens( [ then( A, B, N ) | T ] ) :- !, printColor( yellow, " '%w' after '%w' within '%w' \n", [ A, B, N ] ), printTokens( T ).   
+printTokens( [ until( B, P ) | T ] ) :-  !, printColor( yellow, " '%w' until '%w'\n", [ P, B ] ), printTokens( T ).
+printTokens( [ between( A, B, P ) | T ] ) :- !, printColor( yellow, " '%w' between '%w' and '%w' \n", [ A, B, P ] ), printTokens( T ).   
+printTokens( [ H | T ] ) :- !, printColor( yellow, " (%w)\n", [ H ] ), printTokens( T ).
 printTodo( List ) :- printColor( yellow, "Todo {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
 printMonitor( List ) :- printColor( yellow, "Monitor {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
-    
     
 write_eq(N,V) :- write(N), write(' = '), write(V), nl.
 write_res(E,H) :- write_eq('E',E), write_eq('H', H).
