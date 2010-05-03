@@ -26,6 +26,7 @@ CONFIGFILE   = $(BASEDIR)/cfg/config.xml
 ### #######################
 PARAMFILE    = $(BASEDIR)/utils/config.pl
 PREPROCESSOR = $(BASEDIR)/interpreter/steadylog/preprocessor.pl
+CONPROCESSOR = $(BASEDIR)/interpreter/steadylog/conprocessor.pl
 XMLTOPROLOG  = $(BASEDIR)/utils/xml2prolog.pl
 DOXYGENERATE = $(BASEDIR)/utils/doc.pl
 
@@ -50,6 +51,9 @@ test: clean run
 
 preprocess:
 	$(SILENT) $(ECLIPSE) -b $(PREPROCESSOR) $(PWD)/$(FILENAME)
+	
+conprocess:
+	$(SILENT) $(ECLIPSE) -b $(CONPROCESSOR) $(PWD)/constraints.readylog
 
 xml2prolog:
 	$(SILENT) $(ECHO) " -- Parsing " $(CONFIGFILE) " to " $(PARAMFILE)

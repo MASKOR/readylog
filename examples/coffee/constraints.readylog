@@ -1,0 +1,31 @@
+/* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
+ *
+ *           $Id: constraints.readylog 68 2007-12-06 18:30:15Z aw $
+ *        author: Andreas Wortmann <andreas.wortmann@rwth-aachen.de>
+ *   description: Provides unprocessed constraints
+ *
+ * ************************************************************************ */
+
+:- write(" --> loading constraints.readylog ...\n").
+
+constraint( t_01, before, sm_01 ).
+constraint( t_02, after,  sm_02 ).
+constraint( t_03, meets,  sm_03 ).
+constraint( t_04, metby,  sm_04 ).
+constraint( t_05, starts, sm_05 ).
+constraint( t_06, startedby, sm_06 ).
+constraint( t_07, finishes, sm_07 ).
+constraint( t_08, finishedby, sm_08 ).
+constraint( t_09, overlaps, sm_09 ).
+constraint( t_10, overlappedby, sm_10 ).
+constraint( t_11, during, sm_11 ).
+constraint( t_12, contains, sm_12 ).
+constraint( t_13, equals, sm_13 ).
