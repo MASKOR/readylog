@@ -29,3 +29,7 @@ constraint( t_10, overlappedby, sm_10 ).
 constraint( t_11, during, sm_11 ).
 constraint( t_12, contains, sm_12 ).
 constraint( t_13, equals, sm_13 ).
+constraint( t_14, metby, sm_01 ).
+constraint( t_14, metby, sm_02 ).
+constraint( t_14, metby, sm_03 ).
+constraint( t_14, metby, sm_04 ).

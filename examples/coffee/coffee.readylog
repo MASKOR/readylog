@@ -35,7 +35,9 @@
 
 %% Complex Actions
 :- ensure_loaded("complex_actions.readylog").
-:- ensure_loaded("processed_constraints.pl").
+%:- ensure_loaded("processed_constraints.pl"). 
+% Currently not needed, as constraint satisfaction requirements are derived
+% directly from the constraints itself.
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  LIBRARIES                           %%
@@ -62,6 +64,23 @@ room(office404).
 prim_action( noop ).
 poss( noop, true ).
 causes_val( noop, at, at ).
+
+prim_action( p ).
+poss( p, true ).
+causes_val( p, at, at ).
+
+prim_action( q ).
+poss( q, true ).
+causes_val( q, at, at ).
+
+prim_action( r ).
+poss( r, true ).
+causes_val( r, at, at ).
+
+prim_action( end( _, _ ) ).
+poss( end( _, _ ), true ).
+causes_val( end( _, _ ), at, at ).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                    FLUENTS                                   %

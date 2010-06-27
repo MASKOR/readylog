@@ -32,27 +32,15 @@ execute( Action, _Sense_val, S) :- !,
       (
          holds(online=true, S) ->
             (
-               %printColor( red, " ==> executing: %w (ONLINE)! <== \n", [Action]),
+               printColor( red, " ==> executing: %w (ONLINE)! <== \n", [Action]),
                flush(output),
                dbgXX, 
                xTra(Action, S) % we execute actions by passing them to xTra!
-                 
-            % <constraints>                
-                %, print_commitments
-                % If we were commited to perform Action, we fulfilled this 
-                % liability by now and have to release it from the commitments
-                % queue
-                % , release( Action )
-                % Furthermore, there may be commitments, which have to occur 
-                % after this instance of Action. These are now moved to the 
-                % normal commitments queue
-                %, update_commitments( Action )
-            % </constraints>
-            
+                             
                % sleep(0.2),
                % exoEnQueue(reply(action,nil)).
             ;
-               %printColor( red, " ==> executing: %w (OFFLINE)! <== \n", [Action]),
+               printColor( red, " ==> executing: %w (OFFLINE)! <== \n", [Action]),
                flush(output),
                true
             ),

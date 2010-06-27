@@ -41,6 +41,14 @@ printMonitor( List ) :- printColor( yellow, "Monitor {\n", [] ), printTokens( Li
 write_eq(N,V) :- write(N), write(' = '), write(V), nl.
 write_res(E,H) :- write_eq('E',E), write_eq('H', H).
 
+printChronicle( C ) :-
+	C = chronicle( Hc, Tc, Mc ),
+	printColor( yellow, "History {\n %w\n}\n", [ Hc ] ),
+	printTodo( Tc ),
+	printMonitor( Mc ).
+	
+printEq( Name, Value ) :- printColor( blue, "%w = '%w'\n", [ Name, Value ] ).
+
 printDebug( Color, Text, Variables ) :-
     printColor( Color, Text, Variables ).
     

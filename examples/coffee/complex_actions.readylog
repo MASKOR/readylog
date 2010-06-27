@@ -49,6 +49,7 @@ complex_action( t_10 , start_t_10 , stop_t_10 , t_10).
 complex_action( t_11 , start_t_11 , stop_t_11 , t_11).
 complex_action( t_12 , start_t_12 , stop_t_12 , t_12).
 complex_action( t_13 , start_t_13 , stop_t_13 , t_13).
+complex_action( t_14 , start_t_14 , stop_t_14 , t_14).
 complex_action( sm_01 , start_sm_01 , stop_sm_01 , sm_01).
 complex_action( sm_02 , start_sm_02 , stop_sm_02 , sm_02).
 complex_action( sm_03 , start_sm_03 , stop_sm_03 , sm_03).
@@ -63,13 +64,16 @@ complex_action( sm_11 , start_sm_11 , stop_sm_11 , sm_11).
 complex_action( sm_12 , start_sm_12 , stop_sm_12 , sm_12).
 complex_action( sm_13 , start_sm_13 , stop_sm_13 , sm_13).
 
+complex_action( a , as , af , afl ).
+complex_action( b , bs , bf , bfl ).
+
 /**
  * To keep the idea of complex actions as high level as possible, we define 
  * both poss(.) and causes_val(.) for the complex_action itself and default 
  * poss(starter) and causes_val(finisher) to these terms
  */
 poss( make_coffee   , true ).
-poss( pickup(X)     , true ).
+poss( pickup(_)     , true ).
 poss( goto(R)       , room(R) ).
 poss( sm_clean      , true ).
 poss( sm_calibrate  , holding=false ).
@@ -95,6 +99,7 @@ poss( t_10 , true ).
 poss( t_11 , true ).
 poss( t_12 , true ).
 poss( t_13 , true ).
+poss( t_14 , true ).
 poss( sm_01 , true ).
 poss( sm_02 , true ).
 poss( sm_03 , true ).
@@ -108,13 +113,17 @@ poss( sm_10 , true ).
 poss( sm_11 , true ).
 poss( sm_12 , true ).
 poss( sm_13 , true ).
+poss( sm_14 , true ).
+
+poss( a , true ).
+poss( b , true ).
 
 /**
  * SSAs of the complex action's effects on the world
  */
 causes_val( make_coffee  , at,         L, and([at=L]) ).
 causes_val( pickup(X)    , holding,    L, and([L=X]) ).
-causes_val( pickup(X)    , calibrated, L, and([L=false]) ).
+causes_val( pickup(_)    , calibrated, L, and([L=false]) ).
 causes_val( goto(R)      , at,         L, and([L=R]) ).
 causes_val( sm_clean     , at,         L, and([at=L]) ).
 causes_val( sm_calibrate , calibrated, L, and([L=true]) ).
@@ -140,6 +149,7 @@ causes_val( t_10 , at,         L, and([at=L]) ).
 causes_val( t_11 , at,         L, and([at=L]) ).
 causes_val( t_12 , at,         L, and([at=L]) ).
 causes_val( t_13 , at,         L, and([at=L]) ).
+causes_val( t_14 , at,         L, and([at=L]) ).
 causes_val( sm_01 , at,         L, and([at=L]) ).
 causes_val( sm_02 , at,         L, and([at=L]) ).
 causes_val( sm_03 , at,         L, and([at=L]) ).
@@ -153,3 +163,6 @@ causes_val( sm_10 , at,         L, and([at=L]) ).
 causes_val( sm_11 , at,         L, and([at=L]) ).
 causes_val( sm_12 , at,         L, and([at=L]) ).
 causes_val( sm_13 , at,         L, and([at=L]) ).
+
+causes_val( a, at, L, and([at=L]) ).
+causes_val( b, at, L, and([at=L]) ).
