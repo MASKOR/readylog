@@ -34,7 +34,6 @@ execute( Action, _Sense_val, S) :- !,
             (
                printColor( red, " ==> executing: %w (ONLINE)! <== \n", [Action]),
                flush(output),
-               dbgXX, 
                xTra(Action, S) % we execute actions by passing them to xTra!
                              
                % sleep(0.2),

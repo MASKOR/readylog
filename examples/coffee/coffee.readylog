@@ -109,5 +109,54 @@ proc(
 
 function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                  COMPONENTS                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+manage( Comp, Q0, Q1, Prog ) :- edge( Comp, Q0, [ Prog ], Q1 ).
+manage( Comp, Q0, Q1, Prog ) :- edge( Comp, Q0, Actions, Qi ), 
+member( A, Actions ), not member( A, Prog ), Prog = [ A | Pr ], manage( Comp, Qi, Q1, Pr ).
+
+component( colli, colli_state, off ).
+edge( colli, off, [ start_colli ], idle ).
+edge( colli, idle, [ stop_colli ], off ).
+edge( colli, idle, [ start_scan ], scanning ).
+edge( colli, scanning, [ stop_scan ], idle ).
+edge( colli, scanning, [ stop_colli ], off ).
+
+/*prim_fluent( F ) :- component( _Comp, F, _q0 ).*/
+/*init_val( C, Q0 ) :- component( C, _F, Q0 ).*/
+
+/*prim_action( A ) :- edge( _Comp, _Q, Actions, _Q1 ), member( A, Actions ).*/
+/*poss( A, S ) :- edge( Comp, Q, Actions, _Q1 ), member( A, Actions ), */
+/*	holds( state( Comp, Q ), S ).*/
+/*causes_val( A, colli_state, Q1 ) :- edge( _Q, Actions, Q1 ), member( A, Actions ).*/
+
+/*poss( A, S ) :- edge( Comp, V0, Actions, _V1 ), member( A, Actions ), */
+/*	state( Comp, V0, S ).*/
+
+/*causes_val( A, colli_state, V1, */
+/*	and( [ edge( colli, V0, Actions, V1 ) ,*/
+/*	       member( A, Actions ) ] ) ) .*/
+/*	*/
+/*state( Comp, State, do( A, S ) ) :- state( Comp, State, S ).*/
+/*state( Comp, State, do( A, S ) ) :- edge( Comp, V0, Actions, State ), */
+/*	member( A, Actions ), state( Comp, V0, S ).*/
+
+/*manage( Comp, S, _Start, Goal, [] ) :- state( Comp, Goal, S ).*/
+/*manage( Comp, S, Start, Goal, A  ) :- state( Comp, Start, S ), edge( Comp, Start, Actions, Goal ), member( A, Actions ).*/
+/*manage( Comp, S, Start, Goal, Prog ) :- find( Comp, S, Start, Goal, [], Prog ).*/
+
+/*find( _, _, X, X, _, [] ).*/
+/*find( Comp, S, X, Y, P, P1 ) :- */
+/*	edge( Comp, X, A, Y ), */
+/*	member( Action, A ), */
+/*	poss( Action, S ), */
+/*	P1 = [ Action | P ]. */
+/*find( Comp, S, X, Y, P, P1 ) :- */
+/*	edge( Comp, X, A, Z ), */
+/*	member( Action, A ), */
+/*	poss( Action, S ), */
+/*	Pi = [ Action | P ], */
+/*	find( Comp, S, Z, Y, Pi, P1 ).*/

@@ -4,23 +4,23 @@
 
 :- pragma(nodebug).
 rules( [
-%%% a overlappedby b %%%
-production_rule( a, overlappedby, b, as,
-	bfl,
-	[],
-	[after(as, bf)],
-	[]
-),
-production_rule( a, overlappedby, b, as,
+%%% a during b %%%
+production_rule( a, during, b, as,
 	not bfl,
 	[[bs, as, [bs<as]]],
-	[after(as, bf)],
-	[between(bs, as, bfl)]
-),
-production_rule( a, overlappedby, b, af,
-	bfl,
-	[[bf, af, [bf<af]]],
 	[],
+	[between(bs, af, bfl)]
+),
+production_rule( a, during, b, as,
+	bfl,
+	[],
+	[],
+	[between(as, af, bfl)]
+),
+production_rule( a, during, b, af,
+	bfl,
+	[],
+	[after(af, bf)],
 	[]
 ),
 %%% t_01 before sm_01 %%%
