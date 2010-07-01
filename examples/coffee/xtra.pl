@@ -59,7 +59,7 @@ exec_ask4outcome :- true.
 /** our main update method.
  */
 update :- 
-	%printf(" --- start UPDATE ...\n", []), 
+	printf(" --- start UPDATE ...\n", []), 
 	%refresh_window,
 	(
 	    getkey( Key ) ->
@@ -74,8 +74,9 @@ update :-
 	     true
 	),
 	vis_update,
-	true.
-	%printf(" --- UPDATE ... done.\n", []).
+	true
+	, printf(" --- UPDATE ... done.\n", [])
+	.
 
 vis_update :-
 	redraw, 
@@ -141,141 +142,25 @@ xTra(exogf_Update, _H) :- !,
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %% deterministic execution
 
-xTra(go_right,H) :- 
-	printColor( pink, " xTra: EXEC 'go_right'", []), 
-	getval( real_agent_pos, [X,Y] ),
-	printf(" at %w,%w ", [X,Y]), 
-	has_val( pos, V, H ), 
-	printf(" epf at %w \n", [V]), 
-        execdelay,
-	Xn is X+1,
-	setval( real_agent_pos, [Xn,Y] ),
-	process_xtra_events,
-	( getval(real_carry_item,true) -> setval( real_item_pos, [Xn,Y] ); true ),
-	draw_action("R", X, Y).
+%xTra(go_right,H) :- 
+%	printColor( pink, " xTra: EXEC 'go_right'", []), 
+%	getval( real_agent_pos, [X,Y] ),
+%	printf(" at %w,%w ", [X,Y]), 
+%	has_val( pos, V, H ), 
+%	printf(" epf at %w \n", [V]), 
+%        execdelay,
+%	Xn is X+1,
+%	setval( real_agent_pos, [Xn,Y] ),
+%	process_xtra_events,
+%	( getval(real_carry_item,true) -> setval( real_item_pos, [Xn,Y] ); true ),
+%	draw_action("R", X, Y).
 
-%% %%%%%%%%%%%%%%%%%%%%% %%
-%% stochastic execution
+% nonpreemptive actions
+%	
+xTra( end( A ), _S ) :- prim_action( A ), npr( A ), !, 
+	printColor( pink, " xTra: exog action '%w' finished", [ A ] ).
+	
 
-xTra(go_right_st,H) :- 
-	printf(" xTra: EXEC 'go_right_st'", []), 
-	has_val( pos, V, H ), 
-	V = [X,Y], 
-	printf(" at %w \n", [V]), 
-	( exec_ask4outcome ->
-	    printf("\n xTra: Choose outcome:\n  (1) right\n  (2) noop\n", []), flush(output),
-	    getkey_blocking(Key), Outcome is Key - 48,
-	    printf(" xTra: Chosen outcome: %w\n", [Outcome]), flush(output),!,
-            (
-              (
-                Outcome = 1 -> X1 is X + 1, 
-		setval(real_agent_pos, [X1,Y]),
-		printf("Going right\n", []),
-		draw_action("R", X, Y),
-		realSleep(2)
-              )
-            ;
-              (
-                Outcome = 2 -> setval(real_agent_pos, [X,Y]),
-                printf("Not going anywhere\n", [])
-              )
-	    )
-	;
-          execdelay,
-	  Xn is X+1,
-	  setval( real_agent_pos, [Xn,Y] ),
-	  draw_action("R", X, Y)
-      ).
-
-xTra(go_left_st,H)  :- 
-	printf(" xTra: EXEC 'go_left_st'", []), 
-	has_val( pos, V, H ), 
-	V = [X,Y], 
-	printf(" at %w \n", [V]), 
-	( exec_ask4outcome ->
-	    printf("\n xTra: Choose outcome:\n  (1) left\n  (2) noop\n", []), flush(output),
-	    getkey_blocking(Key), Outcome is Key - 48,
-	    printf(" xTra: Chosen outcome: %w\n", [Outcome]), flush(output),!,
-            (
-              (
-                Outcome = 1 -> X1 is X - 1, 
-                               setval(real_agent_pos, [X1,Y]),
-                               printf("Going left\n", []),
-                               draw_action("L", X, Y),
-                               realSleep(2)
-              )
-            ;
-              (
-                Outcome = 2 -> setval(real_agent_pos, [X,Y]),
-                               printf("Not going anywhere\n", [])
-              )
-            )
-        ;
-            execdelay,
-	    Xn is X-1,
-	    setval( real_agent_pos, [Xn,Y] ),
-	    draw_action("L", X, Y)
-	).
-
-xTra(go_up_st,H)    :- 
-	printf(" xTra: EXEC 'go_up_st'", []), 
-	has_val( pos, V, H ), 
-	V = [X,Y], 
-	printf(" at %w \n", [V]), 
-	( exec_ask4outcome ->
-	    printf("\n xTra: Choose outcome:\n  (1) up\n  (2) noop\n", []), flush(output),
-	    getkey_blocking(Key), Outcome is Key - 48,
-	    printf(" xTra: Chosen outcome: %w\n", [Outcome]), flush(output),!,
-            (
-              (
-                Outcome = 1 -> Y1 is Y + 1, 
-                               setval(real_agent_pos, [X,Y1]),
-                               printf("Going up\n", []),
-                               draw_action("U", X, Y),
-                               realSleep(2)
-              )
-            ;
-              (
-                Outcome = 2 -> setval(real_agent_pos, [X,Y]),
-                               printf("Not going anywhere\n", [])
-              )
-            )
-        ;
-	    execdelay,
-	    Yn is Y+1,
-	    setval( real_agent_pos, [X,Yn] ),
-	    draw_action("U", X, Y)
-	).
-
-xTra(go_down_st,H)  :- 
-	printf(" xTra: EXEC 'go_down_st'", []), 
-	has_val( pos, V, H ), 
-	V = [X,Y], 
-	printf(" at %w \n", [V]), 
-	( exec_ask4outcome ->
-	    printf("\n xTra: Choose outcome:\n  (1) down\n  (2) noop\n", []), flush(output),
-	    getkey_blocking(Key), Outcome is Key - 48,
-	    printf(" xTra: Chosen outcome: %w\n", [Outcome]), flush(output),!,
-            (
-              (
-                Outcome = 1 -> Y1 is Y - 1, 
-                               setval(real_agent_pos, [X,Y1]),
-                               printf("Going down\n", []),
-                               draw_action("D", X, Y),
-                               realSleep(2)
-              )
-            ;
-              (
-                Outcome = 2 -> setval(real_agent_pos, [X,Y]),
-                               printf("Not going anywhere\n", [])
-              )
-	    )
-        ;
-            execdelay,
-	    Yn is Y-1,
-	    setval( real_agent_pos, [X,Yn] ),
-	    draw_action("D", X, Y)
-        ).
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -296,8 +181,10 @@ xTra(cout(Color,F,V),_H) :- !,
 %% ABSORBER ENTRY %%%%%%%%%%%%%%%%%%%%% %%
 %% used to catch all the stuff
 %% that doesn't have an own handle
-xTra(Action,Situation) :-
-	printColor( red, " xTra: DON'T KNOW HOW TO HANDLE '%w' IN SIT: '%w'\n", [Action,Situation]).
+%xTra(A,S) :-
+%	printColor( red, " xTra: DON'T KNOW HOW TO HANDLE '%w' IN SIT: '%w'\n", [A,S]).
+xTra(A,_S) :-
+	printColor( red, " xTra: DON'T KNOW HOW TO HANDLE '%w'\n", [A]).
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%

@@ -35,17 +35,19 @@ execute( Action, _Sense_val, S) :- !,
                printColor( red, " ==> executing: %w (ONLINE)! <== \n", [Action]),
                flush(output),
                xTra(Action, S) % we execute actions by passing them to xTra!
+%               printColor( red, " ==> done executing: %w (ONLINE)! <== \n", [Action])
                              
                % sleep(0.2),
                % exoEnQueue(reply(action,nil)).
             ;
                printColor( red, " ==> executing: %w (OFFLINE)! <== \n", [Action]),
                flush(output),
+%               printColor( red, " ==> done executing: %w (OFFLINE)! <== \n", [Action]),
                true
             ),
-            %printColor( green, " <== DONE executing %w \n", [Action]),
+%            printColor( green, " <== DONE executing %w \n", [Action]),
             true
-      ).	
+      ).
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -59,9 +61,9 @@ execute( Action, _Sense_val, S) :- !,
  * by checking if we can dequeue it from the exoQueue.
  */
 exog_occurs(Action,S) :- 
-      %printColor( cyan, " *** testing whether exog occured \n", []),
+      printColor( cyan, " *** testing whether exog occured \n", []),
       holds(online=true, S),
-      %printColor( cyan, " *** exog_occurs: we're online \n", []),
+      printColor( cyan, " *** exog_occurs: we're online \n", []),
       exoDeQueue(Action),
       printColor( cyan, " *** exog_occurs(%w,%w) \n", [Action,S]).
 
@@ -98,7 +100,7 @@ wait_for_exog_occurs( _Act, _H) :-
 wait_for_exog_occurs :- true, !.
 
 exogenous_update :- !,
-      %printColor( cyan, " *** exogenous_update ... \n",[]),
+      printColor( cyan, " *** exogenous_update ... \n",[]),
       % call (worldmodel) update (defined in xTra)
       update, 
 %      !, 

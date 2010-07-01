@@ -6,16 +6,16 @@ start :- spy dbgST, dbgFT, dbgRC, dbgWFE.
 
 reset :- reset_commitments.
 
-xTra( A, S ) :- prim_action( A ), !, print_action( A, S ).
-xTra( A, S ) :- starter( _A, A ), !, print_action( A, S ).
-xTra( A, S ) :- finisher( _A, A ), !, print_action( A, S ).
+%xTra( A, S ) :- prim_action( A ), !, print_action( A, S ).
+%xTra( A, S ) :- starter( _A, A ), !, print_action( A, S ).
+%xTra( A, S ) :- finisher( _A, A ), !, print_action( A, S ).
 
-print_action( A, S ) :-
-    printColor( black, "\nPerforming '", [] ),
-    printColor( green, "%w", [A] ),
-    printColor( black, "' in sit '", [] ), 
-    printColor( green, "%w", [S] ),
-    printColor( black, "'\n\n", [] ).
+%print_action( A, S ) :-
+%    printColor( black, "\nPerforming '", [] ),
+%    printColor( green, "%w", [A] ),
+%    printColor( black, "' in sit '", [] ), 
+%    printColor( green, "%w", [S] ),
+%    printColor( black, "'\n\n", [] ).
     
 printConstraintList( _, [] ).
 printConstraintList( Color, [ H | T ] ) :- 
@@ -37,15 +37,25 @@ printTokens( [ between( A, B, P ) | T ] ) :- !, printColor( yellow, " '%w' betwe
 printTokens( [ H | T ] ) :- !, printColor( yellow, " (%w)\n", [ H ] ), printTokens( T ).
 printTodo( List ) :- printColor( yellow, "Todo {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
 printMonitor( List ) :- printColor( yellow, "Monitor {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
+printHistory( List ) :- printColor( yellow, "History {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
     
 write_eq(N,V) :- write(N), write(' = '), write(V), nl.
 write_res(E,H) :- write_eq('E',E), write_eq('H', H).
 
+printLine( Color ) :-
+	printColor( Color, "********************************************************************************\n", [] ).
+	
+printHalfLine( Color ) :-
+	printColor( Color,"****************************************\n", [] ).
+
 printChronicle( C ) :-
-	C = chronicle( Hc, Tc, Mc ),
-	printColor( yellow, "History {\n %w\n}\n", [ Hc ] ),
-	printTodo( Tc ),
-	printMonitor( Mc ).
+	printHalfLine( yellow ),
+	printColor( yellow, "* Chronicle\n", [] ),
+	printHalfLine( yellow ),
+	C = chronicle( Hc, Oc, Pc ),
+	printHistory( Hc ),
+	printTodo( Oc ),
+	printMonitor( Pc ).
 	
 printEq( Name, Value ) :- printColor( blue, "%w = '%w'\n", [ Name, Value ] ).
 

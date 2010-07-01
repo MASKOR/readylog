@@ -33,11 +33,6 @@
 %% Testing stuff
 :- ensure_loaded("testing.readylog").
 
-%% Complex Actions
-:- ensure_loaded("complex_actions.readylog").
-%:- ensure_loaded("processed_constraints.pl"). 
-% Currently not needed, as constraint satisfaction requirements are derived
-% directly from the constraints itself.
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  LIBRARIES                           %%
@@ -55,60 +50,375 @@
 %                           COFFEE DOMAIN PRIMITIVES                           %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-room(kitchen).
-room(office401).
-room(office402).
-room(office403).
-room(office404).
+/**
+ * Constraints
+ */
+ 
+% constraint( a, before, b ).
+% constraint( a, after, b ).
+% constraint( a, meets, b ).
+% constraint( a, metby, b ).
+% constraint( a, starts, b ).
+% constraint( a, finishes, b ).
+% constraint( a, overlaps, b ).
+% constraint( a, overlappedby, b ).
+% constraint( a, during, b ).
+% constraint( a, contains, b ).
+constraint( a, equals, b ).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                    ACTIONS                                   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% ACTION DOMAINS
+
+maintenance_action( beep ).
+
+%% PRIMITIVE ACTIONS
 
 prim_action( noop ).
 poss( noop, true ).
 causes_val( noop, at, at ).
 
-prim_action( p ).
-poss( p, true ).
-causes_val( p, at, at ).
+prim_action( beep ).
+poss( beep, true ).
+causes_val( beep, at, at ).
 
-prim_action( q ).
-poss( q, true ).
-causes_val( q, at, at ).
+prim_action( finish( _ ) ).
+poss( wait( _ ), true ).
+causes_val( wait( _ ), at, at ).
 
-prim_action( r ).
-poss( r, true ).
-causes_val( r, at, at ).
+%% EXOGENOUS PRIMITIVE ACTIONS 
 
-prim_action( end( _, _ ) ).
+exog_action( end( _, _ ) ).
 poss( end( _, _ ), true ).
 causes_val( end( _, _ ), at, at ).
 
+prim_action( set_request( _V ) ).
+poss( set_request( _V ), true ).
+causes_val( set_request( V ), request, L, and( [L=V] ) ).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                    FLUENTS                                   %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% the initial state
-prim_fluent( at ).
-initial_val( at, kitchen ).
+prim_action( set_task( _V ) ).
+poss( set_task( _V ), true ).
+causes_val( set_task( V ), task, L, and( [L=V] ) ).
 
-prim_fluent( request ).
-initial_val( request, office404 ).
+prim_action( set_holding( _V ) ).
+poss( set_holding( _V ), true ).
+causes_val( set_holding( V ), holding, L, and( [L=V] ) ).
 
-prim_fluent( holding ).
-initial_val( holding , false ) .
+prim_action( prepare_coffee ).
+poss( prepare_coffee, true).
+causes_val( prepare_coffee, coffee_prepared, L, and([ L=true ] ) ).
 
-prim_fluent( calibrated ).
-initial_val( calibrated , false ) .
+
+%% prim_actions for debug output.
+
+prim_action( cout( _Text ) ).
+poss( cout( _Text ), true ).
+
+prim_action( cout( _Text, _Params ) ).
+poss( cout( _Text, _Params ), true ).
+
+prim_action( cout( _Color, _Text, _Params ) ).
+poss( cout( _Color, _Text, _Params ), true ).
+
+
+%% NONPREEMPTIVE ACTIONS
+ 
+nonpreemptive( b ). 
+
+%% COMPLEX ACTIONS
+
+complex_action( goto(R), start_goto(R), stop_goto(R), going_to(R) ).
+complex_action( take_order(P), start_take_order(P), stop_take_order(P), taking_order).
+complex_action( place_order, start_place_order, stop_place_order, placing_order).
+complex_action( pickup(X), start_pickup(X), stop_pickup(X), picking_up ).
+complex_action( locate(P,R), start_locate(P,R), stop_locate(P,R), locating ).
+complex_action( drop(X,R), start_drop(X,R), stop_drop(X,R), dropping ).
+complex_action( move_arm, start_move_arm, stop_move_arm, moving_arm ).
+complex_action( interact, start_interact, stop_interact, interacting ).
+% lazy man's test actions
+complex_action( a, as, af, afl ).
+complex_action( b, bs, bf, bfl ).
+
+poss( goto(R) , 
+	  and([ room(R),
+	  		not(at=R)
+	  	  ])
+	).
+poss( take_order(P), 
+	  and([ request=R, 
+	        at=R,
+	        in(R,P),
+	        located=P
+	      ])
+	).
+poss( place_order, 
+	  and([ not(task=nil), 
+	        at=kitchen,
+	        located=chef
+	      ])
+	).
+poss( pickup(_X), and( [ holding=nil ] ) ).
+poss( locate(P,R), 
+      and([ at=R,
+      		in(R,P),
+      		person(P)
+          ]) 
+	).
+poss( drop(X,R), 
+	  and([ holding=X,
+	  		at=R
+	   	  ]) 
+	).
+poss( move_arm, true ).
+poss( interact, true ).
+% lazy man's test actions
+poss( a, true ).
+poss( b, true ).
+
+causes_val( goto(R), at, L, and([L=R]) ).
+causes_val( goto(_), located, L, and([L=nil]) ).
+causes_val( take_order(_), task, L, and([ request=L ]) ).
+causes_val( take_order(_), request, L, and([ L=nil ]) ).
+causes_val( place_order, at, at ).
+causes_val( pickup(X), holding, L, and([ L=X ]) ).
+causes_val( pickup(X), coffee_prepared, L, and([ X=coffee, L=false ]) ).
+causes_val( locate(P,_), located, L, and([ L=P ]) ).
+causes_val( drop(_X,_R), holding, L, and([ L=nil ]) ).
+causes_val( drop(X,R), task, L, and([ task=R, X=coffee, L=nil ]) ).
+causes_val( move_arm, calibrated, L, and([ L=false ]) ).
+causes_val( interact, at, at ).
+% lazy man's test actions
+causes_val( a, at, at ).
+causes_val( b, at, at ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                  PROCEDURES                                  %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-proc(
-    test_todo,
-    [ stop_t_01, stop_t_02, start_t_02, start_t_01 ]    
-).
+proc( fetch_order(R) ,
+      [
+        exogf_Update, 
+        start_goto(R), stop_goto(R),
+        start_locate(P,R), stop_locate(P,R),
+        start_take_order(P), stop_take_order(P)
+      ]
+    ).
+tfo :- icp( [ set_request(r3), fetch_order(r3) ] ).
 
-function( reward, V, lif( at=kitchen, V=0, V=2 ) ).
+proc( fetch_coffee,
+	  [
+	  	exogf_Update, 
+	  	?( not(task = nil) ),
+	  	while( not( at=kitchen),
+	  		   [ 
+	  		   	 start_goto(kitchen), 
+	  		   	 stop_goto(kitchen) 
+	  		   ]
+	  		 ),	  	
+	  	start_locate(P,kitchen), stop_locate(P,kitchen),
+	  	?( P = chef ),
+	  	while( not( coffee_prepared = true ),
+               [
+               	 start_place_order, 
+               	 stop_place_order
+               ]
+              ),
+		start_pickup(coffee), stop_pickup(coffee)
+	  ]
+	).
+tfc0 :- icp( [ set_task(r3), prepare_coffee, fetch_coffee ] ).
+tfc1 :- icp( [ set_request(r3), fetch_order(r3), prepare_coffee, fetch_coffee ] ).
 
+proc( deliver_coffee,
+	  [
+	  	exogf_Update, 
+		?( task = R ),
+		?( not( R = nil ) ),
+		?( holding = coffee ),
+		while( not( at=R ),
+	  		   [ 
+	  		   	 start_goto(R), 
+	  		   	 stop_goto(R) 
+	  		   ]
+	  		 ),	  
+		start_drop(coffee,R), stop_drop(coffee,R)
+	  ]
+	).
+tdc0 :- icp( [ set_holding(coffee), set_task(r2), deliver_coffee ] ).
+
+proc( return,
+	  [
+	  	while( not( at=kitchen),
+	  		   [ 
+	  		   	 start_goto(kitchen), 
+	  		   	 stop_goto(kitchen) 
+	  		   ]
+	  		 )	
+	  ]
+	).
+tre0 :- icp( [start_goto(r1),stop_goto(r1),return] ).
+
+
+proc( service,
+	[
+		exogf_Update,
+        %% save current pos to return item
+        while( request = R,
+        	   [
+        	     if( not( request = nil ),
+        	         [ 
+        	         	fetch_order(R),
+        	   	 	   	fetch_coffee,
+        	   	       	deliver_coffee 
+        	   	     ],        	         
+        	   	     true
+        	        ),       
+        	     return  	   	 
+        	  ]
+			)		
+      ]
+    ).
+tsv0 :- icp( [ set_request(r3), service ] ).
+tsv1 :- icp( [ set_request(r3), prepare_coffee, service ] ).    
+		
+demo(P) :- printEq( 'P', P ),
+		   icpgo(P, [s0], chronicle([s0],[],[])),
+		   reverse(P,R),
+		   append(R,[s0],R0),
+		   printLine( blue ),
+		   printColor( blue, "* Demo Results\n", [] ),
+		   printLine( blue ),
+		   printEq( '* Situation', R0 ),
+		   holds( and([ at=At,
+						request=Req,
+						holding=Hld,
+						located=Loc,
+						calibrated=Cal,
+						task=Task,
+						coffee_prepared=CoffPrep
+					  ]), 
+				  R0 ),
+		   printEq( '* At', At ),
+		   printEq( '* Request', Req ),
+		   printEq( '* Holding', Hld ),
+		   printEq( '* Located', Loc ),
+		   printEq( '* Calibrated', Cal ),
+		   printEq( '* Task', Task ),
+		   printEq( '* Coffee prepared?', CoffPrep ).
+
+dem0 :- demo( [start_goto(r3), stop_goto(r3)] ).
+dem1 :- demo( [start_locate(chef,kitchen), stop_locate(chef,kitchen)] ).
+dem2 :- demo( [start_goto(r3), stop_goto(r3), 
+               start_locate(P,r3), stop_locate(P,r3)
+              ]).
+dem3 :- demo( [set_request(r3), 
+               start_goto(r3), stop_goto(r3), 
+               start_locate(P,r3), stop_locate(P,r3),
+               start_take_order(P), stop_take_order(P)
+              ]).
+dem4 :- demo( [ prepare_coffee, 
+                start_pickup(coffee),
+                stop_pickup(coffee)
+              ]).
+dem5 :- demo( [ set_holding(coffee), 
+                set_task(r2)
+              ]).
+              
+dem6 :- demo( [ set_holding(coffee), 
+                set_task(r2), 
+                exogf_Update, 
+                start_goto(r2), 
+                stop_goto(r2), 
+                start_drop(coffee, r2), 
+                stop_drop(coffee, r2)
+              ]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                    FLUENTS                                   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+room(kitchen). room(r0). room(r1). room(r2). room(r3). 
+person(chef). person(p0). person(p1). person(p2). person(p3). person(p4). 
+in(kitchen,chef). in(r0,p0). in(r1,p1). in(r2,p2). in(r3,p3). in(r3,p4).
+
+prim_fluent( at ).
+initial_val( at, kitchen ).
+
+prim_fluent( request ).
+initial_val( request, nil ).
+
+prim_fluent( task ).
+initial_val( task, nil ).
+
+prim_fluent( holding ).
+initial_val( holding , nil ) .
+
+prim_fluent( calibrated ).
+initial_val( calibrated , false ) .
+
+prim_fluent( located ).
+initial_val( located, nil ).
+
+prim_fluent( coffee_prepared ).
+initial_val( coffee_prepared, false ).
+
+% transPrim(start_goto(kitchen), [s0], E1, S1, 1), write(E1), nl, write(S1), nl.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 COMPONENTS                                   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+prim_fluent( motor_state ).
+initial_val( motor_state, offline ).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 PROCEDURES                                   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+    
+eu :- icp([bs,exogf_Update,bf]).
+    
+met0 :- icp([as,exogf_Update,af,exogf_Update]). 
+met1 :- icp([bs,as,af]). 
+
+ovl0 :- icp([as,af]). 
+ovl1 :- icp(as).
+ovl2 :- icp([as,bs,af]). 
+ovl3 :- icp([as,bs,bf,af]). 
+ovl4 :- icp([bs,as,af]). 
+
+ovb0 :- icp([as,af]). 
+ovb1 :- icp(as).
+ovb2 :- icp([as,bs,af]).
+ovb3 :- icp([bs,as,bf,af]).
+
+eq0 :- icp([as,af]). 
+eq1 :- icp([as]). 
+eq2 :- icp([bs,as,af]). 
+eq3 :- icp([as,bs,af]). 
+
+dur0 :- icp([as,af]).
+dur1 :- icp(as). % Geht wegen offenem Commitment kaputt
+dur2 :- icp([as,bf]). % Geht wegen vorzeitigem bf kaputt
+
+con0 :- icp([as,af]).
+con1 :- icp(as). % Geht durch weil A bis Programmende gilt
+con2 :- icp([as,bs,bf,bs,af]). % Sollte nichts zu tun sein
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                  INHERITANCE                                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+extends(pickup(_X), move_arm).
+extends(drop(_X,_R), move_arm).
+extends(take_order(_P), interact) .
+    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                  COMPONENTS                                  %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
