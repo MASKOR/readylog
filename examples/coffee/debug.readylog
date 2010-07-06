@@ -34,10 +34,12 @@ printTokens( [ within( A, N ) | T ] ) :-  !, printColor( yellow, " '%w' within '
 printTokens( [ then( A, B, N ) | T ] ) :- !, printColor( yellow, " '%w' after '%w' within '%w' \n", [ A, B, N ] ), printTokens( T ).   
 printTokens( [ until( B, P ) | T ] ) :-  !, printColor( yellow, " '%w' until '%w'\n", [ P, B ] ), printTokens( T ).
 printTokens( [ between( A, B, P ) | T ] ) :- !, printColor( yellow, " '%w' between '%w' and '%w' \n", [ A, B, P ] ), printTokens( T ).   
+printTokens( [ noop | T ] ) :- !, printTokens( T ).
 printTokens( [ H | T ] ) :- !, printColor( yellow, " (%w)\n", [ H ] ), printTokens( T ).
+
 printTodo( List ) :- printColor( yellow, "Todo {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
 printMonitor( List ) :- printColor( yellow, "Monitor {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
-printHistory( List ) :- printColor( yellow, "History {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
+printHistory( List ) :- printColor( yellow, "History (printed w/o noops) {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
     
 write_eq(N,V) :- write(N), write(' = '), write(V), nl.
 write_res(E,H) :- write_eq('E',E), write_eq('H', H).

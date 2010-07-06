@@ -17,19 +17,24 @@
 :- write(" --> loading agent.readylog ...\n").
 
 %:- lib(toplevel).
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  INCLUDES                            %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
 %% ReadyLog interpreter
-:- ensure_loaded("../../interpreter/readylog/readylog.pl").
+:- ensure_loaded("../../interpreter/steadylog/readylog.pl").
 %% eXogenous stuff
 :- ensure_loaded("exog.readylog").
 
-%% MazeDomain definition
-:- ensure_loaded("maze.readylog").
+%% CoffeeDomain definition
+:- ensure_loaded("coffee.readylog").
+%% Agent Components 
+:- ensure_loaded("agent_components.readylog").
 %% Functions
 :- ensure_loaded("functions.readylog").
+%% Debugging stuff
+:- ensure_loaded("debug.readylog").
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -49,320 +54,232 @@
 %% ================================================================== %%
 
 
-/** goto(x,y) using prim_actions */
-proc(goto(X,Y),
-     [
-        %cout( blue, " ***** proc goto(%w,%w) ***** \n", [X,Y]),
-        ?( Target = [X,Y] ),
-        %
-        while( neg( pos = Target ), %[X,Y] ),
-                    nondet( [ go_up, 
-                              go_right,
-                              go_down,
-                              go_left ] )
-                  )
-     ]
-    ).
-
-/** goto(x,y) using deterministic procedures */
-proc(goto_det(X,Y),
-     [
-        ?( Target = [X,Y] ),
-        %
-        while( neg( pos = Target ),
-               nondet( [ up_det, 
-                         right_det,
-                         down_det,
-                         left_det ] )
-             )
-     ]
-    ).
-
-/** goto(x,y) using stochastic procedures */
-proc(goto_stoch(X,Y),
-     [
-        ?( Target = [X,Y] ),
-        %exogf_Update,
-        while( neg( pos = Target ),
-               nondet( [ up_st, 
-                         right_st,
-                         down_st,
-                         left_st ] )
-             )
-     ]
-    ).
-
-/** goto(x,y) using procedures that check for visited poses */
-proc(goto_memo(X,Y),
-     [
-        ?( Target = [X,Y] ),
-        %exogf_Update,
-        while( neg( pos = Target ),
-               nondet( [ up_mem, 
-                         right_st,
-                         down_st,
-                         left_st%,
-                         %rest
-                         ] )
-%                          right_mem,
-%                          down_mem,
-%                          left_mem ] )
-             )
-     ]
-    ).
-
-
-/** goto(x,y) using an elobarated sub-procedure.
- * needed to make sure fluent are 'new' in every iteration 
+/**
+ * fetch_order/1
+ * Fetches an order from room R
  */
-proc(goto_vis(X,Y),
-     [
-        ?( Target = [X,Y] ),
-        %exogf_Update,
-        while( neg( pos = Target ),
-               visit_nondet
-             )
-     ]
+proc( fetch_order(R) ,
+      [
+        exogf_Update, 
+        start_goto(R), stop_goto(R),
+        exogf_Update,
+        start_locate(P,R), stop_locate(P,R),
+        start_take_order(P), stop_take_order(P),
+        exogf_Update
+      ]
     ).
 
-/** procedure that selectively builds a list of procedures to consider in nondet.
- * we only consider actions that not lead to poses we already visited 
+/**
+ * fetch_coffee/0
+ * Returns to the kitchen, informs the chef to prepare coffee and takes this
+ * coffee
  */
-proc(visit_nondet,
-     [
-        ?( pos = [X,Y] ),
-        ?( UpY = Y + 1 ),
-        ?( DownY = Y - 1 ),
-        ?( LeftX = X - 1 ),
-        ?( RightX = X + 1 ),
-        ?( NDA_list_init = [rest] ),
-        %cout( NDA_list_init ),
-        if( neg( visited( X,UpY ) ),
-            ?(NDA_list_up = adl( [up_st], NDA_list_init )),
-            ?(NDA_list_up = NDA_list_init )),
-        %cout( NDA_list_up ),
-        if( neg( visited( X,DownY ) ),
-            ?(NDA_list_down = adl( [down_st], NDA_list_up )),
-            ?(NDA_list_down = NDA_list_up )),
-        %cout( NDA_list_down ),
-        if( neg( visited( LeftX,Y ) ),
-            ?(NDA_list_left = adl( [left_st], NDA_list_down )),
-            ?(NDA_list_left = NDA_list_down )),
-        %cout( NDA_list_left ),
-        if( neg( visited( RightX,Y ) ),
-            ?(NDA_list = adl( [right_st], NDA_list_left)),
-            ?(NDA_list = NDA_list_left )),
-        %cout( NDA_list )%,
-        nondet( NDA_list )
-     ]
-    ).
-
-/** helper function to add an element to a list */
-function( adl(E,L), V,
-          append( E, L, V ) ).
-
-%% ================================================================== %%
-%%  ACTION PROCEDURES                                                 %%
-%% ================================================================== %%
-
-proc( up_mem,
-      [
-         ?( pos = [PosX,PosY] ),
-         ?( NewX = PosX + 1 ),
-         ?( NewY = PosY ),
-         if( and( [ is_pos(NewX,NewY) , 
-                    f_is_wall(PosX,PosY,NewX,NewY)=false,
-                    neg(visited(NewX,NewY))
-                  ]),
-             % then:
-             go_up,
-             % else: % must not be empty!!
-             cout("nogo_up")
-           )
-      ]
-    ).
-
-proc( down_mem,
-      [
-         ?( pos = [PosX,PosY] ),
-         ?( NewX = PosX - 1 ),
-         ?( NewY = PosY ),
-         if( and([ is_pos(NewX,NewY),
-                   neg( is_wall(PosX,PosY,NewX,NewY ))%,
-                   %neg(visited(NewX,NewY))
-                 ]),
-             go_down,
-             % else: % must not be empty!!
-             cout("nogo_down")
-           )
-      ]
-    ).
-
-proc( left_mem,
-      [
-         ?( pos = [PosX,PosY] ),
-         ?( NewX = PosX ),
-         ?( NewY = PosY - 1 ),
-         if( and([ is_pos(NewX,NewY),
-                   neg(is_wall(PosX,PosY,NewX,NewY))%,
-                   %neg(visited(NewX,NewY))
-                 ]),
-             go_left,
-             % else: % must not be empty!!
-             cout("nogo_left")
-           )
-      ]
-    ).
-
-proc( right_mem,
-      [
-         ?( pos = [PosX,PosY] ),
-         ?( NewX = PosX ),
-         ?( NewY = PosY + 1 ),
-         if( and([ is_pos(NewX,NewY),
-                   neg(is_wall(PosX,PosY,NewX,NewY))%,
-                   %neg(visited(NewX,NewY))
-                 ]),
-             go_right,
-             % else: % must not be empty!!
-             cout("nogo_right")
-           )
-      ]
-    ).
-
-
-/** procedure that selectively builds a list of procedures to consider in nondet.
- * we only consider actions that not lead to poses we already visited 
- */
-proc(visit_nondet_det,
-     [
-        ?( pos = [X,Y] ),
-        ?( UpY = Y + 1 ),
-        ?( DownY = Y - 1 ),
-        ?( LeftX = X - 1 ),
-        ?( RightX = X + 1 ),
-        %?( NDA_list_init = [rest] ),
-        ?( NDA_list_init = [] ),
-        %cout( NDA_list_init ),
-        if( neg( visited( X,UpY ) ),
-            ?(NDA_list_up = adl( [up_det], NDA_list_init )),
-            ?(NDA_list_up = NDA_list_init )),
-        %cout( NDA_list_up ),
-        if( neg( visited( X,DownY ) ),
-            ?(NDA_list_down = adl( [down_det], NDA_list_up )),
-            ?(NDA_list_down = NDA_list_up )),
-        %cout( NDA_list_down ),
-        if( neg( visited( LeftX,Y ) ),
-            ?(NDA_list_left = adl( [left_det], NDA_list_down )),
-            ?(NDA_list_left = NDA_list_down )),
-        %cout( NDA_list_left ),
-        if( neg( visited( RightX,Y ) ),
-            ?(NDA_list = adl( [right_det], NDA_list_left)),
-            ?(NDA_list = NDA_list_left )),
-        %cout( NDA_list )%,
-        nondet( NDA_list )
-     ]
-    ).
-
-
-%% ================================================================== %%
-%%  FIND AND GET ITEM                                                 %%
-%% ================================================================== %%
-
-proc( findus,
-      [
-         cout(" === STARTING FINDUS === \n"),
-         exogf_Update,
-         %% save current pos to return item
-         ?( pos = [X,Y] ),
-         search_item( XI, YI ),
-         cout( green, " *** found item at %w,%w *** \n", [XI,YI] ),
-         goto_item( XI, YI ),
-         grab_item,
-         reset_visited,
-         while( (epf_carry_item, pos \= [X,Y]) ,
-                [carry_item( X, Y ),
-                 exogf_Update]
+proc( fetch_coffee,
+	  [
+	  	exogf_Update, 
+	  	?( not( task = nil ) ),
+	  	while( not( pos=kitchen),
+	  		   [ 
+	  		   	 start_goto(kitchen), 
+	  		   	 stop_goto(kitchen),
+	  		   	 exogf_Update
+	  		   ]
+	  		 ),	  	
+	  	start_locate(P,kitchen), stop_locate(P,kitchen),
+	  	?( P = chef ),
+	  	% if not coffee_prepared
+	  	% while ( not_coffee_prepared )
+	  	% 	noop
+	  	while( not( coffee_prepared = true ),
+               [
+                 ?( task = T ),
+               	 start_place_order( T ), 
+               	 stop_place_order( T )
+               ]
               ),
-         if( epf_carry_item, 
-             drop_item,
-             [ reset_visited,
-               search_item(XIneu,YIneu),
-               goto_item( XIneu, YIneu),
-               grab_item ]
-           ),
-         cout(" === FINISHING FINDUS === \n")
-      ]
-    ).
+		start_pickup(coffee), stop_pickup(coffee)
+	  ]
+	).
 
-proc( search_item( XI, YI ), %ItemPosID ), %XI, YI ),
-      [
-         cout(" --- search item --- \n"),
-         exogf_Update,
-         while( f_sense_item = 0,
-                [
-                   %exogf_Update,
-                   solve( [ % visit_nondet_det
-                             nondet( [ go_up,
-                                       go_down,
-                                       go_right,
-                                       go_left ] ),
-                             nondet( [ go_up,
-                                       go_down,
-                                       go_right,
-                                       go_left ] )
-                          ], 2, reward_search_item ),
-                   exogf_Update
-                ]
-              ),
-         ?( f_sense_item = SenseID ),
-         cout( red, " +++ SenseID = %w \n", [SenseID] ),
-         ?( IPOS = f_item_pos_by_id( SenseID ) ),
-         ?( IPOS = [XI, YI] )
+/**
+ * deliver_coffee/0
+ * Delivers an already picked up cup of coffee to the room the coffee request
+ * was made
+ */
+proc( deliver_coffee,
+	  [
+	  	exogf_Update, 
+		?( task = R ),
+		?( not( R = nil ) ),
+		?( holding = coffee ),
+        start_goto(R), 
+	  	stop_goto(R),
+	  	exogf_Update,
+	    start_drop(coffee,R), 
+	    stop_drop(coffee,R)
       ]
-    ).
+	).
+	
+/**
+ * return/0
+ * Returns to the kitchen
+ */
+proc( return,
+	  [
+        start_goto(kitchen), 
+	  	stop_goto(kitchen),
+	  	exogf_Update
+	  ]
+	).
 
-proc( goto_item(X,Y) ,
-      [
-         cout( yellow, " --- goto item --- \n", [] ),
-         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
-      ]
-    ).
-
-proc( grab_item,
-      [
-         cout(" --- grab item --- \n"),
-         ?( pos = [X,Y] ),
-         pickup_item
-      ]
-    ).
-
-proc( carry_item(X,Y),
-      [
-         cout(" --- home item --- \n"),
-         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
-      ]
-    ).
-
+/**
+ * service/0
+ * Waits in the kitchen until a coffee request is issued in room R. Agent 
+ * drives there, receives the order, fetches coffee in the kitchen and delives 
+ * this back to room R.
+ */
+proc( service,
+	[
+		exogf_Update,
+        while( true,
+        	   [
+        	     while( request = nil,
+        	            [ 
+        	                wait 
+        	            ]),
+   	             ?( request=R ),
+        	     fetch_order(R),
+        	   	 fetch_coffee,
+        	   	 deliver_coffee,
+        	   	 return
+        	   ]
+			)		
+      ]).
+    
 %% ================================================================== %%
 %%  TESTING PROCEDURES                                                %%
 %% ================================================================== %%
 
-proc( testf,
-      [
-         exogf_Update,
-         ?( epf_sense_item = V ),
-         cout(V)
-      ]
-    ).
+proc( wt,
+	  [
+	    exogf_Update,
+	  	while( true, 
+	  		   [
+	  		   	wait
+	  		   ]
+	  		 )
+	  ]).
+wt :- icp(wt).
 
-proc( tstf_num,
-      [
-         exogf_Update,
-         ?( num_visited = V ),
-         cout( red, " *+*+* num_visited = %w *+*+* \n%b", [V])
-      ]
-    ).
+proc( wtb ,
+      [ 
+        exogf_Update,      
+        start_goto( 1 ),     % goto meets beep
+        stop_goto( 1 ),      % nonpreemptive
+        start_pickup( cup ), % pickup extends move_arm, move_arm during b
+        stop_pickup( cup )   % preemptive        
+      ]).
+wtb :- icp(wtb).
+% Agent sollte 
+% - auf stop_goto warten
+% - nachdem stop_goto tatsächlich ausgeführt würde Beep nach Stop_goto schedulen
+% - bs,start_pickup,stop_pickup,bf schedulen
+% - den kram ausführen
+
+proc( wtc ,
+      [ 
+        exogf_Update,
+        start_pickup( cup ),
+        stop_pickup( cup ),        
+        start_goto( 1 ), % goto meets beep
+        stop_goto( 1 ),   % nonpreemptive
+        start_drop( cup, 1 ),
+        stop_drop( cup, 1 )
+      ]).
+wtc :- icp(wtc).
+    
+
+tfo0 :- icp( [ set_request(r3), fetch_order(r3) ] ).
+tfc0 :- icp( [ set_task(r3), prepare_coffee, fetch_coffee ] ).
+tfc1 :- icp( [ set_request(r3), fetch_order(r3), prepare_coffee, fetch_coffee ] ).
+tdc0 :- icp( [ set_holding(coffee), set_task(r2), deliver_coffee ] ).
+tre0 :- icp( [start_goto(r1),stop_goto(r1),return] ).
+tsv0 :- icp( [ service ] ).
+tsv1 :- icp( [ set_request(3), prepare_coffee, service ] ).    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                   CONSTRAINTS                                %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% constraint( a, before, b ).
+% constraint( a, after, b ).
+% constraint( a, meets, b ).
+% constraint( a, metby, b ).
+% constraint( a, starts, b ).
+% constraint( a, startedby, b ).
+% constraint( a, finishes, b ).
+% constraint( a, finishedby, b ).
+% constraint( a, overlaps, b ).
+% constraint( a, overlappedby, b ).
+% constraint( a, during, b ).
+% constraint( a, contains, b ).
+% constraint( a, equals, b ).
+
+%constraint( goto(_X), equals, colli=active ).
+%constraint( interact, starts, beep ).
+%constraint( interact, during, motor=idle ).
+%constraint( locate(_X,_Y), during, motor=idle ).
+%constraint( move_arm, after, arm=calibrated ).
+
+%% TESTING ONLY
+constraint( goto(_X), meets, beep ).
+constraint( move_arm, during, b ).
+% constraint( goto(_X), startedby, a ).
+%constraint( goto(_X), starts, b ).
+%constraint( goto(_X), metby, c ).
+%constraint( goto(_X), meets, d ).
+% -> NO solution if all five actions have to perform within eenv of _goto
+             
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                  COMPONENTS                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+/*prim_fluent( F ) :- component( _Comp, F, _q0 ).*/
+/*init_val( C, Q0 ) :- component( C, _F, Q0 ).*/
+
+/*prim_action( A ) :- edge( _Comp, _Q, Actions, _Q1 ), member( A, Actions ).*/
+/*poss( A, S ) :- edge( Comp, Q, Actions, _Q1 ), member( A, Actions ), */
+/*	holds( state( Comp, Q ), S ).*/
+/*causes_val( A, colli_state, Q1 ) :- edge( _Q, Actions, Q1 ), member( A, Actions ).*/
+
+/*poss( A, S ) :- edge( Comp, V0, Actions, _V1 ), member( A, Actions ), */
+/*	state( Comp, V0, S ).*/
+
+/*causes_val( A, colli_state, V1, */
+/*	and( [ edge( colli, V0, Actions, V1 ) ,*/
+/*	       member( A, Actions ) ] ) ) .*/
+/*	*/
+/*state( Comp, State, do( A, S ) ) :- state( Comp, State, S ).*/
+/*state( Comp, State, do( A, S ) ) :- edge( Comp, V0, Actions, State ), */
+/*	member( A, Actions ), state( Comp, V0, S ).*/
+
+/*manage( Comp, S, _Start, Goal, [] ) :- state( Comp, Goal, S ).*/
+/*manage( Comp, S, Start, Goal, A  ) :- state( Comp, Start, S ), edge( Comp, Start, Actions, Goal ), member( A, Actions ).*/
+/*manage( Comp, S, Start, Goal, Prog ) :- find( Comp, S, Start, Goal, [], Prog ).*/
+
+/*find( _, _, X, X, _, [] ).*/
+/*find( Comp, S, X, Y, P, P1 ) :- */
+/*	edge( Comp, X, A, Y ), */
+/*	member( Action, A ), */
+/*	poss( Action, S ), */
+/*	P1 = [ Action | P ]. */
+/*find( Comp, S, X, Y, P, P1 ) :- */
+/*	edge( Comp, X, A, Z ), */
+/*	member( Action, A ), */
+/*	poss( Action, S ), */
+/*	Pi = [ Action | P ], */
+/*	find( Comp, S, Z, Y, Pi, P1 ).*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- write(" <-- loading agent.readylog done.\n").

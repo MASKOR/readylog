@@ -19,7 +19,7 @@ BASEDIR = ../..
 
 ### VARIABLES #############
 
-FILENAME     = coffee.readylog
+FILENAME     = agent.readylog
 CONFIGFILE   = $(BASEDIR)/cfg/config.xml
 
 

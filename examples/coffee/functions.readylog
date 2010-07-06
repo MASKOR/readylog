@@ -28,72 +28,72 @@
  * This is really VERY VERY important for DT-planning!
  */
 function( reward, V, 
-          lif( pos = [5,5], 
+          lif( request = nil, 
                V=100, 
                V=(-1) ) 
         ).
 
-/** parameterized reward function.
- */
-function( reward(X,Y), V, 
-          lif( pos = [X,Y], 
-               V=100, 
-               V=(-1) ) 
-        ).
-
-/** parameterized reward function.
- * this reward function already gives hints on where to go
- * by giving the negative manhattan dist to goal as the reward
- */
-function( reward_heuristic(X,Y), V, 
-          and([ lif( pos = [X,Y], 
-                     V=100,
-                     and([ pos = [PosX,PosY],
-                           PreDiffX = X - PosX,
-                           lif( PreDiffX > 0,
-                                DiffX = -PreDiffX,
-                                DiffX =  PreDiffX ),
-                           PreDiffY = Y - PosY,
-                           lif( PreDiffY > 0,
-                                DiffY = -PreDiffY,
-                                DiffY =  PreDiffY ),
-                           V = DiffX+DiffY
-                         ]) 
-                   )
-              ])
-        ).
-
-/** reward function for finding item.
- */
-function( reward_search_item, V, 
-          and([ V = num_visited
-                %,writeln(V)
-              ])
-        ).
-
-%function( f_sense_item, V, 
-%          lif( epf_sense_item = 0,
-%               V = 0,
-%               V = epf_sense_item )
+%/** parameterized reward function.
+% */
+%function( reward(X,Y), V, 
+%          lif( pos = [X,Y], 
+%               V=100, 
+%               V=(-1) ) 
 %        ).
-function( f_sense_item, V, 
-          and([ epf_sense_item = V ]) ).
 
-function( f_item_pos_by_id(PosID), V,
-          and([
-                 IDiff is PosID - 5,
-                 IDifv is PosID - 4,
-                 IDmod is IDiff mod 3,
-                 IDdiv is IDifv div 3,
-                 lif( IDmod = 2,
-                      XDiff = -1,
-                      XDiff = IDmod),
-                 YDiff = IDdiv,
-                 pos = [X,Y],
-                 XI is X + XDiff, YI is Y + YDiff,
-                 %printf( " PosID %w, IDiff %w, IDifv %w, IDmod %w, IDdiv %w, XI %w, YI %w\n", [PosID, IDiff, IDifv, IDmod, IDdiv, XI, YI] ),
-                 V = [XI, YI]
-              ])
-        ).
+%/** parameterized reward function.
+% * this reward function already gives hints on where to go
+% * by giving the negative manhattan dist to goal as the reward
+% */
+%function( reward_heuristic(X,Y), V, 
+%          and([ lif( pos = [X,Y], 
+%                     V=100,
+%                     and([ pos = [PosX,PosY],
+%                           PreDiffX = X - PosX,
+%                           lif( PreDiffX > 0,
+%                                DiffX = -PreDiffX,
+%                                DiffX =  PreDiffX ),
+%                           PreDiffY = Y - PosY,
+%                           lif( PreDiffY > 0,
+%                                DiffY = -PreDiffY,
+%                                DiffY =  PreDiffY ),
+%                           V = DiffX+DiffY
+%                         ]) 
+%                   )
+%              ])
+%        ).
+
+%/** reward function for finding item.
+% */
+%function( reward_search_item, V, 
+%          and([ V = num_visited
+%                %,writeln(V)
+%              ])
+%        ).
+
+%%function( f_sense_item, V, 
+%%          lif( epf_sense_item = 0,
+%%               V = 0,
+%%               V = epf_sense_item )
+%%        ).
+%function( f_sense_item, V, 
+%          and([ epf_sense_item = V ]) ).
+
+%function( f_item_pos_by_id(PosID), V,
+%          and([
+%                 IDiff is PosID - 5,
+%                 IDifv is PosID - 4,
+%                 IDmod is IDiff mod 3,
+%                 IDdiv is IDifv div 3,
+%                 lif( IDmod = 2,
+%                      XDiff = -1,
+%                      XDiff = IDmod),
+%                 YDiff = IDdiv,
+%                 pos = [X,Y],
+%                 XI is X + XDiff, YI is Y + YDiff,
+%                 %printf( " PosID %w, IDiff %w, IDifv %w, IDmod %w, IDdiv %w, XI %w, YI %w\n", [PosID, IDiff, IDifv, IDmod, IDdiv, XI, YI] ),
+%                 V = [XI, YI]
+%              ])
+%        ).
 
 :- write(" <-- loading functions.readylog done.\n").

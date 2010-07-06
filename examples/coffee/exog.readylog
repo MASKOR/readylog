@@ -28,13 +28,13 @@ register(action).
  * If the online fact holds, execute the action,
  * Else just return an 'executed' message ...
  */
-execute( Action, _Sense_val, S) :- !,
+execute( Action, _Sense_val, S, C) :- !,
       (
          holds(online=true, S) ->
             (
                printColor( red, " ==> executing: %w (ONLINE)! <== \n", [Action]),
                flush(output),
-               xTra(Action, S) % we execute actions by passing them to xTra!
+               xTra(Action, S, C ) % we execute actions by passing them to xTra!
 %               printColor( red, " ==> done executing: %w (ONLINE)! <== \n", [Action])
                              
                % sleep(0.2),
@@ -61,9 +61,9 @@ execute( Action, _Sense_val, S) :- !,
  * by checking if we can dequeue it from the exoQueue.
  */
 exog_occurs(Action,S) :- 
-      printColor( cyan, " *** testing whether exog occured \n", []),
+%      printColor( cyan, " *** testing whether exog occured \n", []),
       holds(online=true, S),
-      printColor( cyan, " *** exog_occurs: we're online \n", []),
+%      printColor( cyan, " *** exog_occurs: we're online \n", []),
       exoDeQueue(Action),
       printColor( cyan, " *** exog_occurs(%w,%w) \n", [Action,S]).
 
@@ -100,23 +100,24 @@ wait_for_exog_occurs( _Act, _H) :-
 wait_for_exog_occurs :- true, !.
 
 exogenous_update :- !,
-      printColor( cyan, " *** exogenous_update ... \n",[]),
+%      printColor( cyan, " *** exogenous_update ... \n",[]),
       % call (worldmodel) update (defined in xTra)
       update, 
-%      !, 
-%      (
-%         % test whether exogf_Update is already enqueued
-%         exoQueue(exogf_Update)%,
-%         %printColor( cyan, " +++ exogfUpdate already queued +++ \n", [])
-%      ;
-%         % enqueue exogf_Update since is hasn't been yet
-%         %printColor( cyan, " +++ exoEnQueue(exogf_Update) +++ \n", []),
-%         exoEnQueue(exogf_Update)
-%      ), !,
+      !, 
+      (
+         % test whether exogf_Update is already enqueued
+         exoQueue(exogf_Update)%,
+         %printColor( cyan, " +++ exogfUpdate already queued +++ \n", [])
+      ;
+         % enqueue exogf_Update since is hasn't been yet
+         %printColor( cyan, " +++ exoEnQueue(exogf_Update) +++ \n", []),
+         exoEnQueue(exogf_Update)
+      ), !,
 %      printColor( cyan, " *** exoQueue(reply(action,nil)) +++ \n", []),
-%      %exoQueue(reply(action,nil)),
-%      !,
-      printColor( cyan, " *** exogenous_update ... done. \n", []).
+      %exoQueue(reply(action,nil)),
+      !
+%      , printColor( cyan, " *** exogenous_update ... done. \n", [])
+      .
 
 /** how often should exog_update be called.
  */

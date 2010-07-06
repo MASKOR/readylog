@@ -37,20 +37,17 @@ exec_ask4outcome :- true.
 %%  this is where we hold real values
 %%  of exogenous fluents hidden for the agent
 
-/* real position of our agent */
-:- setval( real_agent_pos, [1,1] ).
+% Any coffee?
+:- setval( real_coffee_prepared, false ).
 
-/* real position of the item */
-:- setval( real_item_pos, [4,4] ).
+% Any requests?
+:- setval( real_request, nil ).
 
-/* real position of the item */
-:- setval( real_carry_item, false ).
+% Where am I?
+:- setval( real_pos, kitchen ).
 
-/* starting position */
-:- setval( real_start_pos, [1,1] ).
-
-/* starting position */
-:- setval( real_goal_pos, [5,5] ).
+% Performing action?
+:- setval( real_active_action, nil ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%                                      %%
@@ -59,7 +56,7 @@ exec_ask4outcome :- true.
 /** our main update method.
  */
 update :- 
-	printf(" --- start UPDATE ...\n", []), 
+%	printf(" --- start UPDATE ...\n", []), 
 	%refresh_window,
 	(
 	    getkey( Key ) ->
@@ -73,65 +70,50 @@ update :-
              ;
 	     true
 	),
-	vis_update,
+%	vis_update,
 	true
-	, printf(" --- UPDATE ... done.\n", [])
+%	, printf(" --- UPDATE ... done.\n", [])
 	.
 
-vis_update :-
-	redraw, 
-	getval(real_start_pos, [StartX, StartY]),
-	draw_start(StartX,StartY),
-	getval(real_goal_pos, [GoalX, GoalY]),
-	draw_goal(GoalX,GoalY),
-	getval(real_agent_pos, [AgentX, AgentY]),
-	draw_agent(AgentX,AgentY),
-	getval(real_item_pos, [ItemX, ItemY]),
-	( [ItemX, ItemY] = [-1,-1] ->
-	    true
-	;
-	    draw_item(ItemX,ItemY)
-	),
-	true.
+%vis_update :-
+%	redraw, 
+%	getval(real_start_pos, [StartX, StartY]),
+%	draw_start(StartX,StartY),
+%	getval(real_goal_pos, [GoalX, GoalY]),
+%	draw_goal(GoalX,GoalY),
+%	getval(real_agent_pos, [AgentX, AgentY]),
+%	draw_agent(AgentX,AgentY),
+%	getval(real_item_pos, [ItemX, ItemY]),
+%	( [ItemX, ItemY] = [-1,-1] ->
+%	    true
+%	;
+%	    draw_item(ItemX,ItemY)
+%	),
+%	true.
 
-:- setval( item_xtra_event_enabled,true).
-
-process_xtra_events :-
-        ( getval( item_xtra_event_enabled,true) -> xtra_loose_item_event; true ).
-
-xtra_loose_item_prob(0.01).
-xtra_loose_item_event :- !,
-        xtra_loose_item_prob(Prob),
-        frandom(Rand),
-        ( getval(real_carry_item,true), Rand < Prob ->
-	    ( 
-		 setval(real_carry_item,false),
-		printColor( red, " ********** LOST ITEM EvENT !!!! ********* \n%b", [])
-	    )
-	;
-	  true
-        ).
-
+%:- setval( item_xtra_event_enabled,true).
 
 
 /** exogf_Update.
  *  updates all the exogenous fluents (sensing/world_model/...)
  *  and takes care of (readylog) event dispatching
  */
-xTra(exogf_Update, _H) :- !, 
-        %printf(" *** START exogf_Update *** \n", []), flush(output),
+xTra(exogf_Update, _H, _C ) :- !, 
+    printf(" *** START exogf_Update *** \n", []), flush(output),
 	%% event_dispatcher
-	%process_xtra_events,
-	%% worldmodel update
-	getval( real_agent_pos, V_AGENT_POS ), 
-	%printColor( yellow, " V_AGENT_POS = %w \n", [V_AGENT_POS]), 
-	setval( wm_agent_pos, V_AGENT_POS ),
-	getval( real_item_pos, V_ITEM_POS ), 
-	%printColor( yellow, " V_ITEM_POS = %w \n", [V_ITEM_POS]), 
-	setval( wm_item_pos, V_ITEM_POS ),
-	getval( real_carry_item, V_CARRY_ITEM ), setval( wm_carry_item, V_CARRY_ITEM ),
-	%%
-	printf(" *** exogf_Update DONE. *** \n", []), flush(output).
+	getval( real_coffee_prepared, V_COFFEE ), 
+	printColor( red, " *** exogf_Update: wm_coffee_prepared = %w\n", [ V_COFFEE ] ),
+	setval( wm_coffee_prepared, V_COFFEE ),
+	getval( real_request, V_REQUEST ), 
+	printColor( red, " *** exogf_Update: wm_request = %w\n", [ V_REQUEST ] ),
+	setval( wm_request, V_REQUEST ),
+	getval( real_pos, V_POS ), 
+	printColor( red, " *** exogf_Update: wm_pos = %w\n", [ V_POS ] ),
+	setval( wm_pos, V_POS ),
+	update_components,
+	update_nonpreemptive_actions
+	, printf(" *** exogf_Update DONE. *** \n", []), flush(output)
+	.
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  eXecution Transformation of         %%
@@ -142,24 +124,131 @@ xTra(exogf_Update, _H) :- !,
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %% deterministic execution
 
-%xTra(go_right,H) :- 
-%	printColor( pink, " xTra: EXEC 'go_right'", []), 
-%	getval( real_agent_pos, [X,Y] ),
-%	printf(" at %w,%w ", [X,Y]), 
-%	has_val( pos, V, H ), 
-%	printf(" epf at %w \n", [V]), 
-%        execdelay,
-%	Xn is X+1,
-%	setval( real_agent_pos, [Xn,Y] ),
-%	process_xtra_events,
-%	( getval(real_carry_item,true) -> setval( real_item_pos, [Xn,Y] ); true ),
-%	draw_action("R", X, Y).
+xTra( _Act, _H, _C ) :-
+    has_val( pos, Pos, H ),
+	printColor( pink, "  Pos = %w\n", [ Pos ] ),
+	has_val( request, Req, H ),
+	printColor( pink, "  Request = %w\n", [ Req ] ),
+	has_val( holding, Hld, H ),
+	printColor( pink, "  Holding = %w\n", [ Hld ] ),
+	has_val( located, Loc, H ),
+	printColor( pink, "  Located = %w\n", [ Loc ] ),
+	has_val( calibrated, Cal, H ),
+	printColor( pink, "  Calibrated = %w\n", [ Cal ] ),
+	has_val( task, Task, H ),
+	printColor( pink, "  Task = %w\n", [ Task ] ),
+%	getval( coffee_prepared, CoffPrep ),
+%	printColor( pink, "  wm_coffee_prepared = %w\n", [ CoffPrep ] ),
+	flush(output),
+	fail.
+
+/**
+ * Handling of nonpreemptive actions. 
+ */	
+xTra( Act, _H, _C ) :-
+    starter( A, Act ), 
+    nonpreemptive( A, AWM, AReal ),
+    printColor( red, " *** xTra: enabling action %w\n", [ A ] ),
+    setval( AWM, true ),
+    setval( AReal, true ), 
+    fail.
+xTra( Act, _H, _C ) :-
+    finisher( A, Act ), 
+    nonpreemptive( A, AWM, AReal ),
+    printColor( red, " *** xTra: disabling action %w\n", [ A ] ),
+    setval( AWM, false ),
+    setval( AReal, false ), fail.
+
+xTra( wait, _H, _C ) :-
+	printColor( black, " *** xTra waiting\n", [ ] ),
+%	has_val( pos, Pos, H ),
+%	printColor( pink, "  Pos = %w\n", [ Pos ] ),
+%	has_val( request, Req, H ),
+%	printColor( pink, "  Request = %w\n", [ Req ] ),
+%	has_val( holding, Hld, H ),
+%	printColor( pink, "  Holding = %w\n", [ Hld ] ),
+%	has_val( located, Loc, H ),
+%	printColor( pink, "  Located = %w\n", [ Loc ] ),
+%	has_val( calibrated, Cal, H ),
+%	printColor( pink, "  Calibrated = %w\n", [ Cal ] ),
+%	has_val( task, Task, H ),
+%	printColor( pink, "  Task = %w\n", [ Task ] ),
+%	getval( coffee_prepared, CoffPrep ),
+%	printColor( pink, "  wm_coffee_prepared = %w\n", [ CoffPrep ] ),
+	realSleep(2),
+	flush(output).
+	
+xTra( wait( A ), _H, _C ) :-
+    printColor( red, " *** Waiting for end of action '%w'\n", [ A ] ),
+%    setval( real_active_action, A ),
+%    flush(output),
+    realSleep( 2 ).
+	
+%xTra( set_request( R ), _H, _C ) :-
+%	printColor( black, "<xTra:set_request(%w)>\n", [ R ] ),
+%	realSleep(0.5),
+%	printColor( black, "</xTra:set_request(%w)>\n", [ R ] ).
+
+xTra( prepare_coffee, _H, _C ) :-
+%	printColor( black, " *** xTra: start_prepare_coffee\n", [ ] ),
+	setval( real_coffee_prepared, true ).
+	
+xTra( start_goto( _R ), _H, _C ) :-
+%	printColor( black, " *** xTra start_goto(w)\n", [ R ] ),
+%	nonpreemptive( goto( _R ), _GWM, GReal ),
+%	getval( GReal, V ),
+%	printColor( red, " *** xTra: real_going_to = %w\n", [ V ] ),
+	realSleep(0.5).
+	
+xTra( stop_goto( R ), _H, _C ) :-
+	printColor( red, " *** xTra: stop_goto(%w)\n", [ R ] ),
+    setval( real_pos, R ),
+    printColor( red, " *** xTra: real_pos = %w\n", [ R ] ),
+	realSleep(0.5).
+	
+% icp([exogf_Update,start_goto(1),stop_goto(1),wait])
+	
+xTra( start_take_order( X ), _H, _C ) :-
+%	printColor( black, " *** xTra start_take_order(%w)\n", [ X ] ),
+	printColor( red, "WD-42: Starting to take order from person #%w.\n", [ X ] ),
+	realSleep(0.5).
+	
+xTra( stop_take_order( X ), _H, _C ) :-
+%	printColor( black, " *** xTra stop_take_order(%w)\n", [ X ] ),
+	printColor( red, "WD-42: I have taken the order from person #%w.\n", [ X ] ),
+	setval( real_request, nil ),
+	realSleep(0.5).
+	
+xTra( start_place_order( P ), _H, _C ) :-
+%	printColor( black, " *** xTra start_place_order(%w)\n", [ P ] ),
+	printColor( red, "WD-42: I have coffee order from room #%w.\n", [ P ] ),
+	realSleep(0.5).
+	
+xTra( start_pickup( _P ), _H, _C ) :-
+%	printColor( black, " *** xTra start_pickup(%w)\n", [ P ] ),
+	realSleep(0.5).
+	
+xTra( start_locate( _P, _R ), _H, _C ) :-
+%	printColor( black, " *** xTra start_locate(%w,%w)\n", [ P, R ] ),
+	realSleep(0.5).
+	
+xTra( start_drop( _X, _R ), _H, _C ) :-
+%	printColor( black, " *** xTra start_drop(%w,%w)\n", [ X, R ] ),
+	realSleep(0.5).
+	
+xTra( start_move_arm, _H, _C ) :-
+%	printColor( black, " *** xTra start_move_arm\n", [ ] ),
+	realSleep(0.5).
+	
+xTra( start_interact, _H, _C ) :-
+%	printColor( black, " *** xTra start_interact\n", [ ] ),
+	realSleep(0.5).
 
 % nonpreemptive actions
 %	
-xTra( end( A ), _S ) :- prim_action( A ), npr( A ), !, 
-	printColor( pink, " xTra: exog action '%w' finished", [ A ] ).
-	
+xTra( end( A ), _H, _C ) :- prim_action( A ), npr( A ), !, 
+    printColor( pink, " *** xTra end(%w) finished", [ A ] ),
+    setval( wm_active_action, nil ).	
 
 
 
@@ -168,48 +257,136 @@ xTra( end( A ), _S ) :- prim_action( A ), npr( A ), !,
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  transform couts to printf/printColor
 
-xTra(cout(V), _H) :- !,
+xTra( cout(V), _H, _C) :- !,
 	printf("%w", [V]), flush(output).
 
-xTra(cout(F, V), _H) :- !,
+xTra( cout(F, V), _H, _C) :- !,
 	printf(F, V), flush(output).
 
-xTra(cout(Color,F,V),_H) :- !,
+xTra( cout(Color,F,V), _H, _C) :- !,
 	printColor(Color,F,V).
 
 
 %% ABSORBER ENTRY %%%%%%%%%%%%%%%%%%%%% %%
 %% used to catch all the stuff
 %% that doesn't have an own handle
-%xTra(A,S) :-
-%	printColor( red, " xTra: DON'T KNOW HOW TO HANDLE '%w' IN SIT: '%w'\n", [A,S]).
-xTra(A,_S) :-
+xTra(A, _H, _C) :-
 	printColor( red, " xTra: DON'T KNOW HOW TO HANDLE '%w'\n", [A]).
-
-
+	
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  translate Keys to Actions           %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
-% Show Fluents Key (s)
+% Alter Component State Key (c)
+% Allows to select a component and a state for this component.
+%
+translateActionToKey( Key, Action ) :-
+        Key = 99, !,
+        printf( "Got Key 'c'! -> alter_comp_state\n", [] ), flush( output ),
+        % 1. Print a list of components and select which to modify
+        get_comp_list( Components ),
+        printNumberedList( Components, 0 ),
+        printf( "*** Please insert component # to alter state (NO ENTER REQUIRED!):\n", [] ), flush( output ),
+        printf( "*** #: ", [] ), flush( output ),
+	    getkey_blocking( Ikey ), I is Ikey - 48,
+	    get_comp( Components, I, Comp ),
+	    % 2. Print the states of the selected component and select which to 
+	    % assign
+	    printf( "*** Component '%w' has the following states\n", [ Comp ] ), flush( output ),
+	    get_comp_states( Comp, States ),
+	    printNumberedList( States, 0 ),
+	    printf( "*** Please insert component state # to assign (NO ENTER REQUIRED!):\n", [] ), flush( output ),
+	    printf( "*** #: ", [] ), flush( output ),
+	    getkey_blocking( Jkey ), J is Jkey - 48,
+	    get_comp_state( States, J, State ),
+	    printf( "*** Setting state of %w to %w.\n", [ Comp, State ] ), flush( output ),
+	    component( Comp, _Cs, _CsWm, CsReal, _CsIv ),
+	    setval( CsReal, State ),
+	    Action = exog_noop.
+	    
+% End Action Key (e)
+%
+translateActionToKey( Key, Action ) :-
+    Key = 101, !,
+    printf( "Got Key 'e'! -> end_action\n", [] ), flush( output ),
+    % 1. List active nonpreemptive actions
+    get_active_npr_actions_list( Actions ),
+    (
+        Actions \= []
+      ->
+        (
+            printf( "*** The following actions are active:\n", [] ), 
+            flush( output ),
+            printNumberedList( Actions, 0 ),
+            printf( "*** Please insert action # to terminate:\n", [] ), 
+            flush( output ),
+            printf( "*** #: ", [] ), flush( output ),
+            getkey_blocking( Ikey ), I is Ikey - 48,
+            get_action( Actions, I, Action ),       
+            printf( "*** Terminating action '%w'\n", [ Action ] ),
+            nonpreemptive( Action, _AWM, AReal ),        
+            setval( AReal, false )
+%           , setval( AWM  , false )
+        )
+      ;
+        (
+            printf( "*** There are no active actions\n", [ ] ), 
+            flush( output )
+        )
+    ),
+    Action = exog_noop.
+        
+% End Action Key (n)
+%
+translateActionToKey( Key, Action ) :-
+    Key = 110, !,
+    printf( "Got Key 'n'! -> show_nonpreemptive_actions\n", [] ), flush( output ),
+    % 1. List active nonpreemptive actions
+    get_active_npr_actions_list( Actions ),
+    printNumberedList( Actions, 0 ),
+    Action = exog_noop.
+
+% Prepare Coffee Key (p)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 112, !,
+        printf( "Got Key 'p' -> prepare_coffee\n", [] ), flush( output ),
+        Action = prepare_coffee,
+        setval( real_coffee_prepared, true ).
+
+% Issue Request Key (r)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 114, !,
+        printf( "Got Key 'r'! -> set_request\n", [] ), flush( output ),
+        printf( "*** Please insert room # to issue request at (NO ENTER REQUIRED!):\n", [] ), flush( output ),
+        printf( "*** #: ", [] ), flush( output ),
+	    getkey_blocking(Rkey), R is Rkey - 48,
+        printf( "*** You issue a request at room #%w\n", [ R ] ), flush( output ),
+        Action = set_request( R ),
+        setval( real_request, R ).       
+        
+% Show System State Key (s)
 %
 translateActionToKey( Key, Action ) :-
         Key = 115, !,
-        printf( "Got Key 's'!\n", [] ), flush( output ),
-        Action = show_fluents.
+        printf( "Got Key 's'! -> system_state\n", [] ), flush( output ),
+        get_comp_list( Components ),
+        print_components_states( Components ),
+        flush( output ),
+        Action = exog_noop.
 
 % Teleport Button (t)
 %
 translateActionToKey( Key, Action ) :-
         Key = 116, !,
         printf( "Got Key 't'!\n", [] ), flush( output ),
-        printf( "** please insert position to teleport to (NO ENTER REQUIRED!):\n", [] ), flush( output ),
-        printf( "*** X:", [] ), flush( output ),
-	getkey_blocking(Xkey), X is Xkey - 48,
-        printf( "*** Y:", [] ), flush( output ),
-	getkey_blocking(Ykey), Y is Ykey - 48,
-        printf( "** you want to teleport to (%w,%w)\n", [X,Y] ), flush( output ),
-        Action = teleport(X,Y).
+        printf( "*** Please insert room to teleport to (NO ENTER REQUIRED!):\n", [] ), flush( output ),
+        printf( "*** #: ", [] ), flush( output ),
+	getkey_blocking(Rkey), R is Rkey - 48,
+        printf( "*** You want to teleport to room #%w\n", [ R ] ), flush( output ),
+        Action = teleport( R ),
+        setval( real_pos, R ).
 
 % Unknown Case
 %

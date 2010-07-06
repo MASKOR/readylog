@@ -17,55 +17,6 @@
 :- write(" --> loading coffee.readylog ...\n").
 
 %:- lib(toplevel).
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-%%  INCLUDES                            %%
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-
-%% ReadyLog interpreter
-:- ensure_loaded("../../interpreter/steadylog/readylog.pl").
-%% eXogenous stuff
-:- ensure_loaded("exog.readylog").
-%% Functions
-:- ensure_loaded("functions.readylog").
-
-%% Debugging stuff
-:- ensure_loaded("debug.readylog").
-%% Testing stuff
-:- ensure_loaded("testing.readylog").
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-%%  LIBRARIES                           %%
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-
-%% GridVisualization
-:- load("../../ecl/keyboard.so").
-:- ["../../include/keyboard.pl"].
-%% GridVisualization
-:- load("../../ecl/gridvis.so").
-:- ["../../include/gridvis.pl"].
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                           COFFEE DOMAIN PRIMITIVES                           %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-/**
- * Constraints
- */
- 
-% constraint( a, before, b ).
-% constraint( a, after, b ).
-% constraint( a, meets, b ).
-% constraint( a, metby, b ).
-% constraint( a, starts, b ).
-% constraint( a, finishes, b ).
-% constraint( a, overlaps, b ).
-% constraint( a, overlappedby, b ).
-% constraint( a, during, b ).
-% constraint( a, contains, b ).
-constraint( a, equals, b ).
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                    ACTIONS                                   %
@@ -79,25 +30,31 @@ maintenance_action( beep ).
 
 prim_action( noop ).
 poss( noop, true ).
-causes_val( noop, at, at ).
+causes_val( noop, pos, pos ).
+
+prim_action( wait ).
+poss( wait, true ).
+causes_val( wait, pos, pos ).
 
 prim_action( beep ).
 poss( beep, true ).
-causes_val( beep, at, at ).
+causes_val( beep, pos, pos ).
 
-prim_action( finish( _ ) ).
-poss( wait( _ ), true ).
-causes_val( wait( _ ), at, at ).
+% Waits for the end of the nonpreemtive action given as argument
+prim_action( wait( _A ) ).
+poss( wait( _A ), true ).
+causes_val( wait( _A ), pos, pos ).
+
+% Indicates that exog action _A has finished
+prim_action( finish( _A ) ).
+poss( finish( _A ), true ).
+causes_val( finish( _A ), pos, pos ).
 
 %% EXOGENOUS PRIMITIVE ACTIONS 
 
-exog_action( end( _, _ ) ).
-poss( end( _, _ ), true ).
-causes_val( end( _, _ ), at, at ).
-
-prim_action( set_request( _V ) ).
-poss( set_request( _V ), true ).
-causes_val( set_request( V ), request, L, and( [L=V] ) ).
+exog_action( end( _A ) ).
+poss( end( _A ), true ).
+causes_val( end( _A ), pos, pos ).
 
 prim_action( set_task( _V ) ).
 poss( set_task( _V ), true ).
@@ -107,10 +64,17 @@ prim_action( set_holding( _V ) ).
 poss( set_holding( _V ), true ).
 causes_val( set_holding( V ), holding, L, and( [L=V] ) ).
 
-prim_action( prepare_coffee ).
+exog_action( prepare_coffee ).
 poss( prepare_coffee, true).
-causes_val( prepare_coffee, coffee_prepared, L, and([ L=true ] ) ).
+causes_val( prepare_coffee, coffee_prepared, L, L = true ).
 
+exog_action( set_request( _V ) ).
+poss( set_request( _V ), true ).
+causes_val( set_request( V ), request, L, L = V ).
+
+exog_action( exog_noop ).
+poss( exog_noop, true).
+causes_val( exog_noop, pos, pos ).
 
 %% prim_actions for debug output.
 
@@ -126,13 +90,13 @@ poss( cout( _Color, _Text, _Params ), true ).
 
 %% NONPREEMPTIVE ACTIONS
  
-nonpreemptive( b ). 
+nonpreemptive( goto( _R ), wm_going_to, real_going_to ). 
 
 %% COMPLEX ACTIONS
 
-complex_action( goto(R), start_goto(R), stop_goto(R), going_to(R) ).
+complex_action( goto(R), start_goto(R), stop_goto(R), going_to ).
 complex_action( take_order(P), start_take_order(P), stop_take_order(P), taking_order).
-complex_action( place_order, start_place_order, stop_place_order, placing_order).
+complex_action( place_order(P), start_place_order(P), stop_place_order(P), placing_order).
 complex_action( pickup(X), start_pickup(X), stop_pickup(X), picking_up ).
 complex_action( locate(P,R), start_locate(P,R), stop_locate(P,R), locating ).
 complex_action( drop(X,R), start_drop(X,R), stop_drop(X,R), dropping ).
@@ -141,35 +105,37 @@ complex_action( interact, start_interact, stop_interact, interacting ).
 % lazy man's test actions
 complex_action( a, as, af, afl ).
 complex_action( b, bs, bf, bfl ).
+complex_action( c, cs, cf, cfl ).
+complex_action( d, ds, df, dfl ).
 
 poss( goto(R) , 
 	  and([ room(R),
-	  		not(at=R)
+	  		not(pos=R)
 	  	  ])
 	).
 poss( take_order(P), 
 	  and([ request=R, 
-	        at=R,
+	        pos=R,
 	        in(R,P),
 	        located=P
 	      ])
 	).
-poss( place_order, 
+poss( place_order(_P), 
 	  and([ not(task=nil), 
-	        at=kitchen,
+	        pos=kitchen,
 	        located=chef
 	      ])
 	).
 poss( pickup(_X), and( [ holding=nil ] ) ).
 poss( locate(P,R), 
-      and([ at=R,
+      and([ pos=R,
       		in(R,P),
       		person(P)
           ]) 
 	).
 poss( drop(X,R), 
 	  and([ holding=X,
-	  		at=R
+	  		pos=R
 	   	  ]) 
 	).
 poss( move_arm, true ).
@@ -177,178 +143,50 @@ poss( interact, true ).
 % lazy man's test actions
 poss( a, true ).
 poss( b, true ).
+poss( c, true ).
+poss( d, holding=nil ).
 
-causes_val( goto(R), at, L, and([L=R]) ).
-causes_val( goto(_), located, L, and([L=nil]) ).
+causes_val( goto( R ), pos, L, L = R ).
+causes_val( goto( _ ), located, L, and([L=nil]) ).
 causes_val( take_order(_), task, L, and([ request=L ]) ).
-causes_val( take_order(_), request, L, and([ L=nil ]) ).
-causes_val( place_order, at, at ).
+causes_val( take_order(_), request, L, L = nil ).
+causes_val( place_order(_P), pos, pos ).
 causes_val( pickup(X), holding, L, and([ L=X ]) ).
 causes_val( pickup(X), coffee_prepared, L, and([ X=coffee, L=false ]) ).
 causes_val( locate(P,_), located, L, and([ L=P ]) ).
 causes_val( drop(_X,_R), holding, L, and([ L=nil ]) ).
 causes_val( drop(X,R), task, L, and([ task=R, X=coffee, L=nil ]) ).
 causes_val( move_arm, calibrated, L, and([ L=false ]) ).
-causes_val( interact, at, at ).
+causes_val( interact, pos, pos ).
 % lazy man's test actions
-causes_val( a, at, at ).
-causes_val( b, at, at ).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                  PROCEDURES                                  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-proc( fetch_order(R) ,
-      [
-        exogf_Update, 
-        start_goto(R), stop_goto(R),
-        start_locate(P,R), stop_locate(P,R),
-        start_take_order(P), stop_take_order(P)
-      ]
-    ).
-tfo :- icp( [ set_request(r3), fetch_order(r3) ] ).
-
-proc( fetch_coffee,
-	  [
-	  	exogf_Update, 
-	  	?( not(task = nil) ),
-	  	while( not( at=kitchen),
-	  		   [ 
-	  		   	 start_goto(kitchen), 
-	  		   	 stop_goto(kitchen) 
-	  		   ]
-	  		 ),	  	
-	  	start_locate(P,kitchen), stop_locate(P,kitchen),
-	  	?( P = chef ),
-	  	while( not( coffee_prepared = true ),
-               [
-               	 start_place_order, 
-               	 stop_place_order
-               ]
-              ),
-		start_pickup(coffee), stop_pickup(coffee)
-	  ]
-	).
-tfc0 :- icp( [ set_task(r3), prepare_coffee, fetch_coffee ] ).
-tfc1 :- icp( [ set_request(r3), fetch_order(r3), prepare_coffee, fetch_coffee ] ).
-
-proc( deliver_coffee,
-	  [
-	  	exogf_Update, 
-		?( task = R ),
-		?( not( R = nil ) ),
-		?( holding = coffee ),
-		while( not( at=R ),
-	  		   [ 
-	  		   	 start_goto(R), 
-	  		   	 stop_goto(R) 
-	  		   ]
-	  		 ),	  
-		start_drop(coffee,R), stop_drop(coffee,R)
-	  ]
-	).
-tdc0 :- icp( [ set_holding(coffee), set_task(r2), deliver_coffee ] ).
-
-proc( return,
-	  [
-	  	while( not( at=kitchen),
-	  		   [ 
-	  		   	 start_goto(kitchen), 
-	  		   	 stop_goto(kitchen) 
-	  		   ]
-	  		 )	
-	  ]
-	).
-tre0 :- icp( [start_goto(r1),stop_goto(r1),return] ).
-
-
-proc( service,
-	[
-		exogf_Update,
-        %% save current pos to return item
-        while( request = R,
-        	   [
-        	     if( not( request = nil ),
-        	         [ 
-        	         	fetch_order(R),
-        	   	 	   	fetch_coffee,
-        	   	       	deliver_coffee 
-        	   	     ],        	         
-        	   	     true
-        	        ),       
-        	     return  	   	 
-        	  ]
-			)		
-      ]
-    ).
-tsv0 :- icp( [ set_request(r3), service ] ).
-tsv1 :- icp( [ set_request(r3), prepare_coffee, service ] ).    
-		
-demo(P) :- printEq( 'P', P ),
-		   icpgo(P, [s0], chronicle([s0],[],[])),
-		   reverse(P,R),
-		   append(R,[s0],R0),
-		   printLine( blue ),
-		   printColor( blue, "* Demo Results\n", [] ),
-		   printLine( blue ),
-		   printEq( '* Situation', R0 ),
-		   holds( and([ at=At,
-						request=Req,
-						holding=Hld,
-						located=Loc,
-						calibrated=Cal,
-						task=Task,
-						coffee_prepared=CoffPrep
-					  ]), 
-				  R0 ),
-		   printEq( '* At', At ),
-		   printEq( '* Request', Req ),
-		   printEq( '* Holding', Hld ),
-		   printEq( '* Located', Loc ),
-		   printEq( '* Calibrated', Cal ),
-		   printEq( '* Task', Task ),
-		   printEq( '* Coffee prepared?', CoffPrep ).
-
-dem0 :- demo( [start_goto(r3), stop_goto(r3)] ).
-dem1 :- demo( [start_locate(chef,kitchen), stop_locate(chef,kitchen)] ).
-dem2 :- demo( [start_goto(r3), stop_goto(r3), 
-               start_locate(P,r3), stop_locate(P,r3)
-              ]).
-dem3 :- demo( [set_request(r3), 
-               start_goto(r3), stop_goto(r3), 
-               start_locate(P,r3), stop_locate(P,r3),
-               start_take_order(P), stop_take_order(P)
-              ]).
-dem4 :- demo( [ prepare_coffee, 
-                start_pickup(coffee),
-                stop_pickup(coffee)
-              ]).
-dem5 :- demo( [ set_holding(coffee), 
-                set_task(r2)
-              ]).
-              
-dem6 :- demo( [ set_holding(coffee), 
-                set_task(r2), 
-                exogf_Update, 
-                start_goto(r2), 
-                stop_goto(r2), 
-                start_drop(coffee, r2), 
-                stop_drop(coffee, r2)
-              ]).
+causes_val( a, pos, pos ).
+causes_val( b, pos, pos ).
+causes_val( c, holding, L, L=cup ).
+causes_val( d, pos, pos ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                    FLUENTS                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-room(kitchen). room(r0). room(r1). room(r2). room(r3). 
-person(chef). person(p0). person(p1). person(p2). person(p3). person(p4). 
-in(kitchen,chef). in(r0,p0). in(r1,p1). in(r2,p2). in(r3,p3). in(r3,p4).
+room(kitchen). 
+% room(r0). room(r1). room(r2). room(r3). 
+% room( R ) :- Rooms::0..9, fdsets:in(R,Rooms,true).
+% room( R ) :- 0 =< R, R =< 9.
+room( R ) :- R=0 ; R=1 ; R=2 ; R=3 ; R=4 ; R=5 ; R=6 ; R=7 ; R=8 ; R=9.
 
-prim_fluent( at ).
-initial_val( at, kitchen ).
+person(chef).
+% person(p0). person(p1). person(p2). person(p3). person(p4). 
+person( P ) :- room( P ). % Jaja
 
-prim_fluent( request ).
-initial_val( request, nil ).
+in( kitchen, chef ). 
+in( R, P ) :- room( R ), person( P ), R = P .
+%in(r0,p0). in(r1,p1). in(r2,p2). in(r3,p3). in(r3,p4).
+
+%prim_fluent( pos ).
+%initial_val( pos, kitchen ).
+
+%prim_fluent( request ).
+%initial_val( request, nil ).
 
 prim_fluent( task ).
 initial_val( task, nil ).
@@ -362,8 +200,27 @@ initial_val( calibrated , false ) .
 prim_fluent( located ).
 initial_val( located, nil ).
 
-prim_fluent( coffee_prepared ).
-initial_val( coffee_prepared, false ).
+
+% EXOGENOUS FLUENTS
+
+exog_prim_fluent( pos ).
+exog_fluent_getValue( pos, V, _S) :- !, 
+%    printColor( yellow, " getval( pos )\n", [ ] ),  flush( output ),
+    getval( wm_pos, V ). %,
+%    printColor( yellow, " getval( pos ) = %w\n", [ V ] ),  flush( output ).
+
+exog_prim_fluent( coffee_prepared ).
+exog_fluent_getValue( coffee_prepared, V, _S) :- !, 
+%    printColor( yellow, " getval( coffee_prepared )\n", [ ] ),  flush( output ),
+    getval( wm_coffee_prepared, V ). %,
+%    printColor( yellow, " getval( coffee_prepared ) = %w\n", [ V ] ),  flush( output ).
+    
+         
+exog_prim_fluent( request ).
+exog_fluent_getValue( request, V, _S ) :- !,
+%    printColor( yellow, " getval( request )\n", [ ] ), flush( output ),
+    getval( wm_request, V ). %,
+%    printColor( yellow, " getval( request ) = %w\n", [ V ] ),  flush( output ).
 
 % transPrim(start_goto(kitchen), [s0], E1, S1, 1), write(E1), nl, write(S1), nl.
 
@@ -384,8 +241,9 @@ initial_val( motor_state, offline ).
     
 eu :- icp([bs,exogf_Update,bf]).
     
-met0 :- icp([as,exogf_Update,af,exogf_Update]). 
+met0 :- icp([as,af]). 
 met1 :- icp([bs,as,af]). 
+met2 :- icp( [start_take_order( 1 ) ] ).
 
 ovl0 :- icp([as,af]). 
 ovl1 :- icp(as).
@@ -403,6 +261,31 @@ eq1 :- icp([as]).
 eq2 :- icp([bs,as,af]). 
 eq3 :- icp([as,bs,af]). 
 
+sta0 :- icp( [ exogf_Update, as ] ).
+sta1 :- icp( [ exogf_Update, as, af ] ).
+sta2 :- icp( [ exogf_Update, as, bs, bf, af ] ). % kann nicht vorkommen
+sta3 :- icp( [ exogf_Update, bs, as, bf, af ] ).
+sta4 :- icp( [ exogf_Update, as, bs, af, bf ] ).
+
+stb0 :- icp( [ exogf_Update, as ] ).
+stb1 :- icp( [ exogf_Update, as, af ] ).
+stb2 :- icp( [ exogf_Update, as, bs, bf, af ] ).
+stb3 :- icp( [ exogf_Update, bs, as, bf, af ] ).
+stb4 :- icp( [ exogf_Update, as, bs, af, bf ] ).
+
+fin0 :- icp( [ as ] ).
+fin1 :- icp( [ as, af ] ).
+fin2 :- icp( [ as, bs, bf, af ] ).
+fin3 :- icp( [ bs, as, bf, af ] ).
+fin4 :- icp( [ as, bs, af, bf ] ).
+
+fed0 :- icp( [ as ] ).
+fed1 :- icp( [ as, af ] ).
+fed2 :- icp( [ as, bs, bf, af ] ).
+fed3 :- icp( [ bs, as, bf, af ] ).
+fed4 :- icp( [ as, bs, af, bf ] ).
+
+
 dur0 :- icp([as,af]).
 dur1 :- icp(as). % Geht wegen offenem Commitment kaputt
 dur2 :- icp([as,bf]). % Geht wegen vorzeitigem bf kaputt
@@ -412,61 +295,70 @@ con1 :- icp(as). % Geht durch weil A bis Programmende gilt
 con2 :- icp([as,bs,bf,bs,af]). % Sollte nichts zu tun sein
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                  INHERITANCE                                 %
+%                         TASK DOMAIN ACTION INHERITANCE                       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-extends(pickup(_X), move_arm).
-extends(drop(_X,_R), move_arm).
-extends(take_order(_P), interact) .
+sfu :- icp( [ exogf_Update, start_goto( 1 ), stop_goto( 1 ) ] ).
+%sfu :- icp( [ exogf_Update, start_goto( 1 ), stop_goto( 1 ) ] ).
+
+pr0 :- 
+    Act       = stop_goto(1),
+    Sit       = [ start_goto(1), s0],
+    Chronicle = chronicle( Act, [], [] ),
+    Config    = config( Act, Sit, Chronicle ),
+    Sln       = [ stop_goto(1), beep ],
+    length( Sln, N ),
+    transPr( solve( Sln, N ), Sit, Config, E1, S1, C1, P ),
+    printEq( 'E1', E1 ),
+    printEq( 'S1', S1 ),
+    printEq( 'C1', C1 ),
+    printEq( 'P', P ).
+pr1 :- 
+   project( [cs, stop_goto(1), ds], [ cs, start_goto(1), s0] ).
+pr2 :- project( [ exogf_Update, start_goto( 1 ), stop_goto( 1 ) ] ,
+                [ s0 ] ).
+            
+
+
+extends( goto( _X ), noop ).
+extends( locate( _P ), noop ).
+extends( interact, noop ).
+extends( take_order( _P ), interact ).
+extends( place_order( _P ), interact ).
+extends( move_arm, interact ).
+extends( pickup( _X ), move_arm ).
+extends( drop( _X, _R ), move_arm ).
+
+descendant( A, B ) :- extends( A, B ).  
+descendant( A, B ) :- extends( A, C ), descendant( C, B ).
+
+descendants( A, P ) :- findall( B, descendant( B, A ), L ), remove_dup_acts( L, [], P ).
+
+remove_dup_acts( [], L, L ).
+remove_dup_acts( [ Act | Rest ], L, L1 ) :-
+    Act =.. [ Functor | Args ],
+%    printEq( 'Act', Act ),
+%    printEq( 'Functor', Functor ),
+%    printEq( 'Args', Args ),    
+%    printEq( 'L', L ),
+    (
+        member( X, L ), 
+%        printEq( 'X', X ),
+        X =.. [ Functor | Args ]
+      ->
+%        printColor( blue, "IGNORING %w\n", [ Act ] ),
+        remove_dup_acts( Rest, L, L1 )
+      ;
+%        printColor( blue, "COPYING %w\n", [ Act ] ),
+        Lr = [ Act | L ],
+        remove_dup_acts( Rest, Lr, L1 )
+    ).
     
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                  COMPONENTS                                  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-manage( Comp, Q0, Q1, Prog ) :- edge( Comp, Q0, [ Prog ], Q1 ).
-manage( Comp, Q0, Q1, Prog ) :- edge( Comp, Q0, Actions, Qi ), 
-member( A, Actions ), not member( A, Prog ), Prog = [ A | Pr ], manage( Comp, Qi, Q1, Pr ).
-
-component( colli, colli_state, off ).
-edge( colli, off, [ start_colli ], idle ).
-edge( colli, idle, [ stop_colli ], off ).
-edge( colli, idle, [ start_scan ], scanning ).
-edge( colli, scanning, [ stop_scan ], idle ).
-edge( colli, scanning, [ stop_colli ], off ).
-
-/*prim_fluent( F ) :- component( _Comp, F, _q0 ).*/
-/*init_val( C, Q0 ) :- component( C, _F, Q0 ).*/
-
-/*prim_action( A ) :- edge( _Comp, _Q, Actions, _Q1 ), member( A, Actions ).*/
-/*poss( A, S ) :- edge( Comp, Q, Actions, _Q1 ), member( A, Actions ), */
-/*	holds( state( Comp, Q ), S ).*/
-/*causes_val( A, colli_state, Q1 ) :- edge( _Q, Actions, Q1 ), member( A, Actions ).*/
-
-/*poss( A, S ) :- edge( Comp, V0, Actions, _V1 ), member( A, Actions ), */
-/*	state( Comp, V0, S ).*/
-
-/*causes_val( A, colli_state, V1, */
-/*	and( [ edge( colli, V0, Actions, V1 ) ,*/
-/*	       member( A, Actions ) ] ) ) .*/
-/*	*/
-/*state( Comp, State, do( A, S ) ) :- state( Comp, State, S ).*/
-/*state( Comp, State, do( A, S ) ) :- edge( Comp, V0, Actions, State ), */
-/*	member( A, Actions ), state( Comp, V0, S ).*/
-
-/*manage( Comp, S, _Start, Goal, [] ) :- state( Comp, Goal, S ).*/
-/*manage( Comp, S, Start, Goal, A  ) :- state( Comp, Start, S ), edge( Comp, Start, Actions, Goal ), member( A, Actions ).*/
-/*manage( Comp, S, Start, Goal, Prog ) :- find( Comp, S, Start, Goal, [], Prog ).*/
-
-/*find( _, _, X, X, _, [] ).*/
-/*find( Comp, S, X, Y, P, P1 ) :- */
-/*	edge( Comp, X, A, Y ), */
-/*	member( Action, A ), */
-/*	poss( Action, S ), */
-/*	P1 = [ Action | P ]. */
-/*find( Comp, S, X, Y, P, P1 ) :- */
-/*	edge( Comp, X, A, Z ), */
-/*	member( Action, A ), */
-/*	poss( Action, S ), */
-/*	Pi = [ Action | P ], */
-/*	find( Comp, S, Z, Y, Pi, P1 ).*/
+rda0 :- remove_dup_acts( [ f(_X), f(_Y), f(_X,_Y) ], [], L ), write( L ), 
+    L = [ f(_X), f(_Y), f(_X,_Y) ].
+    
+ac0 :- ancestors(pickup(cup),A), printEq('A', A), A = [ interact, move_arm, noop ].
+ac1 :- ancestors(place_order(1),A), printEq('A', A), A = [ interact, noop ].
+ac2 :- ancestors(interact, A ), A = [ noop ].
+ac3 :- ancestors(foo, A ), A = [ ].
+ac  :- ac0, ac1, ac2, ac3.
