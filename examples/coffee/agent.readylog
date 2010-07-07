@@ -232,8 +232,9 @@ tsv1 :- icp( [ set_request(3), prepare_coffee, service ] ).
 %constraint( move_arm, after, arm=calibrated ).
 
 %% TESTING ONLY
-constraint( goto(_X), meets, beep ).
-constraint( move_arm, during, b ).
+constraint( goto( _X ), meets, beep ).
+constraint( goto( _X ), during, scan ).
+constraint( move_arm, after, calibrate ).
 % constraint( goto(_X), startedby, a ).
 %constraint( goto(_X), starts, b ).
 %constraint( goto(_X), metby, c ).

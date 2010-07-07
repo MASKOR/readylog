@@ -22,10 +22,6 @@
 %                                    ACTIONS                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% ACTION DOMAINS
-
-maintenance_action( beep ).
-
 %% PRIMITIVE ACTIONS
 
 prim_action( noop ).
@@ -49,6 +45,12 @@ causes_val( wait( _A ), pos, pos ).
 prim_action( finish( _A ) ).
 poss( finish( _A ), true ).
 causes_val( finish( _A ), pos, pos ).
+
+prim_action( start_colli ).
+prim_action( stop_colli ).
+prim_action( restart_colli ).
+%poss( finish( _A ), true ).
+%causes_val( finish( _A ), pos, pos ).
 
 %% EXOGENOUS PRIMITIVE ACTIONS 
 
@@ -92,6 +94,15 @@ poss( cout( _Color, _Text, _Params ), true ).
  
 nonpreemptive( goto( _R ), wm_going_to, real_going_to ). 
 
+%% MAINTENANCE ACTIONS
+
+maintenance_action( scan ).
+maintenance_action( beep ).
+maintenance_action( calibrate ).
+
+maintenance_action( A ) :- 
+    prim_action( A ), ( starter( C, A ) ; finisher( C, A ) ), maintenance_action( C ).
+
 %% COMPLEX ACTIONS
 
 complex_action( goto(R), start_goto(R), stop_goto(R), going_to ).
@@ -102,11 +113,22 @@ complex_action( locate(P,R), start_locate(P,R), stop_locate(P,R), locating ).
 complex_action( drop(X,R), start_drop(X,R), stop_drop(X,R), dropping ).
 complex_action( move_arm, start_move_arm, stop_move_arm, moving_arm ).
 complex_action( interact, start_interact, stop_interact, interacting ).
+
+% calibrate
+complex_action( calibrate, start_calibrate, stop_calibrate, calibrating ).
+poss( calibrate, true ).
+causes_val( calibrate, pos, pos ).
+
+% scan
+complex_action( scan, start_scan, stop_scan, scanning ).
+poss( scan, true ).
+causes_val( scan, pos, pos ).
+
 % lazy man's test actions
 complex_action( a, as, af, afl ).
 complex_action( b, bs, bf, bfl ).
 complex_action( c, cs, cf, cfl ).
-complex_action( d, ds, df, dfl ).
+
 
 poss( goto(R) , 
 	  and([ room(R),

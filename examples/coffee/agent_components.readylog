@@ -42,13 +42,35 @@ exog_fluent_getValue( Cs, V, _S ) :- !,
     printColor( yellow, " getval( %w )\n", [ Cs ] ),  flush( output ),
     getval( CsWM, V ),
     printColor( yellow, " getval( %w ) = %w\n", [ Cs, V ] ),  flush( output ).
-    
-path( C, S, G, A ) :- 
-    edge( C, S, A, G ).
-path( C, S, G, P ) :- 
+
+
+/**
+ * path/6
+ * Holds if P is a sequence of maintenance actions allowing to transform state S of
+ * component C into state G and the length of P is <= |edges|. Here I is the current
+ * sequence length and N the boundary.
+ */    
+path( C, S, G, A, _I, _N ) :- 
+    edge( C, S, A, G ), maintenance_action( A ).
+path( C, S, G, P, I, N ) :- 
+    I < N,
     edge( C, S, A, S1 ), 
-    path( C, S1, G, P1 ), 
+    J is I + 1,
+    path( C, S1, G, P1, J, N ), 
     P = [ A | P1 ].
+    
+/**
+ * path/4
+ * Holds if P is a sequence of maintenance actions allowing to transform state S of
+ * component C into state G and the length of P is <= |edges|
+ */    
+path( C, S, G, P ) :-
+    component( C, _Cs, _CsWM, _CsReal, _CsIv ),
+    findall( e( C, S0, S1 ), edge( C, S0, _, S1 ), L ),
+    remove_dups( L, Edges ),
+    length( Edges, N ),
+    path( C, S, G, P, 0, N ).
+    
 
 program( C, G, H, P ) :-
     component( C, Cs, _CsWM, _CsReal, _Iv ),
@@ -134,7 +156,20 @@ get_comp_states( C, L ) :-
  
 printNumberedList( [], _ ) :- !.
 printNumberedList( [ C | R ], I ) :-
-    printf( "*** [%w] %w\n", [ I, C ] ),
+    (
+        component( C, _Cs, _CsWm, CsReal, _CsIv )
+      ->
+        getval( CsReal, S )
+      ;
+        (
+            nonpreemptive( C, _AWW, AReal )
+          ->
+            getval( AReal, S )
+          ;
+            S = 'N/A'
+        )        
+    ),
+    printf( "*** [%w] %w (%w)\n", [ I, C, S ] ),
     J is I + 1,
     printNumberedList( R, J ).
 
@@ -153,11 +188,46 @@ print_components_states( [ Comp | R ] ) :-
  * ARM
  */
 component( arm, arm_state, wm_arm_state, real_arm_state, arm_idle ).
-edge( arm, arm_idle, calibrate, arm_calibrated ).
+edge( arm, arm_idle, calibrate, arm_calibrated ). % Komplexe Transition!
 edge( arm, arm_calibrated, start_pickup(_X), arm_moving ).
 edge( arm, arm_calibrated, start_drop(_X,_R), arm_moving ).
 edge( arm, arm_moving, stop_pickup(_X), arm_calibrated ).
 edge( arm, arm_moving, stop_drop(_X,_R), arm_calibrated ).
+
+/**
+ * COLLI
+ */
+component( colli, colli_state, wm_colli_state, real_colli_state, colli_off ).
+edge( colli, colli_off, start_colli, colli_idle ).
+edge( colli, colli_idle, stop_colli, colli_off ).
+edge( colli, colli_idle, start_scan, colli_scanning ).
+edge( colli, colli_scanning, stop_scan, colli_idle ).
+edge( colli, colli_scanning, stop_colli, colli_off ).
+edge( colli, colli_defect, stop_colli, colli_off ).
+edge( colli, colli_defect, restart_colli, colli_idle ).
+
+% prim_action( start_colli ).
+% prim_action( stop_colli ).
+% prim_action( restart_colli ).
+% poss ( start_colli , colli=idle ).
+% todo: colli=idle auswerten
+
+% maintenance_action( start_colli ).
+% maintenance_action( stop_colli ).
+% maintenance_action( restart_colli ).
+
+/**
+ * MOTOR
+ */
+component( motor, motor_state, wm_motor_state, real_motor_state, motor_off ).
+edge( motor, motor_off, start_motor, motor_idle ).
+edge( motor, motor_idle, stop_motor, motor_off ).
+edge( motor, motor_idle, increase_speed, motor_slow ).
+edge( motor, motor_slow, decrease_speed, motor_idle ).
+edge( motor, motor_slow, increase_speed, motor_fast ).
+edge( motor, motor_slow, stop_motor, motor_off ).
+edge( motor, motor_fast, decrease_speed, motor_slow ).
+edge( motor, motor_fast, stop_motor, motor_off ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- writeln(" <----- Loading agent_components.readylog \t[DONE]\n").
