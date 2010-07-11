@@ -98,7 +98,7 @@ nonpreemptive( goto( _R ), wm_going_to, real_going_to ).
 
 maintenance_action( scan ).
 maintenance_action( beep ).
-maintenance_action( calibrate ).
+%maintenance_action( calibrate ).
 
 maintenance_action( A ) :- 
     prim_action( A ), ( starter( C, A ) ; finisher( C, A ) ), maintenance_action( C ).
@@ -115,9 +115,9 @@ complex_action( move_arm, start_move_arm, stop_move_arm, moving_arm ).
 complex_action( interact, start_interact, stop_interact, interacting ).
 
 % calibrate
-complex_action( calibrate, start_calibrate, stop_calibrate, calibrating ).
-poss( calibrate, true ).
-causes_val( calibrate, pos, pos ).
+%complex_action( calibrate, start_calibrate, stop_calibrate, calibrating ).
+%poss( calibrate, true ).
+%causes_val( calibrate, pos, pos ).
 
 % scan
 complex_action( scan, start_scan, stop_scan, scanning ).
@@ -178,7 +178,7 @@ causes_val( pickup(X), coffee_prepared, L, and([ X=coffee, L=false ]) ).
 causes_val( locate(P,_), located, L, and([ L=P ]) ).
 causes_val( drop(_X,_R), holding, L, and([ L=nil ]) ).
 causes_val( drop(X,R), task, L, and([ task=R, X=coffee, L=nil ]) ).
-causes_val( move_arm, calibrated, L, and([ L=false ]) ).
+%causes_val( move_arm, calibrated, L, and([ L=false ]) ).
 causes_val( interact, pos, pos ).
 % lazy man's test actions
 causes_val( a, pos, pos ).
@@ -216,8 +216,8 @@ initial_val( task, nil ).
 prim_fluent( holding ).
 initial_val( holding , nil ) .
 
-prim_fluent( calibrated ).
-initial_val( calibrated , false ) .
+%prim_fluent( calibrated ).
+%initial_val( calibrated , false ) .
 
 prim_fluent( located ).
 initial_val( located, nil ).
@@ -248,14 +248,6 @@ exog_fluent_getValue( request, V, _S ) :- !,
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                 COMPONENTS                                   %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-prim_fluent( motor_state ).
-initial_val( motor_state, offline ).
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                 PROCEDURES                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -283,29 +275,35 @@ eq1 :- icp([as]).
 eq2 :- icp([bs,as,af]). 
 eq3 :- icp([as,bs,af]). 
 
-sta0 :- icp( [ exogf_Update, as ] ).
-sta1 :- icp( [ exogf_Update, as, af ] ).
-sta2 :- icp( [ exogf_Update, as, bs, bf, af ] ). % kann nicht vorkommen
-sta3 :- icp( [ exogf_Update, bs, as, bf, af ] ).
-sta4 :- icp( [ exogf_Update, as, bs, af, bf ] ).
+%sta0 :- icp( [ exogf_Update, as ] ).
+%sta1 :- icp( [ exogf_Update, as, af ] ).
+%sta2 :- icp( [ exogf_Update, as, bs, bf, af ] ). % kann nicht vorkommen
+%sta3 :- icp( [ exogf_Update, bs, as, bf, af ] ).
+%sta4 :- icp( [ exogf_Update, as, bs, af, bf ] ).
 
-stb0 :- icp( [ exogf_Update, as ] ).
-stb1 :- icp( [ exogf_Update, as, af ] ).
-stb2 :- icp( [ exogf_Update, as, bs, bf, af ] ).
-stb3 :- icp( [ exogf_Update, bs, as, bf, af ] ).
-stb4 :- icp( [ exogf_Update, as, bs, af, bf ] ).
+%stb0 :- icp( [ exogf_Update, as ] ).
+%stb1 :- icp( [ exogf_Update, as, af ] ).
+%stb2 :- icp( [ exogf_Update, as, bs, bf, af ] ).
+%stb3 :- icp( [ exogf_Update, bs, as, bf, af ] ).
+%stb4 :- icp( [ exogf_Update, as, bs, af, bf ] ).
 
-fin0 :- icp( [ as ] ).
-fin1 :- icp( [ as, af ] ).
-fin2 :- icp( [ as, bs, bf, af ] ).
-fin3 :- icp( [ bs, as, bf, af ] ).
-fin4 :- icp( [ as, bs, af, bf ] ).
+%fin0 :- icp( [ as ] ).
+%fin1 :- icp( [ as, af ] ).
+%fin2 :- icp( [ as, bs, bf, af ] ).
+%fin3 :- icp( [ bs, as, bf, af ] ).
+%fin4 :- icp( [ as, bs, af, bf ] ).
 
-fed0 :- icp( [ as ] ).
-fed1 :- icp( [ as, af ] ).
-fed2 :- icp( [ as, bs, bf, af ] ).
-fed3 :- icp( [ bs, as, bf, af ] ).
-fed4 :- icp( [ as, bs, af, bf ] ).
+%fed0 :- icp( [ as ] ).
+%fed1 :- icp( [ as, af ] ).
+%fed2 :- icp( [ as, bs, bf, af ] ).
+%fed3 :- icp( [ bs, as, bf, af ] ).
+%fed4 :- icp( [ as, bs, af, bf ] ).
+
+beg0 :- assert( constraint( a, begins, b ) ), icp( [ as ] ).
+beg1 :- assert( constraint( a, begins, b ) ), icp( [ as, af ] ).
+
+end0 :- assert( constraint( a, ends, b ) ), icp( [ as, af ] ).
+end1 :- assert( constraint( a, ends, b ) ), icp( [ as ] ).
 
 
 dur0 :- icp([as,af]).

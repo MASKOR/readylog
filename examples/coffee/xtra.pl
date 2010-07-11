@@ -16,6 +16,7 @@
  *
  *           $Id: xtra.pl 68 2007-12-06 18:30:15Z stf $
  *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
+ *        author: Andreas Wortmann <andreas.wortmann@rwth-aachen.de>
  *   description: eXecution TRAnsformation which maps primitive actions 
  *                to something meaningful in the real world ...
  *
@@ -50,7 +51,14 @@ exec_ask4outcome :- true.
 :- setval( real_active_action, nil ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
-%%                                      %%
+%% sleeping                             %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+sleep_action :- realSleep( 0.5 ).
+sleep_wait   :- realSleep( 2 ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%% update loop                          %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
 /** our main update method.
@@ -92,7 +100,6 @@ update :-
 %	true.
 
 %:- setval( item_xtra_event_enabled,true).
-
 
 /** exogf_Update.
  *  updates all the exogenous fluents (sensing/world_model/...)
@@ -161,88 +168,70 @@ xTra( Act, _H, _C ) :-
 
 xTra( wait, _H, _C ) :-
 	printColor( black, " *** xTra waiting\n", [ ] ),
-%	has_val( pos, Pos, H ),
-%	printColor( pink, "  Pos = %w\n", [ Pos ] ),
-%	has_val( request, Req, H ),
-%	printColor( pink, "  Request = %w\n", [ Req ] ),
-%	has_val( holding, Hld, H ),
-%	printColor( pink, "  Holding = %w\n", [ Hld ] ),
-%	has_val( located, Loc, H ),
-%	printColor( pink, "  Located = %w\n", [ Loc ] ),
-%	has_val( calibrated, Cal, H ),
-%	printColor( pink, "  Calibrated = %w\n", [ Cal ] ),
-%	has_val( task, Task, H ),
-%	printColor( pink, "  Task = %w\n", [ Task ] ),
-%	getval( coffee_prepared, CoffPrep ),
-%	printColor( pink, "  wm_coffee_prepared = %w\n", [ CoffPrep ] ),
-	realSleep(2),
+	sleep_wait,
 	flush(output).
 	
 xTra( wait( A ), _H, _C ) :-
     printColor( red, " *** Waiting for end of action '%w'\n", [ A ] ),
 %    setval( real_active_action, A ),
 %    flush(output),
-    realSleep( 2 ).
-	
-%xTra( set_request( R ), _H, _C ) :-
-%	printColor( black, "<xTra:set_request(%w)>\n", [ R ] ),
-%	realSleep(0.5),
-%	printColor( black, "</xTra:set_request(%w)>\n", [ R ] ).
+    sleep_wait.
 
 xTra( prepare_coffee, _H, _C ) :-
 %	printColor( black, " *** xTra: start_prepare_coffee\n", [ ] ),
-	setval( real_coffee_prepared, true ).
+	setval( real_coffee_prepared, true ),
+	sleep_action.
 	
 xTra( start_goto( _R ), _H, _C ) :-
 %	printColor( black, " *** xTra start_goto(w)\n", [ R ] ),
 %	nonpreemptive( goto( _R ), _GWM, GReal ),
 %	getval( GReal, V ),
 %	printColor( red, " *** xTra: real_going_to = %w\n", [ V ] ),
-	realSleep(0.5).
+	sleep_action.
 	
 xTra( stop_goto( R ), _H, _C ) :-
 	printColor( red, " *** xTra: stop_goto(%w)\n", [ R ] ),
     setval( real_pos, R ),
     printColor( red, " *** xTra: real_pos = %w\n", [ R ] ),
-	realSleep(0.5).
+	sleep_action.
 	
 % icp([exogf_Update,start_goto(1),stop_goto(1),wait])
 	
 xTra( start_take_order( X ), _H, _C ) :-
 %	printColor( black, " *** xTra start_take_order(%w)\n", [ X ] ),
 	printColor( red, "WD-42: Starting to take order from person #%w.\n", [ X ] ),
-	realSleep(0.5).
+	sleep_action.
 	
 xTra( stop_take_order( X ), _H, _C ) :-
 %	printColor( black, " *** xTra stop_take_order(%w)\n", [ X ] ),
 	printColor( red, "WD-42: I have taken the order from person #%w.\n", [ X ] ),
 	setval( real_request, nil ),
-	realSleep(0.5).
+	sleep_action.
 	
 xTra( start_place_order( P ), _H, _C ) :-
 %	printColor( black, " *** xTra start_place_order(%w)\n", [ P ] ),
 	printColor( red, "WD-42: I have coffee order from room #%w.\n", [ P ] ),
-	realSleep(0.5).
+	sleep_action.
 	
 xTra( start_pickup( _P ), _H, _C ) :-
 %	printColor( black, " *** xTra start_pickup(%w)\n", [ P ] ),
-	realSleep(0.5).
+	sleep_action.
 	
 xTra( start_locate( _P, _R ), _H, _C ) :-
 %	printColor( black, " *** xTra start_locate(%w,%w)\n", [ P, R ] ),
-	realSleep(0.5).
+	sleep_action.
 	
 xTra( start_drop( _X, _R ), _H, _C ) :-
 %	printColor( black, " *** xTra start_drop(%w,%w)\n", [ X, R ] ),
-	realSleep(0.5).
+	sleep_action.
 	
 xTra( start_move_arm, _H, _C ) :-
 %	printColor( black, " *** xTra start_move_arm\n", [ ] ),
-	realSleep(0.5).
+	sleep_action.
 	
 xTra( start_interact, _H, _C ) :-
 %	printColor( black, " *** xTra start_interact\n", [ ] ),
-	realSleep(0.5).
+	sleep_action.
 
 % nonpreemptive actions
 %	
@@ -265,13 +254,23 @@ xTra( cout(F, V), _H, _C) :- !,
 
 xTra( cout(Color,F,V), _H, _C) :- !,
 	printColor(Color,F,V).
+	
+	
+%% COMPONENT ACTIONS %%%%%%%%%%%%%%%%%% %%
 
+xTra( A, _H, _C ) :-
+    component( C, _Cs, _CsWM, CsReal, _, _ ),
+    getval( CsReal, V ),
+    edge( C, V, A, G ),
+    setval( CsReal, G ),
+    printColor( pink, " *** xTra: Translating %w from %w with %w to %w\n", [ C, V, A, G ] ),
+    sleep_action.
 
 %% ABSORBER ENTRY %%%%%%%%%%%%%%%%%%%%% %%
 %% used to catch all the stuff
 %% that doesn't have an own handle
 xTra(A, _H, _C) :-
-	printColor( red, " xTra: DON'T KNOW HOW TO HANDLE '%w'\n", [A]).
+	printColor( red, " *** xTra: DON'T KNOW HOW TO HANDLE '%w'\n", [A]).
 	
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  translate Keys to Actions           %%
