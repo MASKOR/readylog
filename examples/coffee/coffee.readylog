@@ -120,9 +120,9 @@ complex_action( interact, start_interact, stop_interact, interacting ).
 %causes_val( calibrate, pos, pos ).
 
 % scan
-complex_action( scan, start_scan, stop_scan, scanning ).
-poss( scan, true ).
-causes_val( scan, pos, pos ).
+%complex_action( scan, start_scan, stop_scan, scanning ).
+%poss( scan, true ).
+%causes_val( scan, pos, pos ).
 
 % lazy man's test actions
 complex_action( a, as, af, afl ).

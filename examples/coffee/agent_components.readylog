@@ -110,15 +110,17 @@ program( C, G, H, P ) :-
     flush(output),
     project( P, H ), !.
     
-% path(motor, moto_off, motor_slow, P ).
+% path(motor, moto_off, slow, P ).
 
 % icp( [exogf_Update, ?(arm_state=R), cout(R) ] ).
 % 
 
 init :- icp( [exogf_Update, ?(arm_state=R), cout(R), start_calibrate, ?(arm_state=S), cout(S), exogf_Update ] ).
+
+i0 :- icp( [ exogf_Update, wait ] ) .
    
-prg0 :- setval(real_arm_state,arm_idle), setval(wm_arm_state,arm_idle),
-    program( arm, arm_moving, [exogf_Update, s0], P ), printEq( 'P', P ).
+prg0 :- setval(real_arm_state,idle), setval(wm_arm_state,idle),
+    program( arm, moving, [exogf_Update, s0], P ), printEq( 'P', P ).
     
     
 prog( not( and( P, Q ) ), S, Prog ) :-
@@ -151,16 +153,16 @@ prog( eq( C, V ), S, Prog ) :-
     !, component( C, Cs, _, _, _, _ ), 
     program( C, V, S, Prog ).
     
-prog0 :- P = eq( motor, motor_slow ), 
+prog0 :- P = eq( motor, slow ), 
          prog( P, [s0], Q ), printEq( 'Q', Q ).
-prog1 :- P = eq( arm, arm_calibrated ), 
+prog1 :- P = eq( arm, calibrated ), 
          prog( P, [s0], Q ), printEq( 'Q', Q ).
-prog2 :- P = not( eq( arm, arm_calibrated ) ) , 
+prog2 :- P = not( eq( arm, calibrated ) ) , 
          prog( P, [s0], Q ), printEq( 'Q', Q ).
-prog5 :- P = and( eq( motor, motor_slow ), eq( arm, arm_calibrated ) ),
+prog5 :- P = and( eq( motor, slow ), eq( arm, calibrated ) ),
          prog( P, [s0], Q ), printEq( 'Q', Q ).
-prog9 :- P = and( or( eq( motor, motor_slow ), eq( arm, arm_calibrated ) ) ,
-                  not( eq( colli, colli_scanning ) ) ),
+prog9 :- P = and( or( eq( motor, slow ), eq( arm, calibrated ) ) ,
+                  not( eq( colli, scanning ) ) ),
          prog( P, [s0], Q ),
          printEq( 'Q', Q ).
 
@@ -266,37 +268,37 @@ print_components_states( [ Comp | R ] ) :-
 /**
  * ARM
  */
-component( arm, arm_state, wm_arm_state, real_arm_state, arm_idle, arm_idle ).
-edge( arm, arm_idle, start_calibrate, arm_calibrating ). 
-edge( arm, arm_calibrating, stop_calibrate, arm_calibrated ). 
-%edge( arm, arm_calibrating, reset_arm, arm_idle ). 
-edge( arm, arm_calibrated, reset_arm, arm_idle ). 
-edge( arm, arm_defect, reset_arm, arm_idle ). 
-
+component( arm, arm_state, wm_arm_state, real_arm_state, idle, idle ).
+edge( arm, idle,        start_calibrate,    calibrating ). 
+edge( arm, calibrating, stop_calibrate,     calibrated ). 
+edge( arm, calibrated,  reset_arm,          idle ). 
+edge( arm, defect,      reset_arm,          idle ). 
+%edge( arm, calibrating, reset_arm,         idle ). 
 /**
  * COLLI
  */
-component( colli, colli_state, wm_colli_state, real_colli_state, colli_off, colli_idle ).
-edge( colli, colli_off, start_colli, colli_idle ).
-edge( colli, colli_idle, stop_colli, colli_off ).
-edge( colli, colli_idle, start_scan, colli_scanning ).
-edge( colli, colli_scanning, stop_scan, colli_idle ).
-edge( colli, colli_scanning, stop_colli, colli_off ).
-edge( colli, colli_defect, restart_colli, colli_idle ).
+component( colli, colli_state, wm_colli_state, real_colli_state, offline, idle ).
+
+edge( colli, offline,   start_colli,    idle ).
+edge( colli, idle,      start_scan,     scanning ).
+edge( colli, scanning,  stop_scan,      idle ).
+edge( colli, idle,      stop_colli,     offline ).
+edge( colli, defect,    restart_colli,  idle ).
+
 
 /**
  * MOTOR
  */
-component( motor, motor_state, wm_motor_state, real_motor_state, motor_off, motor_idle ).
-edge( motor, motor_idle, shutdown_motor, motor_offline ).
-edge( motor, motor_slow, shutdown_motor, motor_offline ).
-edge( motor, motor_fast, shutdown_motor, motor_offline ).
-edge( motor, motor_offline, initialize_motor, motor_idle ).
-edge( motor, motor_defect, restart_motor, motor_idle ).
-edge( motor, motor_slow, stop_motor, motor_idle ).
-edge( motor, motor_idle, start_motor, motor_slow ).
-edge( motor, motor_fast, decrease_speed, motor_slow ).
-edge( motor, motor_slow, increase_speed, motor_fast ).
+component( motor, motor_state, wm_motor_state, real_motor_state, offline, idle ).
+edge( motor, idle, shutdown_motor, offline ).
+edge( motor, slow, shutdown_motor, offline ).
+edge( motor, fast, shutdown_motor, offline ).
+edge( motor, offline, initialize_motor, idle ).
+edge( motor, defect, restart_motor, idle ).
+edge( motor, slow, stop_motor, idle ).
+edge( motor, idle, start_motor, slow ).
+edge( motor, fast, decrease_speed, slow ).
+edge( motor, slow, increase_speed, fast ).
 
 
 
