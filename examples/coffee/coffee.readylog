@@ -28,6 +28,10 @@ prim_action( noop ).
 poss( noop, true ).
 causes_val( noop, pos, pos ).
 
+prim_action( root ). % of all evil, or at least the task domain action inheritance
+poss( root, true ).
+causes_val( root, pos, pos ).
+
 prim_action( wait ).
 poss( wait, true ).
 causes_val( wait, pos, pos ).
@@ -340,9 +344,9 @@ pr2 :- project( [ exogf_Update, start_goto( 1 ), stop_goto( 1 ) ] ,
             
 
 
-extends( goto( _X ), noop ).
-extends( locate( _P ), noop ).
-extends( interact, noop ).
+extends( goto( _X ), root ).
+extends( locate( _P ), root ).
+extends( interact, root ).
 extends( take_order( _P ), interact ).
 extends( place_order( _P ), interact ).
 extends( move_arm, interact ).

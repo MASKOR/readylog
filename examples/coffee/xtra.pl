@@ -54,8 +54,10 @@ exec_ask4outcome :- true.
 %% sleeping                             %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
-sleep_action :- realSleep( 0.5 ).
-sleep_wait   :- realSleep( 2 ).
+debug_sleep.
+
+sleep_action :- debug_sleep -> realSleep( 0.5 ) ; realSleep( 0.25 ).
+sleep_wait   :- debug_sleep -> realSleep( 0.5 ) ; realSleep( 1 ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %% update loop                          %%

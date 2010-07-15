@@ -10,7 +10,7 @@
  *
  *           $Id: agent_components.readylog $
  *        author: Andreas Wortmann <andreas.wortmann@rwth-aachen.de>
- *   description: Provides agent components automata and rules about deriving
+ *   description: Provides agent component automata and rules about deriving
  *                sit calc primitives from those plus some i/o rules
  *
  * ************************************************************************ */
@@ -33,7 +33,7 @@ causes_val( Act, CompState, L, L = ToState ) :-
     
 poss( A, and([ Cs=Start ]) ) :- 
     component( C, Cs, _CsWm, _CsReal, _CsIv, _CsDv ),
-    edge( C, Start, A, Goal ).
+    edge( C, Start, A, _Goal ).
     
 prim_action( A ) :- edge( _C, _Start, A, _Goal ).
     
@@ -44,11 +44,11 @@ prim_action( A ) :- edge( _C, _Start, A, _Goal ).
     
 exog_prim_fluent( Cs ) :- component( _, Cs, _, _, _, _ ).
 exog_fluent_getValue( Cs, V, _S ) :- !, 
-    printColor( yellow, " getval( %w )\n", [ Cs ] ),  flush( output ),
+%    printColor( yellow, " getval( %w )\n", [ Cs ] ),  flush( output ),
     component( _, Cs, CsWM, _, _, _ ),
-    printColor( yellow, " getval( %w ) @ WM %w\n", [ Cs, CsWM ] ),    
-    getval( CsWM, V ), %. %,
-    printColor( yellow, " getval( %w ) = %w\n", [ Cs, V ] ),  flush( output ).
+%    printColor( yellow, " getval( %w ) @ WM %w\n", [ Cs, CsWM ] ),    
+    getval( CsWM, V ). %,
+%    printColor( yellow, " getval( %w ) = %w\n", [ Cs, V ] ),  flush( output ).
 
 
 /**
@@ -96,7 +96,6 @@ path( C, S, G, P ) :-
     max_length( C, N ),
     path( C, S, G, P, 0, N ).
     
-
 program( C, G, H, P ) :-
     component( C, Cs, _CsWM, _CsReal, _Iv, _CsDv ),
     printEq( 'Cs' , Cs ),
@@ -136,7 +135,13 @@ prog( not( or( P, Q ) ), S, Prog ) :-
 prog( not( eq( C, V ) ), S, Prog ) :-
     printColor( pink, "not( eq( %w, %w ) )\n", [ C, V ] ),
     !, component( C, _, _, _, _, Dv ),
-    prog( eq( C, Dv ), S, Prog ).
+    (
+        holds( eq( C, Dv ), S )
+      ->
+        Prog = [ ]
+      ;
+        prog( eq( C, Dv ), S, Prog )
+    ).        
     
 prog( and( P, Q ), S, Prog ) :-
     printColor( pink, "and( %w, %w )\n", [ P, Q ] ),
@@ -150,8 +155,14 @@ prog( or( P, Q ), S, Prog ) :-
     
 prog( eq( C, V ), S, Prog ) :- 
     printColor( pink, "eq( %w, %w )\n", [ C, V ] ),
-    !, component( C, Cs, _, _, _, _ ), 
-    program( C, V, S, Prog ).
+    !, component( C, _, _, _, _, _ ), 
+    ( 
+        holds( eq( C, V ), S )
+      ->
+        Prog = [ ]
+      ;
+        program( C, V, S, Prog )
+    ).
     
 prog0 :- P = eq( motor, slow ), 
          prog( P, [s0], Q ), printEq( 'Q', Q ).
