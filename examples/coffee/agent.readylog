@@ -168,8 +168,7 @@ proc( wta,
         % nonpreemptive
         stop_goto( 1 )
 	  ]).
-wta :- assert( constraint( goto(_X), during, eq(colli,scanning) ) ),
-       icp(wta).
+wta :- icp(wta).
 
 
 
@@ -208,28 +207,6 @@ proc( wtd ,
     ]).
 wtd :- icp( wtd ).
     
-
-tfo0 :- icp( [ set_request(r3), fetch_order(r3) ] ).
-tfc0 :- icp( [ set_task(r3), prepare_coffee, fetch_coffee ] ).
-tfc1 :- icp( [ set_request(r3), fetch_order(r3), prepare_coffee, fetch_coffee ] ).
-tdc0 :- icp( [ set_holding(coffee), set_task(r2), deliver_coffee ] ).
-tre0 :- icp( [start_goto(r1),stop_goto(r1),return] ).
-tsv0 :- icp( [ service ] ).
-tsv1 :- icp( [ set_request(3), prepare_coffee, service ] ).
-
-
-et0 :- assert( constraint( a, metby, b ) ), 
-       assert( constraint( a, metby, c ) ), 
-       assert( nonpreemptive( b, bwm, breal ) ),
-       assert( nonpreemptive( c, czm, creal ) ),
-       icp( [ exogf_Update, as ] ).  
-       
-et1 :- assert( constraint( a, metby, b ) ), 
-%       assert( constraint( a, metby, c ) ), 
-       assert( nonpreemptive( b, bwm, breal ) ),
-%       assert( nonpreemptive( c, czm, creal ) ),
-       icp( [ exogf_Update, as ] ).  
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                   CONSTRAINTS                                %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -248,7 +225,7 @@ et1 :- assert( constraint( a, metby, b ) ),
 % constraint( a, contains, b ).
 % constraint( a, equals, b ).
 
-%constraint( goto(_X), equals, eq(colli,scanning) ).
+constraint( move, equals, eq(colli,scanning) ).
 %constraint( interact, starts, beep ).
 %constraint( interact, during, motor=idle ).
 %constraint( locate(_X,_Y), during, motor=idle ).

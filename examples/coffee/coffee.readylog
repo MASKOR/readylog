@@ -32,7 +32,11 @@ prim_action( root ). % of all evil, or at least the task domain action inheritan
 poss( root, true ).
 causes_val( root, pos, pos ).
 
-prim_action( wait ).
+prim_action( move ). % the parent of every movement, e.g. goto
+poss( move, true ).
+causes_val( move, pos, pos ).
+
+prim_action( wait ). % resembles noop & sleep
 poss( wait, true ).
 causes_val( wait, pos, pos ).
 
@@ -342,9 +346,12 @@ pr1 :-
 pr2 :- project( [ exogf_Update, start_goto( 1 ), stop_goto( 1 ) ] ,
                 [ s0 ] ).
             
-
-
-extends( goto( _X ), root ).
+/**
+ * extends/2
+ * Describes the action inheritance hierarchy.
+ */
+extends( move, root ).
+extends( goto( _X ), move ).
 extends( locate( _P ), root ).
 extends( interact, root ).
 extends( take_order( _P ), interact ).
@@ -353,36 +360,33 @@ extends( move_arm, interact ).
 extends( pickup( _X ), move_arm ).
 extends( drop( _X, _R ), move_arm ).
 
+/**
+ * descendant/2
+ */
 descendant( A, B ) :- extends( A, B ).  
 descendant( A, B ) :- extends( A, C ), descendant( C, B ).
 
+/**
+ * descendants/2
+ */
 descendants( A, P ) :- findall( B, descendant( B, A ), L ), remove_dup_acts( L, [], P ).
 
+/**
+ * remove_dup_acts/3
+ * Holds if L1 is the set of actions obtained from the list L
+ */
 remove_dup_acts( [], L, L ).
 remove_dup_acts( [ Act | Rest ], L, L1 ) :-
     Act =.. [ Functor | Args ],
-%    printEq( 'Act', Act ),
-%    printEq( 'Functor', Functor ),
-%    printEq( 'Args', Args ),    
-%    printEq( 'L', L ),
     (
         member( X, L ), 
-%        printEq( 'X', X ),
         X =.. [ Functor | Args ]
       ->
-%        printColor( blue, "IGNORING %w\n", [ Act ] ),
         remove_dup_acts( Rest, L, L1 )
       ;
-%        printColor( blue, "COPYING %w\n", [ Act ] ),
         Lr = [ Act | L ],
         remove_dup_acts( Rest, Lr, L1 )
     ).
-    
+%% TESTING
 rda0 :- remove_dup_acts( [ f(_X), f(_Y), f(_X,_Y) ], [], L ), write( L ), 
     L = [ f(_X), f(_Y), f(_X,_Y) ].
-    
-ac0 :- ancestors(pickup(cup),A), printEq('A', A), A = [ interact, move_arm, noop ].
-ac1 :- ancestors(place_order(1),A), printEq('A', A), A = [ interact, noop ].
-ac2 :- ancestors(interact, A ), A = [ noop ].
-ac3 :- ancestors(foo, A ), A = [ ].
-ac  :- ac0, ac1, ac2, ac3.

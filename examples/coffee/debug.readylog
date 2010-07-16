@@ -31,9 +31,9 @@ printTokens( [] ).
 printTokens( [ sometime( A ) | T ] ) :-   !, printColor( yellow, " Sometime '%w'\n", [ A ] ), printTokens( T ).    
 printTokens( [ after( A, B ) | T ] ) :-   !, printColor( yellow, " After '%w' perform '%w'\n", [ A, B ] ), printTokens( T ).
 printTokens( [ within( A, N ) | T ] ) :-  !, printColor( yellow, " '%w' within '%w'\n", [ A, N ] ), printTokens( T ).
-printTokens( [ then( A, B, N ) | T ] ) :- !, printColor( yellow, " '%w' after '%w' within '%w' \n", [ A, B, N ] ), printTokens( T ).   
+printTokens( [ then( A, B, N ) | T ] ) :- !, printColor( yellow, " '%w' after '%w' within '%w' \n", [ B, A, N ] ), printTokens( T ).   
 printTokens( [ until( B, P ) | T ] ) :-  !, printColor( yellow, " '%w' until '%w'\n", [ P, B ] ), printTokens( T ).
-printTokens( [ between( A, B, P ) | T ] ) :- !, printColor( yellow, " '%w' between '%w' and '%w' \n", [ A, B, P ] ), printTokens( T ).   
+printTokens( [ between( A, B, P ) | T ] ) :- !, printColor( yellow, " '%w' between '%w' and '%w' \n", [ P, A, B ] ), printTokens( T ).   
 printTokens( [ noop | T ] ) :- !, printTokens( T ).
 printTokens( [ H | T ] ) :- !, printColor( yellow, " (%w)\n", [ H ] ), printTokens( T ).
 

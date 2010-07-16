@@ -221,15 +221,10 @@ update_components :-
 update_component_states( [] ).
 update_component_states( Components ) :-
     Components = [ Comp | Rest ],
-    Comp = component( C, _Cs, CsWM, CsReal, _CsIv, _CsDv ),
-    printColor( green, " *** Updating component %w\n", [ C ] ),
+    Comp = component( _C, _Cs, CsWM, CsReal, _CsIv, _CsDv ),
+%    printColor( green, " *** Updating component %w\n", [ C ] ),
     update_val( CsWM, CsReal ),
     update_component_states( Rest ).
-    
-%update_val( CsWM, CsReal ) :-
-%    getval( CsReal, V ), 
-%	printColor( green, " *** update_val: %w = %w\n", [ CsWM, V ] ),
-%	setval( CsWM, V ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                  I/O STUFF                                   %
