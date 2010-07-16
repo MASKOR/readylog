@@ -160,16 +160,18 @@ proc( service,
 %%  TESTING PROCEDURES                                                %%
 %% ================================================================== %%
 
-proc( wt,
+proc( wta,
 	  [
 	    exogf_Update,
-	  	while( true, 
-	  		   [
-	  		   	wait
-	  		   ]
-	  		 )
+	  	exogf_Update,      
+        start_goto( 1 ), 
+        % nonpreemptive
+        stop_goto( 1 )
 	  ]).
-wt :- icp(wt).
+wta :- assert( constraint( goto(_X), during, eq(colli,scanning) ) ),
+       icp(wta).
+
+
 
 proc( wtb ,
       [ 
@@ -246,15 +248,15 @@ et1 :- assert( constraint( a, metby, b ) ),
 % constraint( a, contains, b ).
 % constraint( a, equals, b ).
 
-%constraint( goto(_X), equals, colli=active ).
+%constraint( goto(_X), equals, eq(colli,scanning) ).
 %constraint( interact, starts, beep ).
 %constraint( interact, during, motor=idle ).
 %constraint( locate(_X,_Y), during, motor=idle ).
 %constraint( move_arm, after, arm=calibrated ).
 
 %% TESTING ONLY
-constraint( goto( _X ), meets, beep ).
-constraint( goto( _X ), during, scan ).
+%constraint( goto( _X ), meets, beep ).
+%constraint( goto( _X ), during, scan ).
 %constraint( move_arm, after, calibrate ).
 % constraint( goto(_X), startedby, a ).
 %constraint( goto(_X), starts, b ).

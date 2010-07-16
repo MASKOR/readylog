@@ -301,7 +301,7 @@ translateActionToKey( Key, Action ) :-
 	    getkey_blocking( Jkey ), J is Jkey - 48,
 	    get_comp_state( States, J, State ),
 	    printf( "*** Setting state of %w to %w.\n", [ Comp, State ] ), flush( output ),
-	    component( Comp, _Cs, _CsWm, CsReal, _CsIv ),
+	    component( Comp, _Cs, _CsWm, CsReal, _CsIv, _CsDv ),
 	    setval( CsReal, State ),
 	    Action = exog_noop.
 	    
