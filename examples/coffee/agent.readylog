@@ -160,9 +160,20 @@ proc( service,
 %%  TESTING PROCEDURES                                                %%
 %% ================================================================== %%
 
+/**
+ * wta
+ *
+ * Related constraints: "move equals colli=scanning"
+ * Related nonpreemptives: goto
+ *
+ * Agent will start colli.scanning before starting to go to '1' and will stop
+ * scanning right afterwards. Goto is nonpreemptive, thus you have to stop the 
+ * action exogenously (during simulation by pressing 'e' while waiting). You 
+ * could also interfere with the colli's state by pressing 'c' and selecting
+ * both the colli and a new state from the lists displayed.
+ */
 proc( wta,
 	  [
-	    exogf_Update,
 	  	exogf_Update,      
         start_goto( 1 ), 
         % nonpreemptive
@@ -170,17 +181,32 @@ proc( wta,
 	  ]).
 wta :- icp(wta).
 
-
-
+/**
+ * wtb
+ *
+ * Related constraints: 
+ * - move equals colli=scanning
+ * - interfere begins beep
+ * - interact during motor=idle
+ * - move_arm after arm_calibrated
+ * Related nonpreemptives: goto
+ *
+ * Constraints: "goto equals colli=scanning"
+ * Does what wta does regarding goto and additionally: both beeps and makes the 
+ * motor idle, before starting to pickup the cup and calibrated the arm before,
+ * too.
+ */
 proc( wtb ,
       [ 
         exogf_Update,      
-        start_goto( 1 ),     % goto meets beep
-        stop_goto( 1 ),      % nonpreemptive
-        start_pickup( cup ), % pickup extends move_arm, move_arm during b
-        stop_pickup( cup )   % preemptive        
+        start_goto( 1 ),     
+        stop_goto( 1 ),      
+        start_pickup( cup ), 
+        stop_pickup( cup )   
       ]).
 wtb :- icp(wtb).
+
+
 % Agent sollte 
 % - auf stop_goto warten
 % - nachdem stop_goto tatsächlich ausgeführt würde Beep nach Stop_goto schedulen
@@ -215,10 +241,8 @@ wtd :- icp( wtd ).
 % constraint( a, after, b ).
 % constraint( a, meets, b ).
 % constraint( a, metby, b ).
-% constraint( a, starts, b ).
-% constraint( a, startedby, b ).
-% constraint( a, finishes, b ).
-% constraint( a, finishedby, b ).
+% constraint( a, begins, b ).
+% constraint( a, ends, b ).
 % constraint( a, overlaps, b ).
 % constraint( a, overlappedby, b ).
 % constraint( a, during, b ).
@@ -226,10 +250,11 @@ wtd :- icp( wtd ).
 % constraint( a, equals, b ).
 
 constraint( move, equals, eq(colli,scanning) ).
-%constraint( interact, starts, beep ).
-%constraint( interact, during, motor=idle ).
+constraint( interact, begins, beep ).
+constraint( interact, during, eq(motor,idle) ).
+constraint( move_arm, after, eq(arm,calibrated) ).
 %constraint( locate(_X,_Y), during, motor=idle ).
-%constraint( move_arm, after, arm=calibrated ).
+
 
 %% TESTING ONLY
 %constraint( goto( _X ), meets, beep ).
