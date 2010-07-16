@@ -51,6 +51,22 @@ exec_ask4outcome :- true.
 :- setval( real_active_action, nil ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%% graphical representation             %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+/* starting position */
+:- setval( real_start_pos, [0,0] ). 
+
+/* starting position */
+:- setval( real_goal_pos, [5,5] ).
+
+/* real position of our agent */
+:- setval( real_agent_pos, [1,1] ).
+
+/* real position of the item */
+:- setval( real_item_pos, [4,4] ).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %% sleeping                             %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
@@ -80,26 +96,33 @@ update :-
              ;
 	     true
 	),
-%	vis_update,
+	vis_update,
 	true
 %	, printf(" --- UPDATE ... done.\n", [])
 	.
 
-%vis_update :-
-%	redraw, 
-%	getval(real_start_pos, [StartX, StartY]),
-%	draw_start(StartX,StartY),
-%	getval(real_goal_pos, [GoalX, GoalY]),
-%	draw_goal(GoalX,GoalY),
-%	getval(real_agent_pos, [AgentX, AgentY]),
-%	draw_agent(AgentX,AgentY),
-%	getval(real_item_pos, [ItemX, ItemY]),
-%	( [ItemX, ItemY] = [-1,-1] ->
-%	    true
-%	;
-%	    draw_item(ItemX,ItemY)
-%	),
-%	true.
+vis_update :-
+	redraw, 
+	% draw the offices 
+	findall( office_loc( Office, Xo, Yo ), office_loc( Office, Xo, Yo ), L ),
+%	printEq( 'Offices', L ),
+	draw_offices( L ),
+    % draw kitchen
+    kitchen_loc( Xk, Yk ),
+	draw_goal( Xk, Yk ),
+	% agent
+	getval( real_pos, R ),
+	( R = kitchen -> kitchen_loc( Xa, Ya ) ; office_loc( R, Xa, Ya ) ),
+	draw_agent( Xa, Ya ),
+	true.
+	
+draw_offices( [] ).
+draw_offices( [H|T] ) :-
+    H = office_loc( Office, X, Y ),
+%    printColor( pink, " *** Drawing office %w at (%w,%w)\n", [ Office, X, Y ] ),
+    draw_start(X,Y),
+	draw_offices( T ).
+
 
 %:- setval( item_xtra_event_enabled,true).
 

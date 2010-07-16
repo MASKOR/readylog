@@ -161,6 +161,37 @@ proc( service,
 %% ================================================================== %%
 
 /**
+ * wt
+ *
+ * The agent does nothing
+ */
+proc( wt,
+	  [
+	  	exogf_Update,      
+        while( request = nil, wait )
+	  ]).
+wt :- vis, icp( wt ).
+
+/**
+ * wtr
+ *
+ * Related constraints: "move equals colli=scanning"
+ * Related nonpreemptives: goto
+ *
+ * The agent does nothing until a request is issued; then agent teleports there
+ *
+ */
+proc( wtr,
+	  [
+	  	exogf_Update,      
+        while( request = nil, wait ),
+        ?( request = R ),
+        start_goto( R ),
+        stop_goto( R )
+	  ]).
+wtr :- vis, icp( wtr ).
+
+/**
  * wta
  *
  * Related constraints: "move equals colli=scanning"
