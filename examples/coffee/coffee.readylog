@@ -108,9 +108,9 @@ prim_action( finish( _A ) ).
 poss( finish( _A ), true ).
 causes_val( finish( _A ), pos, pos ).
 
-prim_action( start_colli ).
-prim_action( stop_colli ).
-prim_action( restart_colli ).
+%prim_action( start_colli ).
+%prim_action( stop_colli ).
+%prim_action( restart_colli ).
 %poss( finish( _A ), true ).
 %causes_val( finish( _A ), pos, pos ).
 
@@ -132,9 +132,9 @@ exog_action( prepare_coffee ).
 poss( prepare_coffee, true).
 causes_val( prepare_coffee, coffee_prepared, L, L = true ).
 
-exog_action( set_request( _V ) ).
-poss( set_request( _V ), true ).
-causes_val( set_request( V ), request, L, L = V ).
+%exog_action( set_requests( _V ) ).
+%poss( set_requests( _V ), true ).
+%causes_val( set_requests( V ), requests, L, L = V ).
 
 exog_action( exog_noop ).
 poss( exog_noop, true).
@@ -158,7 +158,7 @@ nonpreemptive( goto( _R ), wm_going_to, real_going_to ).
 
 %% MAINTENANCE ACTIONS
 
-maintenance_action( scan ).
+%maintenance_action( scan ).
 maintenance_action( beep ).
 %maintenance_action( calibrate ).
 
@@ -198,7 +198,7 @@ poss( goto(R) ,
 	  	  ])
 	).
 poss( take_order(P), 
-	  and([ request=R, 
+	  and([ requests=[ R | _T ], 
 	        pos=R,
 	        in(R,P),
 	        located=P
@@ -232,8 +232,8 @@ poss( d, holding=nil ).
 
 causes_val( goto( R ), pos, L, L = R ).
 causes_val( goto( _ ), located, L, and([L=nil]) ).
-causes_val( take_order(_), task, L, and([ request=L ]) ).
-causes_val( take_order(_), request, L, L = nil ).
+causes_val( take_order(_), task, R, and([ requests=[ R | _T ] ]) ).
+causes_val( take_order(_), requests, T, and([ requests=[ _R | T ] ]) ).
 causes_val( place_order(_P), pos, pos ).
 causes_val( pickup(X), holding, L, and([ L=X ]) ).
 causes_val( pickup(X), coffee_prepared, L, and([ X=coffee, L=false ]) ).
@@ -276,22 +276,12 @@ person( P ) :- room( P ). % Jaja
 
 in( kitchen, chef ). 
 in( R, P ) :- room( R ), person( P ), R = P .
-%in(r0,p0). in(r1,p1). in(r2,p2). in(r3,p3). in(r3,p4).
-
-%prim_fluent( pos ).
-%initial_val( pos, kitchen ).
-
-%prim_fluent( request ).
-%initial_val( request, nil ).
 
 prim_fluent( task ).
 initial_val( task, nil ).
 
 prim_fluent( holding ).
 initial_val( holding , nil ) .
-
-%prim_fluent( calibrated ).
-%initial_val( calibrated , false ) .
 
 prim_fluent( located ).
 initial_val( located, nil ).
@@ -312,11 +302,12 @@ exog_fluent_getValue( coffee_prepared, V, _S) :- !,
 %    printColor( yellow, " getval( coffee_prepared ) = %w\n", [ V ] ),  flush( output ).
     
          
-exog_prim_fluent( request ).
-exog_fluent_getValue( request, V, _S ) :- !,
-%    printColor( yellow, " getval( request )\n", [ ] ), flush( output ),
-    getval( wm_request, V ). %,
-%    printColor( yellow, " getval( request ) = %w\n", [ V ] ),  flush( output ).
+exog_prim_fluent( requests ).
+exog_fluent_getValue( requests, V, _S ) :- !,
+%    printColor( yellow, " getval( requests )\n", [ ] ), flush( output ),
+    getval( wm_requests, V )
+%    , printColor( yellow, " getval( requests ) = %w\n", [ V ] ),  flush( output )
+    .
 
 % transPrim(start_goto(kitchen), [s0], E1, S1, 1), write(E1), nl, write(S1), nl.
 
@@ -418,7 +409,7 @@ pr2 :- project( [ exogf_Update, start_goto( 1 ), stop_goto( 1 ) ] ,
  */
 extends( move, root ).
 extends( goto( _X ), move ).
-extends( locate( _P ), root ).
+extends( locate( _P, _R ), root ).
 extends( interact, root ).
 extends( take_order( _P ), interact ).
 extends( place_order( _P ), interact ).

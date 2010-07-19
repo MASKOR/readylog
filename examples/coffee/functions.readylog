@@ -28,7 +28,7 @@
  * This is really VERY VERY important for DT-planning!
  */
 function( reward, V, 
-          lif( request = nil, 
+          lif( requests = [], 
                V=100, 
                V=(-1) ) 
         ).

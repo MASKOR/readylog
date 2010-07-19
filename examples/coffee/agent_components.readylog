@@ -26,16 +26,18 @@
 causes_val( Act, CompState, L, L = ToState ) :-
     component( C, CompState, _CsWm, _CsReal, _CsIv, _CsDv ),
     edge( C, _FromState, Act, ToState ).
-causes_val( Act, CompState, L, L = ToState ) :-
-    component( C, CompState, _CsWm, _CsReal, _CsIv, _CsDv ),
-    finisher( A, Act ),
-    edge( C, _FromState, A, ToState ).
+%causes_val( Act, CompState, L, L = ToState ) :-
+%    component( C, CompState, _CsWm, _CsReal, _CsIv, _CsDv ),
+%    finisher( A, Act ),
+%    edge( C, _FromState, A, ToState ).
     
 poss( A, and([ Cs=Start ]) ) :- 
     component( C, Cs, _CsWm, _CsReal, _CsIv, _CsDv ),
     edge( C, Start, A, _Goal ).
     
 prim_action( A ) :- edge( _C, _Start, A, _Goal ).
+
+maintenance_action( A ) :- edge( _C, _Start, A, _Goal ).
     
 %cv :- 
 %    component( Cn, C, _, _, _, _ ),
@@ -46,9 +48,10 @@ exog_prim_fluent( Cs ) :- component( _, Cs, _, _, _, _ ).
 exog_fluent_getValue( Cs, V, _S ) :- !, 
 %    printColor( yellow, " getval( %w )\n", [ Cs ] ),  flush( output ),
     component( _, Cs, CsWM, _, _, _ ),
-%    printColor( yellow, " getval( %w ) @ WM %w\n", [ Cs, CsWM ] ),    
-    getval( CsWM, V ). %,
-%    printColor( yellow, " getval( %w ) = %w\n", [ Cs, V ] ),  flush( output ).
+%    printColor( yellow, " getval( %w ) @ WM %w\n", [ Cs, CsWM ] ), flush( output ),       
+    getval( CsWM, V )
+%    , printColor( yellow, " getval( %w ) = %w\n", [ Cs, V ] ),  flush( output )
+    .
 
 
 /**
@@ -221,8 +224,8 @@ update_components :-
 update_component_states( [] ).
 update_component_states( Components ) :-
     Components = [ Comp | Rest ],
-    Comp = component( _C, _Cs, CsWM, CsReal, _CsIv, _CsDv ),
-%    printColor( green, " *** Updating component %w\n", [ C ] ),
+    Comp = component( C, _Cs, CsWM, CsReal, _CsIv, _CsDv ),
+    printColor( green, " *** Updating component %w\n", [ C ] ),
     update_val( CsWM, CsReal ),
     update_component_states( Rest ).
 

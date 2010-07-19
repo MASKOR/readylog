@@ -42,7 +42,7 @@ exec_ask4outcome :- true.
 :- setval( real_coffee_prepared, false ).
 
 % Any requests?
-:- setval( real_request, nil ).
+:- setval( real_requests, [] ).
 
 % Where am I?
 :- setval( real_pos, kitchen ).
@@ -70,7 +70,7 @@ exec_ask4outcome :- true.
 %% sleeping                             %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
-debug_sleep.
+debug_sleep :- fail.
 
 sleep_action :- debug_sleep -> realSleep( 0.5 ) ; realSleep( 0.25 ).
 sleep_wait   :- debug_sleep -> realSleep( 0.5 ) ; realSleep( 1 ).
@@ -85,16 +85,19 @@ update :-
 %	printf(" --- start UPDATE ...\n", []), 
 	%refresh_window,
 	(
-	    getkey( Key ) ->
+	    getkey( Key ) 
+	  ->
 	    translateActionToKey( Key, Action ),
 	    (
-		exog_action( Action )->
-		exoEnQueue( Action ) ;
-		printf("\n%w is not a defined action\n", [Action]),
-                flush( output )
-             )
-             ;
-	     true
+		    exog_action( Action )
+		  ->
+    		exoEnQueue( Action ) 
+          ;
+		    printf("\n%w is not a defined action\n", [Action]),
+            flush( output )
+        )
+      ;
+        true
 	),
 	vis_update,
 	true
@@ -102,6 +105,7 @@ update :-
 	.
 
 vis_update :-
+%    printColor( pink, "*** VIS UPDATE ***\n", [] ),
 	redraw, 
 	% draw the offices 
 	findall( office_loc( Office, Xo, Yo ), office_loc( Office, Xo, Yo ), L ),
@@ -110,19 +114,33 @@ vis_update :-
     % draw kitchen
     kitchen_loc( Xk, Yk ),
 	draw_goal( Xk, Yk ),
-	% agent
+	% draw agent
 	getval( real_pos, R ),
 	( R = kitchen -> kitchen_loc( Xa, Ya ) ; office_loc( R, Xa, Ya ) ),
 	draw_agent( Xa, Ya ),
-	true.
+	% draw requests
+	(
+	    getval( real_requests, Requests ) 
+	  ->
+%	    printEq( 'Requests', Requests ),
+	    draw_requests( Requests )
+	  ;
+	    true
+	).
 	
 draw_offices( [] ).
-draw_offices( [H|T] ) :-
-    H = office_loc( Office, X, Y ),
-%    printColor( pink, " *** Drawing office %w at (%w,%w)\n", [ Office, X, Y ] ),
-    draw_start(X,Y),
-	draw_offices( T ).
+draw_offices( [ H | T ] ) :-
+    H = office_loc( _Office, X, Y ),
 
+    draw_start( X, Y ),
+	draw_offices( T ).
+	
+draw_requests( [] ).
+draw_requests( [ R | T ] ) :-
+    office_loc( R, X, Y ),
+%    printColor( pink, " *** Drawing request %w at (%w,%w)\n", [ R, X, Y ] ),
+    draw_item( X, Y ),
+	draw_requests( T ).
 
 %:- setval( item_xtra_event_enabled,true).
 
@@ -136,9 +154,9 @@ xTra(exogf_Update, _H, _C ) :- !,
 	getval( real_coffee_prepared, V_COFFEE ), 
 	printColor( red, " *** exogf_Update: wm_coffee_prepared = %w\n", [ V_COFFEE ] ),
 	setval( wm_coffee_prepared, V_COFFEE ),
-	getval( real_request, V_REQUEST ), 
-	printColor( red, " *** exogf_Update: wm_request = %w\n", [ V_REQUEST ] ),
-	setval( wm_request, V_REQUEST ),
+	getval( real_requests, V_REQUESTS ), 
+	printColor( red, " *** exogf_Update: wm_requests = %w\n", [ V_REQUESTS ] ),
+	setval( wm_requests, V_REQUESTS ),
 	getval( real_pos, V_POS ), 
 	printColor( red, " *** exogf_Update: wm_pos = %w\n", [ V_POS ] ),
 	setval( wm_pos, V_POS ),
@@ -156,11 +174,11 @@ xTra(exogf_Update, _H, _C ) :- !,
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %% deterministic execution
 
-xTra( _Act, _H, _C ) :-
+xTra( _Act, H, _C ) :-
     has_val( pos, Pos, H ),
 	printColor( pink, "  Pos = %w\n", [ Pos ] ),
-	has_val( request, Req, H ),
-	printColor( pink, "  Request = %w\n", [ Req ] ),
+	has_val( requests, Req, H ),
+	printColor( pink, "  Requests = %w\n", [ Req ] ),
 	has_val( holding, Hld, H ),
 	printColor( pink, "  Holding = %w\n", [ Hld ] ),
 	has_val( located, Loc, H ),
@@ -184,6 +202,7 @@ xTra( Act, _H, _C ) :-
     setval( AWM, true ),
     setval( AReal, true ), 
     fail.
+    
 xTra( Act, _H, _C ) :-
     finisher( A, Act ), 
     nonpreemptive( A, AWM, AReal ),
@@ -230,7 +249,7 @@ xTra( start_take_order( X ), _H, _C ) :-
 xTra( stop_take_order( X ), _H, _C ) :-
 %	printColor( black, " *** xTra stop_take_order(%w)\n", [ X ] ),
 	printColor( red, "WD-42: I have taken the order from person #%w.\n", [ X ] ),
-	setval( real_request, nil ),
+	setval( real_requests, [] ),
 	sleep_action.
 	
 xTra( start_place_order( P ), _H, _C ) :-
@@ -386,9 +405,23 @@ translateActionToKey( Key, Action ) :-
         printf( "*** Please insert room # to issue request at (NO ENTER REQUIRED!):\n", [] ), flush( output ),
         printf( "*** #: ", [] ), flush( output ),
 	    getkey_blocking(Rkey), R is Rkey - 48,
-        printf( "*** You issue a request at room #%w\n", [ R ] ), flush( output ),
-        Action = set_request( R ),
-        setval( real_request, R ).       
+	    dbgXX,
+        printf( "*** You issued a request at room #%w\n", [ R ] ), flush( output ),
+        getval( real_requests, R0 ),
+        (
+            member( R, R0 )
+          ->
+            R1 = R0,
+            printf( "*** There is already a request at room #%w\n", [ R ] ), 
+            flush( output )
+          ;
+            printf( "*** Appending request #%w to '%w'\n", [ R, R0 ] ), 
+            flush( output ),
+            append( [ R ], R0, R1 )
+        ),
+%        Action = set_request( R ),
+        Action = exog_noop,
+        setval( real_requests, R1 ).       
         
 % Show System State Key (s)
 %

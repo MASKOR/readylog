@@ -143,18 +143,19 @@ proc( service,
 		exogf_Update,
         while( true,
         	   [
-        	     while( request = nil,
+        	     while( requests = [],
         	            [ 
         	                wait 
         	            ]),
-   	             ?( request=R ),
-        	     fetch_order(R),
+   	             ?( requests=[ H | _R ] ),
+        	     fetch_order(H),
         	   	 fetch_coffee,
         	   	 deliver_coffee,
         	   	 return
         	   ]
 			)		
       ]).
+service :- testbed( service ).
     
 %% ================================================================== %%
 %%  TESTING PROCEDURES                                                %%
@@ -163,14 +164,14 @@ proc( service,
 /**
  * wt
  *
- * The agent does nothing
+ * The agent does nothing until a request occurs
  */
 proc( wt,
 	  [
 	  	exogf_Update,      
-        while( request = nil, wait )
+        while( requests = [], wait )
 	  ]).
-wt :- vis, icp( wt ).
+wt :- testbed( wt ).
 
 /**
  * wtr
@@ -184,12 +185,12 @@ wt :- vis, icp( wt ).
 proc( wtr,
 	  [
 	  	exogf_Update,      
-        while( request = nil, wait ),
-        ?( request = R ),
-        start_goto( R ),
-        stop_goto( R )
+        while( requests = [], wait ),
+        ?( requests = [ H | _T ] ),
+        start_goto( H ),
+        stop_goto( H )
 	  ]).
-wtr :- vis, icp( wtr ).
+wtr :- testbed( wtr ).
 
 /**
  * wta
@@ -210,7 +211,7 @@ proc( wta,
         % nonpreemptive
         stop_goto( 1 )
 	  ]).
-wta :- icp(wta).
+wta :- testbed( wta ).
 
 /**
  * wtb
@@ -222,7 +223,6 @@ wta :- icp(wta).
  * - move_arm after arm_calibrated
  * Related nonpreemptives: goto
  *
- * Constraints: "goto equals colli=scanning"
  * Does what wta does regarding goto and additionally: both beeps and makes the 
  * motor idle, before starting to pickup the cup and calibrated the arm before,
  * too.
@@ -235,34 +235,50 @@ proc( wtb ,
         start_pickup( cup ), 
         stop_pickup( cup )   
       ]).
-wtb :- icp(wtb).
+wtb :- testbed( wtb ).
 
 
-% Agent sollte 
-% - auf stop_goto warten
-% - nachdem stop_goto tatsächlich ausgeführt würde Beep nach Stop_goto schedulen
-% - bs,start_pickup,stop_pickup,bf schedulen
-% - den kram ausführen
-
+/**
+ * wtc
+ *
+ * Related constraints: 
+ * - move equals colli=scanning
+ * - interfere begins beep
+ * - interact during motor=idle
+ * - move_arm after arm_calibrated
+ * Related nonpreemptives: goto
+ *
+ * Does what wtb does regarding goto and additionally beeps again for drop
+ * (as the arm still is calibrated).
+ */
 proc( wtc ,
       [ 
-        exogf_Update,
-        start_pickup( cup ),
-        stop_pickup( cup ),        
-        start_goto( 1 ), % goto meets beep
-        stop_goto( 1 ),   % nonpreemptive
-        start_drop( cup, 1 ),
-        stop_drop( cup, 1 )
+        exogf_Update,      
+        start_goto( 1 ),     
+        stop_goto( 1 ),      
+        start_pickup( cup ), 
+        stop_pickup( cup ),
+        start_goto( 2 ),     
+        stop_goto( 2 ),  
+        start_drop( cup, 2 ),
+        stop_drop( cup, 2 )
       ]).
-wtc :- icp(wtc).
+wtc :- testbed( wtc ).
 
-proc( wtd ,
-    [
-        exogf_Update,
-        start_goto( 1 ),
-        w( stop_goto( 1 ) )
-    ]).
-wtd :- icp( wtd ).
+/**
+ * testbed/1
+ * Holds if Proc is performed after everything is reset back to intial values
+ */
+testbed( Proc ) :-
+    setval( real_coffee_prepared, false ),
+    setval( real_requests, [] ),
+    setval( real_pos, kitchen ),
+    setval( real_active_action, nil ),
+    setup_components, 
+    setup_nonpreemptive_actions,
+    vis,
+    icp( Proc ).
+
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                   CONSTRAINTS                                %

@@ -71,9 +71,10 @@ exog_occurs(Action,S) :-
  * if an exogenous action occured we put it in the exoQueue.
  */
 exoEnQueue(A) :-
-      printColor( cyan, " -+- exoEnQueue( %w )\n", [A]),
-      assert(exoQueue(A)),
-      printColor( cyan, " --> enqueued '%w' \n", [A]).
+%   printColor( cyan, " -+- exoEnQueue( %w )\n", [A]),
+    assert(exoQueue(A))
+%   , printColor( cyan, " --> enqueued '%w' \n", [A])
+    .
 
 /** test/handle exogenous action.
  * if an exogenous action has occured
@@ -100,17 +101,17 @@ wait_for_exog_occurs( _Act, _H) :-
 wait_for_exog_occurs :- true, !.
 
 exogenous_update :- !,
-%      printColor( cyan, " *** exogenous_update ... \n",[]),
+      printColor( cyan, " *** exogenous_update ... \n",[]),
       % call (worldmodel) update (defined in xTra)
       update, 
       !, 
       (
          % test whether exogf_Update is already enqueued
-         exoQueue(exogf_Update)%,
-         %printColor( cyan, " +++ exogfUpdate already queued +++ \n", [])
+         exoQueue(exogf_Update)
+%        , printColor( cyan, " +++ exogfUpdate already queued +++ \n", [])
       ;
          % enqueue exogf_Update since is hasn't been yet
-         %printColor( cyan, " +++ exoEnQueue(exogf_Update) +++ \n", []),
+%         printColor( cyan, " +++ exoEnQueue(exogf_Update) +++ \n", []),
          exoEnQueue(exogf_Update)
       ), !,
 %      printColor( cyan, " *** exoQueue(reply(action,nil)) +++ \n", []),
