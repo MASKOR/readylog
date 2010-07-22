@@ -39,11 +39,10 @@ prim_action( A ) :- edge( _C, _Start, A, _Goal ).
 
 maintenance_action( A ) :- edge( _C, _Start, A, _Goal ).
     
-%cv :- 
-%    component( Cn, C, _, _, _, _ ),
-%    causes_val( A, C, L, L = T ),
-%    printEq( 'A', A ), printEq( 'C', C ), printEq( 'T', T ), nl, nl.
-    
+prim_fluent( Cs ) :- component( _, Cs, _, _, _, _ ).
+initial_val( Cs, CsIv ) :- component( _, Cs, _, _, CsIv, _ ).
+
+/** EXOGENOUS FLUENT REPRESENTATION **
 exog_prim_fluent( Cs ) :- component( _, Cs, _, _, _, _ ).
 exog_fluent_getValue( Cs, V, _S ) :- !, 
 %    printColor( yellow, " getval( %w )\n", [ Cs ] ),  flush( output ),
@@ -52,7 +51,7 @@ exog_fluent_getValue( Cs, V, _S ) :- !,
     getval( CsWM, V )
 %    , printColor( yellow, " getval( %w ) = %w\n", [ Cs, V ] ),  flush( output )
     .
-
+*/
 
 /**
  * path/6
@@ -189,6 +188,10 @@ prog9 :- P = and( or( eq( motor, slow ), eq( arm, calibrated ) ) ,
  * Initializes each components real values with the initial values from their
  * respective definitions
  */
+setup_components.
+ 
+ 
+/** EXOGENOUS FLUENT REPRESENTATION **
 setup_components :- 
     findall( component( _C, _Cs, _CsWM, _CsReal, _CsIv, _CsDv ),
              component( _C, _Cs, _CsWM, _CsReal, _CsIv, _CsDv ),
@@ -205,6 +208,8 @@ setup_components_states( Components ) :-
 setup_component_value( C, CsReal, CsIv ) :-
     printColor( green, " *** Initializing component %w: %w = %w\n", [ C, CsReal, CsIv ] ),
 	setval( CsReal, CsIv ).
+	
+*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                            COMPONENT UPDATE CYCLE                            %
@@ -215,6 +220,9 @@ setup_component_value( C, CsReal, CsIv ) :-
  * Updates the world model values of every component according to the 
  * component's definition
  */ 
+update_components.
+ 
+/** EXOGENOUS FLUENT REPRESENTATION **
 update_components :-
     findall( component( _C, _Cs, _CsWM, _CsReal, _CsIv, _CsDv ),
              component( _C, _Cs, _CsWM, _CsReal, _CsIv, _CsDv ),
@@ -228,6 +236,7 @@ update_component_states( Components ) :-
     printColor( green, " *** Updating component %w\n", [ C ] ),
     update_val( CsWM, CsReal ),
     update_component_states( Rest ).
+*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                  I/O STUFF                                   %
@@ -246,29 +255,20 @@ get_comp_states( C, L ) :-
  
 printNumberedList( [], _ ) :- !.
 printNumberedList( [ C | R ], I ) :-
-    (
-        component( C, _Cs, _CsWm, CsReal, _CsIv, _CsDv )
-      ->
-        getval( CsReal, S )
-      ;
-        (
-            nonpreemptive( C, _AWW, AReal )
-          ->
-            getval( AReal, S )
-          ;
-            S = 'N/A'
-        )        
-    ),
-    printf( "*** [%w] %w (%w)\n", [ I, C, S ] ),
+    printf( "*** [%w] %w\n", [ I, C ] ),
     J is I + 1,
     printNumberedList( R, J ).
 
+print_components_states( _L ).
+
+/** EXOGENOUS FLUENT REPRESENTATION **
 print_components_states( [ ] ) :- !.
 print_components_states( [ Comp | R ] ) :-
     component( Comp, _Cs, _CsWm, CsReal, _CsIv, _CsDv ),
     getval( CsReal, V ),
     printColor( yellow, "*** Component '%w' is at state '%w'\n", [ Comp, V ] ),
     print_components_states( R ).
+*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                            COMPONENT DEFINITIONS                             %
@@ -277,41 +277,32 @@ print_components_states( [ Comp | R ] ) :-
 /**
  * ARM
  */
-component( arm, arm_state, wm_arm_state, real_arm_state, idle, idle ).
+component( arm, arm_state, wm_arm_state, real_arm_state, idle, calibrated ).
 edge( arm, idle,        start_calibrate,    calibrating ). 
 edge( arm, calibrating, stop_calibrate,     calibrated ). 
 edge( arm, calibrated,  reset_arm,          idle ). 
 edge( arm, defect,      reset_arm,          idle ). 
-%edge( arm, calibrating, reset_arm,         idle ). 
+
 /**
  * COLLI
  */
 component( colli, colli_state, wm_colli_state, real_colli_state, offline, idle ).
-
 edge( colli, offline,   start_colli,    idle ).
 edge( colli, idle,      start_scan,     scanning ).
 edge( colli, scanning,  stop_scan,      idle ).
 edge( colli, idle,      stop_colli,     offline ).
 edge( colli, defect,    restart_colli,  idle ).
 
-
 /**
  * MOTOR
  */
 component( motor, motor_state, wm_motor_state, real_motor_state, offline, idle ).
-edge( motor, idle, shutdown_motor, offline ).
-edge( motor, slow, shutdown_motor, offline ).
-edge( motor, fast, shutdown_motor, offline ).
-edge( motor, offline, initialize_motor, idle ).
+edge( motor, offline, start_motor, idle ).
+edge( motor, idle, stop_motor, offline ).
+edge( motor, idle, start_running, running ).
+edge( motor, running, stop_running, idle ).
 edge( motor, defect, restart_motor, idle ).
-edge( motor, slow, stop_motor, idle ).
-edge( motor, idle, start_motor, slow ).
-edge( motor, fast, decrease_speed, slow ).
-edge( motor, slow, increase_speed, fast ).
-
-
-
-
+edge( motor, running, stop_motor, offline ).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

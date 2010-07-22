@@ -73,3 +73,7 @@ dbgXX  :- true.
 dbgX1  :- true.
 dbgICPGO :- true.
 
+dbg.
+dbgMonitor( Alpha ) :- Alpha = start_scan -> dbg ; true .
+dbgTodo( Alpha ) :- true.
+

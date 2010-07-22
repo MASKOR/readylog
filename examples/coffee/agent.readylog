@@ -76,7 +76,7 @@ proc( fetch_order(R) ,
  */
 proc( fetch_coffee,
 	  [
-	  	exogf_Update, 
+%	  	exogf_Update, 
 	  	?( not( task = nil ) ),
 	  	while( not( pos=kitchen),
 	  		   [ 
@@ -108,7 +108,7 @@ proc( fetch_coffee,
  */
 proc( deliver_coffee,
 	  [
-	  	exogf_Update, 
+%	  	exogf_Update, 
 		?( task = R ),
 		?( not( R = nil ) ),
 		?( holding = coffee ),
@@ -131,6 +131,15 @@ proc( return,
 	  	exogf_Update
 	  ]
 	).
+	
+proc( serve_request ,
+    [
+        ?( requests=[ H | _R ] ),
+        fetch_order(H),
+        fetch_coffee,
+        deliver_coffee,
+        return
+    ]).
 
 /**
  * service/0
@@ -140,22 +149,22 @@ proc( return,
  */
 proc( service,
 	[
-		exogf_Update,
         while( true,
-        	   [
-        	     while( requests = [],
-        	            [ 
-        	                wait 
-        	            ]),
-   	             ?( requests=[ H | _R ] ),
-        	     fetch_order(H),
-        	   	 fetch_coffee,
-        	   	 deliver_coffee,
-        	   	 return
-        	   ]
-			)		
+            [
+        	    exogf_Update,
+                while( requests = [],
+                    [ 
+                        wait 
+                    ]),
+               serve_request
+            ])		
       ]).
 service :- testbed( service ).
+
+s :- 
+    setval( coffee_prepared, true ), 
+    setval( real_requests, [ 8 ] ), 
+    testbed( service ).
     
 %% ================================================================== %%
 %%  TESTING PROCEDURES                                                %%
@@ -169,7 +178,7 @@ service :- testbed( service ).
 proc( wt,
 	  [
 	  	exogf_Update,      
-        while( requests = [], wait )
+        while( requests = [], beep )
 	  ]).
 wt :- testbed( wt ).
 
@@ -265,6 +274,10 @@ proc( wtc ,
       ]).
 wtc :- testbed( wtc ).
 
+proc( pgoto( X ), [ exogf_Update, start_goto( X ), stop_goto( X ) ] ).
+proc( agoto, [ while( true, [ pgoto( 8 ), pgoto( kitchen ) ] ) ] ).
+agoto :- testbed( agoto ).
+
 /**
  * testbed/1
  * Holds if Proc is performed after everything is reset back to intial values
@@ -296,11 +309,12 @@ testbed( Proc ) :-
 % constraint( a, contains, b ).
 % constraint( a, equals, b ).
 
-constraint( move, equals, eq(colli,scanning) ).
+constraint( move, during, eq(colli,scanning) ).
+constraint( move, equals, eq(motor,running) ).
 constraint( interact, begins, beep ).
 constraint( interact, during, eq(motor,idle) ).
-constraint( move_arm, after, eq(arm,calibrated) ).
-%constraint( locate(_X,_Y), during, motor=idle ).
+constraint( move_arm, after, eq(arm,calibrating) ).
+constraint( locate(_X,_Y), during, eq(motor,idle) ).
 
 
 %% TESTING ONLY

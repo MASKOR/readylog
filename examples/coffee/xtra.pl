@@ -31,6 +31,9 @@
 /* do we want to be asked for stochastic action outcomes? */
 exec_ask4outcome :- true.
 
+% Step wise execution?
+:- setval( exec_stepwise, true ).
+
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  exogeneous fluents                  %%
@@ -70,7 +73,7 @@ exec_ask4outcome :- true.
 %% sleeping                             %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
-debug_sleep :- fail.
+debug_sleep :- true.
 
 sleep_action :- debug_sleep -> realSleep( 0.5 ) ; realSleep( 0.25 ).
 sleep_wait   :- debug_sleep -> realSleep( 0.5 ) ; realSleep( 1 ).
@@ -141,6 +144,11 @@ draw_requests( [ R | T ] ) :-
 %    printColor( pink, " *** Drawing request %w at (%w,%w)\n", [ R, X, Y ] ),
     draw_item( X, Y ),
 	draw_requests( T ).
+	
+printVal( Name, H ) :-
+    has_val( Name, V, H ),
+	printColor( black, "  %w = %w\n", [ Name, V ] ).
+    
 
 %:- setval( item_xtra_event_enabled,true).
 
@@ -174,23 +182,40 @@ xTra(exogf_Update, _H, _C ) :- !,
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %% deterministic execution
 
-xTra( _Act, H, _C ) :-
-    has_val( pos, Pos, H ),
-	printColor( pink, "  Pos = %w\n", [ Pos ] ),
-	has_val( requests, Req, H ),
-	printColor( pink, "  Requests = %w\n", [ Req ] ),
-	has_val( holding, Hld, H ),
-	printColor( pink, "  Holding = %w\n", [ Hld ] ),
-	has_val( located, Loc, H ),
-	printColor( pink, "  Located = %w\n", [ Loc ] ),
-	has_val( calibrated, Cal, H ),
-	printColor( pink, "  Calibrated = %w\n", [ Cal ] ),
-	has_val( task, Task, H ),
-	printColor( pink, "  Task = %w\n", [ Task ] ),
-%	getval( coffee_prepared, CoffPrep ),
-%	printColor( pink, "  wm_coffee_prepared = %w\n", [ CoffPrep ] ),
-	flush(output),
+/**
+ * Print agent state to screen
+ */
+xTra( Act, H, _C ) :-
+    ( Act \= wait, Act \= wait( _A ), Act \= noop, Act \= exog_noop ),
+    getval( exec_stepwise, true ),
+    printColor( black, "********** AGENT STATE **********\n", [] ),
+    printVal( pos, H ),
+	printVal( requests, H ),
+	printVal( holding, H ),
+	printVal( located, H ),
+	printVal( task, H ), 
+	printVal( colli_state, H ),
+	printVal( arm_state, H ),
+	printVal( motor_state, H ),
+%	printVal( calibrated, H ),
+	printVal( coffee_prepared, H ),
+    get_active_npr_actions_list( Actions ),
+    printNumberedList( Actions, 0 ),
+	flush(output),	
+	printColor( black, " Press 'x' to abort stepwise execution, any other key to continue: \n", [] ), 
+	printColor( black, " You can return to stepwise execution any time by pressing 'x' again: \n", [] ), 
+	flush( output ),
+	getkey_blocking( Key ), 
+	(
+	    Key = 120
+	  ->
+	    setval( exec_stepwise, false )
+	  ; 
+	    true
+	),	
 	fail.
+	
+
 
 /**
  * Handling of nonpreemptive actions. 
@@ -239,8 +264,6 @@ xTra( stop_goto( R ), _H, _C ) :-
     printColor( red, " *** xTra: real_pos = %w\n", [ R ] ),
 	sleep_action.
 	
-% icp([exogf_Update,start_goto(1),stop_goto(1),wait])
-	
 xTra( start_take_order( X ), _H, _C ) :-
 %	printColor( black, " *** xTra start_take_order(%w)\n", [ X ] ),
 	printColor( red, "WD-42: Starting to take order from person #%w.\n", [ X ] ),
@@ -249,7 +272,9 @@ xTra( start_take_order( X ), _H, _C ) :-
 xTra( stop_take_order( X ), _H, _C ) :-
 %	printColor( black, " *** xTra stop_take_order(%w)\n", [ X ] ),
 	printColor( red, "WD-42: I have taken the order from person #%w.\n", [ X ] ),
-	setval( real_requests, [] ),
+	getval( real_requests, Val ),
+	Val = [ _CurrentRequest | Remaining ],
+	setval( real_requests, Remaining ),
 	sleep_action.
 	
 xTra( start_place_order( P ), _H, _C ) :-
@@ -279,9 +304,9 @@ xTra( start_interact, _H, _C ) :-
 
 % nonpreemptive actions
 %	
-xTra( end( A ), _H, _C ) :- prim_action( A ), npr( A ), !, 
-    printColor( pink, " *** xTra end(%w) finished", [ A ] ),
-    setval( wm_active_action, nil ).	
+%xTra( end( A ), _H, _C ) :- prim_action( A ), npr( A ), !, 
+%    printColor( pink, " *** xTra end(%w) finished", [ A ] ),
+%    setval( wm_active_action, nil ).	
 
 
 
@@ -303,10 +328,10 @@ xTra( cout(Color,F,V), _H, _C) :- !,
 %% COMPONENT ACTIONS %%%%%%%%%%%%%%%%%% %%
 
 xTra( A, _H, _C ) :-
-    component( C, _Cs, _CsWM, CsReal, _, _ ),
-    getval( CsReal, V ),
+    component( C, _Cs, _CsWM, _CsReal, _, _ ),
+%    getval( CsReal, V ),
     edge( C, V, A, G ),
-    setval( CsReal, G ),
+%    setval( CsReal, G ),
     printColor( pink, " *** xTra: Translating %w from %w with %w to %w\n", [ C, V, A, G ] ),
     sleep_action.
 
@@ -343,9 +368,16 @@ translateActionToKey( Key, Action ) :-
 	    getkey_blocking( Jkey ), J is Jkey - 48,
 	    get_comp_state( States, J, State ),
 	    printf( "*** Setting state of %w to %w.\n", [ Comp, State ] ), flush( output ),
+	    
+	    component( Comp, Cs, _CsWm, _CsReal, _CsIv, _CsDv ),
+	    Action = set_component( Cs, State ).
+	    
+	    /** EXOGENOUS FLUENT REPRESENTATION **
 	    component( Comp, _Cs, _CsWm, CsReal, _CsIv, _CsDv ),
 	    setval( CsReal, State ),
 	    Action = exog_noop.
+	    */
+	    
 	    
 % End Action Key (e)
 %
@@ -378,16 +410,7 @@ translateActionToKey( Key, Action ) :-
         )
     ),
     Action = exog_noop.
-        
-% End Action Key (n)
-%
-translateActionToKey( Key, Action ) :-
-    Key = 110, !,
-    printf( "Got Key 'n'! -> show_nonpreemptive_actions\n", [] ), flush( output ),
-    % 1. List active nonpreemptive actions
-    get_active_npr_actions_list( Actions ),
-    printNumberedList( Actions, 0 ),
-    Action = exog_noop.
+
 
 % Prepare Coffee Key (p)
 %
@@ -417,21 +440,12 @@ translateActionToKey( Key, Action ) :-
           ;
             printf( "*** Appending request #%w to '%w'\n", [ R, R0 ] ), 
             flush( output ),
-            append( [ R ], R0, R1 )
+            append( R0, [ R ], R1 )
         ),
 %        Action = set_request( R ),
         Action = exog_noop,
         setval( real_requests, R1 ).       
-        
-% Show System State Key (s)
-%
-translateActionToKey( Key, Action ) :-
-        Key = 115, !,
-        printf( "Got Key 's'! -> system_state\n", [] ), flush( output ),
-        get_comp_list( Components ),
-        print_components_states( Components ),
-        flush( output ),
-        Action = exog_noop.
+       
 
 % Teleport Button (t)
 %
@@ -444,6 +458,14 @@ translateActionToKey( Key, Action ) :-
         printf( "*** You want to teleport to room #%w\n", [ R ] ), flush( output ),
         Action = teleport( R ),
         setval( real_pos, R ).
+        
+% Return to stepwise mode (x)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 120, !,
+        printf( "Got Key 'x'! -> returning to stepwise mode\n", [] ),
+        setval( exec_stepwise, true ),
+        Action = exog_noop.
 
 % Unknown Case
 %

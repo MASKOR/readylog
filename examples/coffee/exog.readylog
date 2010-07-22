@@ -61,20 +61,22 @@ execute( Action, _Sense_val, S, C) :- !,
  * by checking if we can dequeue it from the exoQueue.
  */
 exog_occurs(Action,S) :- 
-%      printColor( cyan, " *** testing whether exog occured \n", []),
-      holds(online=true, S),
-%      printColor( cyan, " *** exog_occurs: we're online \n", []),
-      exoDeQueue(Action),
-      printColor( cyan, " *** exog_occurs(%w,%w) \n", [Action,S]).
+    printColor( cyan, " *** testing whether exog occured \n", []),
+    holds(online=true, S),
+    printColor( cyan, " *** exog_occurs: we're online \n", []),
+    findall( A, exoQueue(A), L ),
+    printf("  exog actions 1: '%w'\n", [ L ] ),
+    dbgXX,
+    exoDeQueue(Action),
+    printColor( cyan, " *** exog_occurs(%w,%w) \n", [Action,S]).
 
 /** exogenous action occured.
  * if an exogenous action occured we put it in the exoQueue.
  */
 exoEnQueue(A) :-
-%   printColor( cyan, " -+- exoEnQueue( %w )\n", [A]),
-    assert(exoQueue(A))
-%   , printColor( cyan, " --> enqueued '%w' \n", [A])
-    .
+    printColor( cyan, " -+- exoEnQueue( %w )\n", [A]),
+    assert(exoQueue(A)), 
+    printColor( cyan, " --> enqueued '%w' \n", [A]).
 
 /** test/handle exogenous action.
  * if an exogenous action has occured
@@ -82,11 +84,13 @@ exoEnQueue(A) :-
  * this predicate fails otherwise.
  */
 exoDeQueue(A) :- 
-      exoQueue(A),
-      printColor( cyan, " -+- exoDeQueue( %w )\n", [A]),
-      retract(exoQueue(A)),
-      printColor( cyan, " --> dequeued '%w' \n", [A]).
-
+    printColor( cyan, " -+- exoDeQueue\n", []),
+    findall( Ar, exoQueue(Ar), L ),
+    printf("  exog actions 3: '%w'\n", [ L ] ),
+    exoQueue(A),
+    printColor( cyan, " -+- exoDeQueue( %w )\n", [A]),
+    retract(exoQueue(A)),
+    printColor( cyan, " --> dequeued '%w' \n", [A] ).
 
 /** wait for an exogenous action to occur.
  * since there is no real execution system yet 

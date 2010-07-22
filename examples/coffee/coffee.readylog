@@ -98,6 +98,14 @@ prim_action( beep ).
 poss( beep, true ).
 causes_val( beep, pos, pos ).
 
+prim_action( set_task( _V ) ).
+poss( set_task( _V ), true ).
+causes_val( set_task( V ), task, L, and( [L=V] ) ).
+
+prim_action( set_holding( _V ) ).
+poss( set_holding( _V ), true ).
+causes_val( set_holding( V ), holding, L, and( [L=V] ) ).
+
 % Waits for the end of the nonpreemtive action given as argument
 prim_action( wait( _A ) ).
 poss( wait( _A ), true ).
@@ -107,38 +115,6 @@ causes_val( wait( _A ), pos, pos ).
 prim_action( finish( _A ) ).
 poss( finish( _A ), true ).
 causes_val( finish( _A ), pos, pos ).
-
-%prim_action( start_colli ).
-%prim_action( stop_colli ).
-%prim_action( restart_colli ).
-%poss( finish( _A ), true ).
-%causes_val( finish( _A ), pos, pos ).
-
-%% EXOGENOUS PRIMITIVE ACTIONS 
-
-exog_action( end( _A ) ).
-poss( end( _A ), true ).
-causes_val( end( _A ), pos, pos ).
-
-prim_action( set_task( _V ) ).
-poss( set_task( _V ), true ).
-causes_val( set_task( V ), task, L, and( [L=V] ) ).
-
-prim_action( set_holding( _V ) ).
-poss( set_holding( _V ), true ).
-causes_val( set_holding( V ), holding, L, and( [L=V] ) ).
-
-exog_action( prepare_coffee ).
-poss( prepare_coffee, true).
-causes_val( prepare_coffee, coffee_prepared, L, L = true ).
-
-%exog_action( set_requests( _V ) ).
-%poss( set_requests( _V ), true ).
-%causes_val( set_requests( V ), requests, L, L = V ).
-
-exog_action( exog_noop ).
-poss( exog_noop, true).
-causes_val( exog_noop, pos, pos ).
 
 %% prim_actions for debug output.
 
@@ -151,10 +127,36 @@ poss( cout( _Text, _Params ), true ).
 prim_action( cout( _Color, _Text, _Params ) ).
 poss( cout( _Color, _Text, _Params ), true ).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% EXOGENOUS PRIMITIVE ACTIONS          %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%exog_action( end( _A ) ).
+%poss( end( _A ), true ).
+%causes_val( end( _A ), pos, pos ).
+
+% Prepares a cup of coffee in the kitchen
+exog_action( prepare_coffee ).
+poss( prepare_coffee, true).
+causes_val( prepare_coffee, coffee_prepared, L, L = true ).
+
+% Sometimes there just is nothing to do
+exog_action( exog_noop ).
+poss( exog_noop, true).
+causes_val( exog_noop, pos, pos ).
+
+% Exogenous manipulation of component values
+exog_action( set_component( _Cs, _V ) ).
+poss( set_component( _Cs, _V ), true ).
+causes_val( set_component( Cs, V ), Cs, V, true ).
+
+% Teleport the agent to the passed room - quite useless here
+exog_action( teleport( _R ) ).
+poss( teleport( _R ), true ).
+causes_val( teleport( R ), pos, R, true ) .
 
 %% NONPREEMPTIVE ACTIONS
  
-nonpreemptive( goto( _R ), wm_going_to, real_going_to ). 
+nonpreemptive( goto( _R ), wm_going_to, real_going_to ) :- fail.
 
 %% MAINTENANCE ACTIONS
 
@@ -166,9 +168,6 @@ maintenance_action( A ) :-
     prim_action( A ), ( starter( C, A ) ; finisher( C, A ) ), maintenance_action( C ).
 
 %% COMPLEX ACTIONS
-
-complex_action( goto(R), start_goto(R), stop_goto(R), going_to ).
-complex_action( take_order(P), start_take_order(P), stop_take_order(P), taking_order).
 complex_action( place_order(P), start_place_order(P), stop_place_order(P), placing_order).
 complex_action( pickup(X), start_pickup(X), stop_pickup(X), picking_up ).
 complex_action( locate(P,R), start_locate(P,R), stop_locate(P,R), locating ).
@@ -192,18 +191,8 @@ complex_action( b, bs, bf, bfl ).
 complex_action( c, cs, cf, cfl ).
 
 
-poss( goto(R) , 
-	  and([ room(R),
-	  		not(pos=R)
-	  	  ])
-	).
-poss( take_order(P), 
-	  and([ requests=[ R | _T ], 
-	        pos=R,
-	        in(R,P),
-	        located=P
-	      ])
-	).
+
+
 poss( place_order(_P), 
 	  and([ not(task=nil), 
 	        pos=kitchen,
@@ -230,10 +219,28 @@ poss( b, true ).
 poss( c, true ).
 poss( d, holding=nil ).
 
+% goto/1
+complex_action( goto(R), start_goto(R), stop_goto(R), going_to ).
+poss( goto(R) , 
+	  and([ room(R),
+	  		not(pos=R)
+	  	  ])
+	).
 causes_val( goto( R ), pos, L, L = R ).
 causes_val( goto( _ ), located, L, and([L=nil]) ).
+
+% take_order/1
+complex_action( take_order(P), start_take_order(P), stop_take_order(P), taking_order).
+poss( take_order(P), 
+	  and([ requests=[ R | _T ], 
+	        pos=R,
+	        in(R,P),
+	        located=P
+	      ])
+	).
 causes_val( take_order(_), task, R, and([ requests=[ R | _T ] ]) ).
 causes_val( take_order(_), requests, T, and([ requests=[ _R | T ] ]) ).
+
 causes_val( place_order(_P), pos, pos ).
 causes_val( pickup(X), holding, L, and([ L=X ]) ).
 causes_val( pickup(X), coffee_prepared, L, and([ X=coffee, L=false ]) ).
@@ -416,6 +423,8 @@ extends( place_order( _P ), interact ).
 extends( move_arm, interact ).
 extends( pickup( _X ), move_arm ).
 extends( drop( _X, _R ), move_arm ).
+extends( walk_and_talk, move ).
+extends( walk_and_talk, interact ).
 
 /**
  * descendant/2
