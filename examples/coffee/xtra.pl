@@ -77,6 +77,7 @@ debug_sleep :- true.
 
 sleep_action :- debug_sleep -> realSleep( 0.5 ) ; realSleep( 0.25 ).
 sleep_wait   :- debug_sleep -> realSleep( 0.5 ) ; realSleep( 1 ).
+sleep_npr    :- debug_sleep -> realSleep( 4 )   ; true .% else they're nonpreemptive
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %% update loop                          %%
@@ -251,18 +252,18 @@ xTra( prepare_coffee, _H, _C ) :-
 	setval( real_coffee_prepared, true ),
 	sleep_action.
 	
-xTra( start_goto( _R ), _H, _C ) :-
+xTra( start_goto( R ), _H, _C ) :-
 %	printColor( black, " *** xTra start_goto(w)\n", [ R ] ),
 %	nonpreemptive( goto( _R ), _GWM, GReal ),
 %	getval( GReal, V ),
-%	printColor( red, " *** xTra: real_going_to = %w\n", [ V ] ),
-	sleep_action.
+	printColor( red, " *** xTra: Started going to room #%w\n", [ R ] ),
+	sleep_npr.
 	
 xTra( stop_goto( R ), _H, _C ) :-
 	printColor( red, " *** xTra: stop_goto(%w)\n", [ R ] ),
     setval( real_pos, R ),
     printColor( red, " *** xTra: real_pos = %w\n", [ R ] ),
-	sleep_action.
+	sleep_npr.
 	
 xTra( start_take_order( X ), _H, _C ) :-
 %	printColor( black, " *** xTra start_take_order(%w)\n", [ X ] ),

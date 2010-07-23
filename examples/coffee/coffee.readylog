@@ -156,7 +156,7 @@ causes_val( teleport( R ), pos, R, true ) .
 
 %% NONPREEMPTIVE ACTIONS
  
-nonpreemptive( goto( _R ), wm_going_to, real_going_to ) :- fail.
+nonpreemptive( goto( _R ), wm_going_to, real_going_to ) :- true.
 
 %% MAINTENANCE ACTIONS
 

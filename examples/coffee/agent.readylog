@@ -178,7 +178,7 @@ s :-
 proc( wt,
 	  [
 	  	exogf_Update,      
-        while( requests = [], beep )
+        while( requests = [], [ wait, beep ] )
 	  ]).
 wt :- testbed( wt ).
 
