@@ -31,6 +31,8 @@
 :- ensure_loaded("coffee.readylog").
 %% Agent Components 
 :- ensure_loaded("agent_components.readylog").
+%% Testing
+:- ensure_loaded("tests.readylog").
 %% Functions
 :- ensure_loaded("functions.readylog").
 %% Debugging stuff
@@ -49,10 +51,9 @@
 :- ["../../include/gridvis.pl"].
 
       
-%% ================================================================== %%
-%%  PROCEDURES                                                        %%
-%% ================================================================== %%
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PROCEDURES                                                                   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 /**
  * fetch_order/1
@@ -87,9 +88,6 @@ proc( fetch_coffee,
 	  		 ),	  	
 	  	start_locate(P,kitchen), stop_locate(P,kitchen),
 	  	?( P = chef ),
-	  	% if not coffee_prepared
-	  	% while ( not_coffee_prepared )
-	  	% 	noop
 	  	while( not( coffee_prepared = true ),
                [
                  ?( task = T ),
@@ -159,174 +157,24 @@ proc( service,
                serve_request
             ])		
       ]).
-service :- testbed( service ).
-
-s :- 
-    setval( coffee_prepared, true ), 
-    setval( real_requests, [ 8 ] ), 
-    testbed( service ).
-    
-%% ================================================================== %%
-%%  TESTING PROCEDURES                                                %%
-%% ================================================================== %%
-
-/**
- * wt
- *
- * The agent does nothing until a request occurs
- */
-proc( wt,
-	  [
-	  	exogf_Update,      
-        while( requests = [], [ wait, beep ] )
-	  ]).
-wt :- testbed( wt ).
-
-/**
- * wtr
- *
- * Related constraints: "move equals colli=scanning"
- * Related nonpreemptives: goto
- *
- * The agent does nothing until a request is issued; then agent teleports there
- *
- */
-proc( wtr,
-	  [
-	  	exogf_Update,      
-        while( requests = [], wait ),
-        ?( requests = [ H | _T ] ),
-        start_goto( H ),
-        stop_goto( H )
-	  ]).
-wtr :- testbed( wtr ).
-
-/**
- * wta
- *
- * Related constraints: "move equals colli=scanning"
- * Related nonpreemptives: goto
- *
- * Agent will start colli.scanning before starting to go to '1' and will stop
- * scanning right afterwards. Goto is nonpreemptive, thus you have to stop the 
- * action exogenously (during simulation by pressing 'e' while waiting). You 
- * could also interfere with the colli's state by pressing 'c' and selecting
- * both the colli and a new state from the lists displayed.
- */
-proc( wta,
-	  [
-	  	exogf_Update,      
-        start_goto( 1 ), 
-        % nonpreemptive
-        stop_goto( 1 )
-	  ]).
-wta :- testbed( wta ).
-
-/**
- * wtb
- *
- * Related constraints: 
- * - move equals colli=scanning
- * - interfere begins beep
- * - interact during motor=idle
- * - move_arm after arm_calibrated
- * Related nonpreemptives: goto
- *
- * Does what wta does regarding goto and additionally: both beeps and makes the 
- * motor idle, before starting to pickup the cup and calibrated the arm before,
- * too.
- */
-proc( wtb ,
-      [ 
-        exogf_Update,      
-        start_goto( 1 ),     
-        stop_goto( 1 ),      
-        start_pickup( cup ), 
-        stop_pickup( cup )   
-      ]).
-wtb :- testbed( wtb ).
-
-
-/**
- * wtc
- *
- * Related constraints: 
- * - move equals colli=scanning
- * - interfere begins beep
- * - interact during motor=idle
- * - move_arm after arm_calibrated
- * Related nonpreemptives: goto
- *
- * Does what wtb does regarding goto and additionally beeps again for drop
- * (as the arm still is calibrated).
- */
-proc( wtc ,
-      [ 
-        exogf_Update,      
-        start_goto( 1 ),     
-        stop_goto( 1 ),      
-        start_pickup( cup ), 
-        stop_pickup( cup ),
-        start_goto( 2 ),     
-        stop_goto( 2 ),  
-        start_drop( cup, 2 ),
-        stop_drop( cup, 2 )
-      ]).
-wtc :- testbed( wtc ).
-
-proc( pgoto( X ), [ exogf_Update, start_goto( X ), stop_goto( X ) ] ).
-proc( agoto, [ while( true, [ pgoto( 8 ), pgoto( kitchen ) ] ) ] ).
-agoto :- testbed( agoto ).
-
-/**
- * testbed/1
- * Holds if Proc is performed after everything is reset back to intial values
- */
-testbed( Proc ) :-
-    setval( real_coffee_prepared, false ),
-    setval( real_requests, [] ),
-    setval( real_pos, kitchen ),
-    setval( real_active_action, nil ),
-    setup_components, 
-    setup_nonpreemptive_actions,
-    vis,
-    icp( Proc ).
-
+service :- testbed( service ).    
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                   CONSTRAINTS                                %
+% CONSTRAINTS                                                                  %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% constraint( a, before, b ).
-% constraint( a, after, b ).
-% constraint( a, meets, b ).
-% constraint( a, metby, b ).
-% constraint( a, begins, b ).
-% constraint( a, ends, b ).
-% constraint( a, overlaps, b ).
-% constraint( a, overlappedby, b ).
-% constraint( a, during, b ).
-% constraint( a, contains, b ).
-% constraint( a, equals, b ).
-
+/**
+ * constraint/3
+ * Relates task actions to maintenance action or component expressions.
+ * Valid constraint relations are: before, after, meets, metby, begins, ends,
+ * overlaps, overlappedby, during, contains, and equals.
+ */
 constraint( move, during, eq(colli,scanning) ).
 constraint( move, equals, eq(motor,running) ).
 constraint( interact, begins, beep ).
 constraint( interact, during, eq(motor,idle) ).
 constraint( move_arm, after, eq(arm,calibrating) ).
 constraint( locate(_X,_Y), during, eq(motor,idle) ).
-
-
-%% TESTING ONLY
-%constraint( goto( _X ), meets, beep ).
-%constraint( goto( _X ), during, scan ).
-%constraint( move_arm, after, calibrate ).
-% constraint( goto(_X), startedby, a ).
-%constraint( goto(_X), starts, b ).
-%constraint( goto(_X), metby, c ).
-%constraint( goto(_X), meets, d ).
-% -> NO solution if all five actions have to perform within eenv of _goto
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- write(" <-- loading agent.readylog done.\n").

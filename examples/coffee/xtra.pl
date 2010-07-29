@@ -372,14 +372,7 @@ translateActionToKey( Key, Action ) :-
 	    
 	    component( Comp, Cs, _CsWm, _CsReal, _CsIv, _CsDv ),
 	    Action = set_component( Cs, State ).
-	    
-	    /** EXOGENOUS FLUENT REPRESENTATION **
-	    component( Comp, _Cs, _CsWm, CsReal, _CsIv, _CsDv ),
-	    setval( CsReal, State ),
-	    Action = exog_noop.
-	    */
-	    
-	    
+	        	    
 % End Action Key (e)
 %
 translateActionToKey( Key, Action ) :-

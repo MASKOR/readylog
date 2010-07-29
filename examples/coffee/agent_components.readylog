@@ -26,10 +26,6 @@
 causes_val( Act, CompState, L, L = ToState ) :-
     component( C, CompState, _CsWm, _CsReal, _CsIv, _CsDv ),
     edge( C, _FromState, Act, ToState ).
-%causes_val( Act, CompState, L, L = ToState ) :-
-%    component( C, CompState, _CsWm, _CsReal, _CsIv, _CsDv ),
-%    finisher( A, Act ),
-%    edge( C, _FromState, A, ToState ).
     
 poss( A, and([ Cs=Start ]) ) :- 
     component( C, Cs, _CsWm, _CsReal, _CsIv, _CsDv ),
@@ -42,16 +38,9 @@ maintenance_action( A ) :- edge( _C, _Start, A, _Goal ).
 prim_fluent( Cs ) :- component( _, Cs, _, _, _, _ ).
 initial_val( Cs, CsIv ) :- component( _, Cs, _, _, CsIv, _ ).
 
-/** EXOGENOUS FLUENT REPRESENTATION **
-exog_prim_fluent( Cs ) :- component( _, Cs, _, _, _, _ ).
-exog_fluent_getValue( Cs, V, _S ) :- !, 
-%    printColor( yellow, " getval( %w )\n", [ Cs ] ),  flush( output ),
-    component( _, Cs, CsWM, _, _, _ ),
-%    printColor( yellow, " getval( %w ) @ WM %w\n", [ Cs, CsWM ] ), flush( output ),       
-    getval( CsWM, V )
-%    , printColor( yellow, " getval( %w ) = %w\n", [ Cs, V ] ),  flush( output )
-    .
-*/
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                              PROGRAM SYNTHESIS                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 /**
  * path/6
@@ -67,7 +56,6 @@ path( C, S, G, P, I, N ) :-
     J is I + 1,
     path( C, S1, G, P1, J, N ), 
     append( [ A ], P1, P ).
-%    P = [ A | P1 ].
     
 /**
  * max_length/2
@@ -110,20 +98,7 @@ program( C, G, H, P ) :-
     printEq( 'P' , P ),
     flush(output),
     project( P, H ), !.
-    
-% path(motor, moto_off, slow, P ).
-
-% icp( [exogf_Update, ?(arm_state=R), cout(R) ] ).
-% 
-
-init :- icp( [exogf_Update, ?(arm_state=R), cout(R), start_calibrate, ?(arm_state=S), cout(S), exogf_Update ] ).
-
-i0 :- icp( [ exogf_Update, wait ] ) .
-   
-prg0 :- setval(real_arm_state,idle), setval(wm_arm_state,idle),
-    program( arm, moving, [exogf_Update, s0], P ), printEq( 'P', P ).
-    
-    
+       
 prog( not( and( P, Q ) ), S, Prog ) :-
     printColor( pink, "not( and( %w, %w ) )\n", [ P, Q ] ),
     !, prog( not( P ), S, Prog1 ), prog( not( Q ), S, Prog2 ),
@@ -165,19 +140,6 @@ prog( eq( C, V ), S, Prog ) :-
       ;
         program( C, V, S, Prog )
     ).
-    
-prog0 :- P = eq( motor, slow ), 
-         prog( P, [s0], Q ), printEq( 'Q', Q ).
-prog1 :- P = eq( arm, calibrated ), 
-         prog( P, [s0], Q ), printEq( 'Q', Q ).
-prog2 :- P = not( eq( arm, calibrated ) ) , 
-         prog( P, [s0], Q ), printEq( 'Q', Q ).
-prog5 :- P = and( eq( motor, slow ), eq( arm, calibrated ) ),
-         prog( P, [s0], Q ), printEq( 'Q', Q ).
-prog9 :- P = and( or( eq( motor, slow ), eq( arm, calibrated ) ) ,
-                  not( eq( colli, scanning ) ) ),
-         prog( P, [s0], Q ),
-         printEq( 'Q', Q ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                INITIAL SETUP                                 %
@@ -188,29 +150,9 @@ prog9 :- P = and( or( eq( motor, slow ), eq( arm, calibrated ) ) ,
  * Initializes each components real values with the initial values from their
  * respective definitions
  */
+ %todo: find all references and remove me
 setup_components.
  
- 
-/** EXOGENOUS FLUENT REPRESENTATION **
-setup_components :- 
-    findall( component( _C, _Cs, _CsWM, _CsReal, _CsIv, _CsDv ),
-             component( _C, _Cs, _CsWM, _CsReal, _CsIv, _CsDv ),
-             Components ),
-    setup_components_states( Components ).
-
-setup_components_states( [] ).    
-setup_components_states( Components ) :-
-    Components = [ Comp | Rest ],
-    Comp = component( C, _Cs, _CsWM, CsReal, CsIv, _CsDv ),
-    setup_component_value( C, CsReal, CsIv ),
-    setup_components_states( Rest ).
-    
-setup_component_value( C, CsReal, CsIv ) :-
-    printColor( green, " *** Initializing component %w: %w = %w\n", [ C, CsReal, CsIv ] ),
-	setval( CsReal, CsIv ).
-	
-*/
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                            COMPONENT UPDATE CYCLE                            %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -220,23 +162,8 @@ setup_component_value( C, CsReal, CsIv ) :-
  * Updates the world model values of every component according to the 
  * component's definition
  */ 
+ %todo: find all references and remove me
 update_components.
- 
-/** EXOGENOUS FLUENT REPRESENTATION **
-update_components :-
-    findall( component( _C, _Cs, _CsWM, _CsReal, _CsIv, _CsDv ),
-             component( _C, _Cs, _CsWM, _CsReal, _CsIv, _CsDv ),
-             Components ),
-    update_component_states( Components ).
-    
-update_component_states( [] ).
-update_component_states( Components ) :-
-    Components = [ Comp | Rest ],
-    Comp = component( C, _Cs, CsWM, CsReal, _CsIv, _CsDv ),
-    printColor( green, " *** Updating component %w\n", [ C ] ),
-    update_val( CsWM, CsReal ),
-    update_component_states( Rest ).
-*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                  I/O STUFF                                   %
@@ -260,15 +187,6 @@ printNumberedList( [ C | R ], I ) :-
     printNumberedList( R, J ).
 
 print_components_states( _L ).
-
-/** EXOGENOUS FLUENT REPRESENTATION **
-print_components_states( [ ] ) :- !.
-print_components_states( [ Comp | R ] ) :-
-    component( Comp, _Cs, _CsWm, CsReal, _CsIv, _CsDv ),
-    getval( CsReal, V ),
-    printColor( yellow, "*** Component '%w' is at state '%w'\n", [ Comp, V ] ),
-    print_components_states( R ).
-*/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                            COMPONENT DEFINITIONS                             %
@@ -303,7 +221,6 @@ edge( motor, idle, start_running, running ).
 edge( motor, running, stop_running, idle ).
 edge( motor, defect, restart_motor, idle ).
 edge( motor, running, stop_motor, offline ).
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- writeln(" <----- Loading agent_components.readylog \t[DONE]\n").

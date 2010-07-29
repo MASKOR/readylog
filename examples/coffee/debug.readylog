@@ -5,17 +5,6 @@
 start :- spy dbgST, dbgFT, dbgRC, dbgWFE.
 
 reset :- reset_commitments.
-
-%xTra( A, S ) :- prim_action( A ), !, print_action( A, S ).
-%xTra( A, S ) :- starter( _A, A ), !, print_action( A, S ).
-%xTra( A, S ) :- finisher( _A, A ), !, print_action( A, S ).
-
-%print_action( A, S ) :-
-%    printColor( black, "\nPerforming '", [] ),
-%    printColor( green, "%w", [A] ),
-%    printColor( black, "' in sit '", [] ), 
-%    printColor( green, "%w", [S] ),
-%    printColor( black, "'\n\n", [] ).
     
 printConstraintList( _, [] ).
 printConstraintList( Color, [ H | T ] ) :- 
@@ -64,7 +53,7 @@ printEq( Name, Value ) :- printColor( blue, "%w = '%w'\n", [ Name, Value ] ).
 printDebug( Color, Text, Variables ) :-
     printColor( Color, Text, Variables ).
     
-% Nur für spy
+% Named spy points
 dbgST  :- true. % StartTrans
 dbgFT  :- true. % FinishTrans
 dbgRC  :- true. % Recover from commitments
