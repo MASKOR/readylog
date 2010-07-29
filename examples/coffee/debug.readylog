@@ -1,0 +1,69 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                DEBUG UTILITIES                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+start :- spy dbgST, dbgFT, dbgRC, dbgWFE.
+
+reset :- reset_commitments.
+    
+printConstraintList( _, [] ).
+printConstraintList( Color, [ H | T ] ) :- 
+    H = production_rule( A, Pi, B, _Alpha, C, _X, _T, _M ),
+    printColor( Color, " - '%w %w %w' with condition:\n    '%w'\n", [ A, Pi, B, C ] ),
+    printConstraintList( Color, T ).
+
+printConstraintList( Color, Header, List ) :- 
+    printColor( Color, "%w\n", [ Header ] ),
+    printConstraintList( Color, List ).
+       
+printTokens( [] ).
+printTokens( [ sometime( A ) | T ] ) :-   !, printColor( yellow, " Sometime '%w'\n", [ A ] ), printTokens( T ).    
+printTokens( [ after( A, B ) | T ] ) :-   !, printColor( yellow, " After '%w' perform '%w'\n", [ A, B ] ), printTokens( T ).
+printTokens( [ within( A, N ) | T ] ) :-  !, printColor( yellow, " '%w' within '%w'\n", [ A, N ] ), printTokens( T ).
+printTokens( [ then( A, B, N ) | T ] ) :- !, printColor( yellow, " '%w' after '%w' within '%w' \n", [ B, A, N ] ), printTokens( T ).   
+printTokens( [ until( B, P ) | T ] ) :-  !, printColor( yellow, " '%w' until '%w'\n", [ P, B ] ), printTokens( T ).
+printTokens( [ between( A, B, P ) | T ] ) :- !, printColor( yellow, " '%w' between '%w' and '%w' \n", [ P, A, B ] ), printTokens( T ).   
+printTokens( [ noop | T ] ) :- !, printTokens( T ).
+printTokens( [ H | T ] ) :- !, printColor( yellow, " (%w)\n", [ H ] ), printTokens( T ).
+
+printTodo( List ) :- printColor( yellow, "Todo {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
+printMonitor( List ) :- printColor( yellow, "Monitor {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
+printHistory( List ) :- printColor( yellow, "History (printed w/o noops) {\n", [] ), printTokens( List ), printColor( yellow, "}\n", []).
+    
+write_eq(N,V) :- write(N), write(' = '), write(V), nl.
+write_res(E,H) :- write_eq('E',E), write_eq('H', H).
+
+printLine( Color ) :-
+	printColor( Color, "********************************************************************************\n", [] ).
+	
+printHalfLine( Color ) :-
+	printColor( Color,"****************************************\n", [] ).
+
+printChronicle( C ) :-
+	printHalfLine( yellow ),
+	printColor( yellow, "* Chronicle\n", [] ),
+	printHalfLine( yellow ),
+	C = chronicle( Hc, Oc, Pc ),
+	printHistory( Hc ),
+	printTodo( Oc ),
+	printMonitor( Pc ).
+	
+printEq( Name, Value ) :- printColor( blue, "%w = '%w'\n", [ Name, Value ] ).
+
+printDebug( Color, Text, Variables ) :-
+    printColor( Color, Text, Variables ).
+    
+% Named spy points
+dbgST  :- true. % StartTrans
+dbgFT  :- true. % FinishTrans
+dbgRC  :- true. % Recover from commitments
+dbgWFE :- true. % WaitForExog
+dbgXX  :- true.
+dbgX1  :- true.
+dbgICPGO :- true.
+
+dbg.
+dbgMgmt.
+dbgMonitor( Alpha ) :- Alpha = start_scan -> dbg ; true .
+dbgTodo( _Alpha ).
+
