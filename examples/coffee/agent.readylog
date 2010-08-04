@@ -23,7 +23,7 @@
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 
 %% ReadyLog interpreter
-:- ensure_loaded("../../interpreter/steadylog/readylog.pl").
+:- ensure_loaded("../../interpreter/readylog/readylog.pl").
 %% eXogenous stuff
 :- ensure_loaded("exog.readylog").
 
@@ -62,7 +62,6 @@ get_comp_states( C, L ) :- C = motorState, L = [ offline, idle, running, defect 
 
 prim_fluent( armState ).
 initial_val( armState, idle ).
-default_val( armState, idle ).
 
 % was: edge( arm, idle, start_calibrate, calibrating ).
 prim_action( start_calibrate ).
@@ -86,7 +85,6 @@ causes_val( reset_arm, armState, idle ).
 
 prim_fluent( colliState ).
 initial_val( colliState, offline ).
-default_val( colliState, idle ).
 
 % was: edge( colli, offline, start_colli, idle ).
 prim_action( start_colli ).
@@ -119,14 +117,43 @@ causes_val( restart_colli, colliState, idle ).
 
 prim_fluent( motorState ).
 initial_val( motorState, offline ).
-default_val( motorState, idle ).
 
-edge( motor, offline, start_motor, idle ).
-edge( motor, idle, stop_motor, offline ).
-edge( motor, idle, start_running, running ).
-edge( motor, running, stop_running, idle ).
-edge( motor, defect, restart_motor, idle ).
-edge( motor, running, stop_motor, offline ).
+% was: edge( motor, running, stop_motor, offline ).
+prim_action( initialize_motor ).
+poss( initialize_motor, motorState=running ).
+causes_val( initialize_motor, motorState, offline ).
+
+% was: edge( motor, offline, start_motor, idle ).
+prim_action( start_motor ).
+poss( start_motor, motorState=offline ).
+causes_val( start_motor, motorState, idle ).
+
+% was: edge( motor, idle, stop_motor, offline ).
+prim_action( stop_motor ).
+poss( stop_motor, motorState=idle ).
+causes_val( stop_motor, motorState, offline ).
+
+% was: edge( motor, idle, start_running, running ).
+prim_action( start_running ).
+poss( start_running, motorState=idle ).
+causes_val( start_running, motorState, running ).
+
+% was: edge( motor, running, stop_running, idle ).
+prim_action( stop_running ).
+poss( stop_running, motorState=running ).
+causes_val( stop_running, motorState, idle ).
+
+% was: edge( motor, defect, restart_motor, idle ).
+prim_action( restart_motor).
+poss( restart_motor, motorState=defect ).
+causes_val( restart_motor, motorState, idle ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DEFAULT STATES...                    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+default_val( motorState, idle ).
+default_val( colliState, idle ).
+default_val( armState, idle ).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

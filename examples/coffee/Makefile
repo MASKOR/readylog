@@ -25,7 +25,7 @@ CONFIGFILE   = $(BASEDIR)/cfg/config.xml
 
 ### #######################
 PARAMFILE    = $(BASEDIR)/utils/config.pl
-PREPROCESSOR = $(BASEDIR)/interpreter/steadylog/preprocessor.pl
+PREPROCESSOR = $(BASEDIR)/interpreter/readylog/preprocessor.pl
 XMLTOPROLOG  = $(BASEDIR)/utils/xml2prolog.pl
 DOXYGENERATE = $(BASEDIR)/utils/doc.pl
 

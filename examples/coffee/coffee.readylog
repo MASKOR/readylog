@@ -216,66 +216,175 @@ maintenance_action( A ) :- prim_action( A ), ( starter( C, A ) ; finisher( C, A 
 % COMPLEX ACTIONS                      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-complex_action( drop(X,R), start_drop(X,R), stop_drop(X,R), dropping ).
-poss( drop(X,R), 
-	  and([ holding=X,
-	  		pos=R
-	   	  ]) 
-	).
-causes_val( drop(_X,_R), holding, L, and([ L=nil ]) ).
-causes_val( drop(X,R), task, L, and([ task=R, X=coffee, L=nil ]) ).
+%%%%%%%%%%%%%%%%%%%%
+% DROP             %
+%%%%%%%%%%%%%%%%%%%%
+% STARTER
+prim_action( start_drop( _X, _R ) ).
+poss( start_drop( X, R ), and([ not( dropping=true ), holding=X, pos=R ])  ).
+causes_val( start_drop( _X, _R ), dropping, true, true ).
+% FINISHER
+prim_action( stop_drop( _X, _R ) ).
+poss( stop_drop( X, R ), dropping=true  ).
+causes_val( stop_drop( _X, _R ), dropping, false, false ).
+causes_val( stop_drop(_X,_R), holding, L, and([ L=nil ]) ).
+causes_val( stop_drop(X,R), task, L, and([ task=R, X=coffee, L=nil ]) ).
+% FLUENT
+prim_fluent( dropping ).
+initial_val( dropping, false  ).
+% OLD
+%complex_action( drop(X,R), start_drop(X,R), stop_drop(X,R), dropping ).
+%poss( drop(X,R), 
+%	  and([ holding=X,
+%	  		pos=R
+%	   	  ]) 
+%	).
+%causes_val( drop(_X,_R), holding, L, and([ L=nil ]) ).
+%causes_val( drop(X,R), task, L, and([ task=R, X=coffee, L=nil ]) ).
 
-complex_action( goto(R), start_goto(R), stop_goto(R), going_to ).
-poss( goto(R) , 
-	  and([ room(R),
-	  		not(pos=R)
-	  	  ])
-	).
-causes_val( goto( R ), pos, L, L = R ).
-causes_val( goto( _ ), located, L, and([L=nil]) ).
+%%%%%%%%%%%%%%%%%%%%
+% GOTO             %
+%%%%%%%%%%%%%%%%%%%%
+% STARTER
+prim_action( start_goto( _R ) ).
+poss( start_goto( R ), and([ not( going_to=true ), room(R), not(pos=R) ]) ).
+causes_val( start_goto( _R ), going_to, true, true ).
+% FINISHER
+prim_action( stop_goto( _R ) ).
+poss( start_goto( R ), going_to = true ).
+causes_val( stop_goto( _R ), going_to, false, false ).
+causes_val( stop_goto( R ), pos, L, L = R ).
+causes_val( stop_goto( _R ), located, L, and([L=nil]) ).
+% FLUENT
+prim_fluent( going_to ).
+initial_val( going_to, false  ).
+% OLD
+%complex_action( goto(R), start_goto(R), stop_goto(R), going_to ).
+%poss( goto(R) , 
+%	  and([ room(R),
+%	  		not(pos=R)
+%	  	  ])
+%	).
+%causes_val( goto( R ), pos, L, L = R ).
+%causes_val( goto( _ ), located, L, and([L=nil]) ).
 
 
-complex_action( interact, start_interact, stop_interact, interacting ).
-poss( interact, true ).
-causes_val( interact, pos, pos ).
+%%%%%%%%%%%%%%%%%%%%
+% INTERACT         %
+%%%%%%%%%%%%%%%%%%%%
+% Only necessary for inheritance; does not exist here
+%complex_action( interact, start_interact, stop_interact, interacting ).
+%poss( interact, true ).
+%causes_val( interact, pos, pos ).
 
-complex_action( locate(P,R), start_locate(P,R), stop_locate(P,R), locating ).
-poss( locate(P,R), 
-      and([ pos=R,
-      		in(R,P),
-      		person(P)
-          ]) 
-	).
-causes_val( locate(P,_), located, L, and([ L=P ]) ).
+%%%%%%%%%%%%%%%%%%%%
+% LOCATE           %
+%%%%%%%%%%%%%%%%%%%%
+% STARTER
+prim_action( start_locate( _P, _R ) ).
+poss( start_locate( P, R ), and([ not( locating=true ), pos=R, in(R,P), person(P)])  ).
+causes_val( start_locate( _X, _R ), locating, true, true ).
+% FINISHER
+prim_action( stop_locate( _X, _R ) ).
+poss( stop_locate( _X, _R ), locating=true  ).
+causes_val( stop_locate( _X, _R ), locating, false, false ).
+causes_val( stop_locate( P, _R ), located, L, P ).
+% FLUENT
+prim_fluent( locating ).
+initial_val( locating, false  ).
+% OLD
+%complex_action( locate(P,R), start_locate(P,R), stop_locate(P,R), locating ).
+%poss( locate(P,R), 
+%      and([ pos=R,
+%      		in(R,P),
+%      		person(P)
+%          ]) 
+%	).
+%causes_val( locate(P,_), located, L, and([ L=P ]) ).
 
-complex_action( move_arm, start_move_arm, stop_move_arm, moving_arm ).
-poss( move_arm, true ).
-causes_val( move_arm, pos, pos ).
+%%%%%%%%%%%%%%%%%%%%
+% MOVE_ARM         %
+%%%%%%%%%%%%%%%%%%%%
+% Only necessary for inheritance; does not exist here
+%complex_action( move_arm, start_move_arm, stop_move_arm, moving_arm ).
+%poss( move_arm, true ).
+%causes_val( move_arm, pos, pos ).
 
-complex_action( pickup(X), start_pickup(X), stop_pickup(X), picking_up ).	
-poss( pickup(_X), and( [ holding=nil ] ) ).
-causes_val( pickup(X), holding, L, and([ L=X ]) ).
-causes_val( pickup(X), coffee_prepared, L, and([ X=coffee, L=false ]) ).
+%%%%%%%%%%%%%%%%%%%%
+% LOCATE           %
+%%%%%%%%%%%%%%%%%%%%
+% STARTER
+prim_action( start_pickup( _P, _R ) ).
+poss( start_pickup( P, R ), and([ not( picking_up=true ), holding=nil  ])  ).
+causes_val( start_pickup( _X, _R ), picking_up, true, true ).
+% FINISHER
+prim_action( stop_pickup( _X, _R ) ).
+poss( stop_pickup( _X, _R ), picking_up=true  ).
+causes_val( stop_pickup( _X, _R ), picking_up, false, false ).
+causes_val( stop_pickup(X), holding, L, and([ L=X ]) ).
+causes_val( stop_pickup(X), coffee_prepared, L, and([ X=coffee, L=false ]) ).
+% FLUENT
+prim_fluent( picking_up ).
+initial_val( picking_up, false  ).
+% OLD
+%complex_action( pickup(X), start_pickup(X), stop_pickup(X), picking_up ).	
+%poss( pickup(_X), and( [ holding=nil ] ) ).
+%causes_val( pickup(X), holding, L, and([ L=X ]) ).
+%causes_val( pickup(X), coffee_prepared, L, and([ X=coffee, L=false ]) ).
 
-complex_action( place_order(P), start_place_order(P), stop_place_order(P), placing_order).
-poss( place_order(_P), 
-	  and([ not(task=nil), 
-	        pos=kitchen,
-	        located=chef
-	      ])
-	).
-causes_val( place_order(_P), pos, pos ).
+%%%%%%%%%%%%%%%%%%%%
+% PLACE_ORDER      %
+%%%%%%%%%%%%%%%%%%%%
+% STARTER
+prim_action( start_place_order(P) ).
+poss(        start_place_order(P), and([ not( placing_order=true ), not(task=nil), pos=kitchen, located=chef ])  ).
+causes_val(  start_place_order(P), placing_order, true, true ).
+% FINISHER
+prim_action( stop_place_order(P) ).
+poss(        stop_place_order(P), placing_order= true  ).
+causes_val(  stop_place_order(P), placing_order, false, false ).
+causes_val(  stop_place_order(P), pos, pos ).
+% FLUENT
+prim_fluent( placing_order ).
+initial_val( placing_order, false  ).
+% OLD
+%complex_action( place_order(P), start_place_order(P), stop_place_order(P), placing_order).
+%poss( place_order(_P), 
+%	  and([ not(task=nil), 
+%	        pos=kitchen,
+%	        located=chef
+%	      ])
+%	).
+%causes_val( place_order(_P), pos, pos ).
 
-complex_action( take_order(P), start_take_order(P), stop_take_order(P), taking_order).
-poss( take_order(P), 
-	  and([ requests=[ R | _T ], 
-	        pos=R,
-	        in(R,P),
-	        located=P
-	      ])
-	).
-causes_val( take_order(_), task, R, and([ requests=[ R | _T ] ]) ).
-causes_val( take_order(_), requests, T, and([ requests=[ _R | T ] ]) ).
+%%%%%%%%%%%%%%%%%%%%
+% TAKE_ORDER       %
+%%%%%%%%%%%%%%%%%%%%
+% STARTER
+prim_action( start_take_order(_) ).
+poss(        start_take_order(P), and([ not( taking_order=true ), requests=[ R | _T ], pos=R, in(R,P), located=P ])  ).
+causes_val(  start_take_order(_), taking_order, true, true ).
+% FINISHER
+prim_action( stop_take_order(_) ).
+poss(        stop_take_order(_), taking_order= true  ).
+causes_val(  stop_take_order(_), taking_order, false, false ).
+causes_val(  stop_take_order(_), pos, pos ).
+causes_val(  stop_take_order(_), task, R, and([ requests=[ R | _T ] ]) ).
+causes_val(  stop_take_order(_), requests, T, and([ requests=[ _R | T ] ]) ).
+% FLUENT
+prim_fluent( taking_order ).
+initial_val( taking_order, false  ).
+% OLD
+%complex_action( take_order(P), start_take_order(P), stop_take_order(P), taking_order).
+%poss( take_order(P), 
+%	  and([ requests=[ R | _T ], 
+%	        pos=R,
+%	        in(R,P),
+%	        located=P
+%	      ])
+%	).
+%causes_val( take_order(_), task, R, and([ requests=[ R | _T ] ]) ).
+%causes_val( take_order(_), requests, T, and([ requests=[ _R | T ] ]) ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                         TASK DOMAIN ACTION INHERITANCE                       %
@@ -285,44 +394,44 @@ causes_val( take_order(_), requests, T, and([ requests=[ _R | T ] ]) ).
  * extends/2
  * Describes the action inheritance hierarchy.
  */
-extends( move, root ).
-extends( goto( _X ), move ).
-extends( locate( _P, _R ), root ).
-extends( interact, root ).
-extends( take_order( _P ), interact ).
-extends( place_order( _P ), interact ).
-extends( move_arm, interact ).
-extends( pickup( _X ), move_arm ).
-extends( drop( _X, _R ), move_arm ).
-extends( walk_and_talk, move ).
-extends( walk_and_talk, interact ).
+%extends( move, root ).
+%extends( goto( _X ), move ).
+%extends( locate( _P, _R ), root ).
+%extends( interact, root ).
+%extends( take_order( _P ), interact ).
+%extends( place_order( _P ), interact ).
+%extends( move_arm, interact ).
+%extends( pickup( _X ), move_arm ).
+%extends( drop( _X, _R ), move_arm ).
+%extends( walk_and_talk, move ).
+%extends( walk_and_talk, interact ).
 
-/**
- * descendant/2
- * Transitive closure of extends/2
- */
-descendant( A, B ) :- extends( A, B ).  
-descendant( A, B ) :- extends( A, C ), descendant( C, B ).
+%/**
+% * descendant/2
+% * Transitive closure of extends/2
+% */
+%descendant( A, B ) :- extends( A, B ).  
+%descendant( A, B ) :- extends( A, C ), descendant( C, B ).
 
-/**
- * descendants/2
- * Holds if P is the list containing all descendants of P
- */
-descendants( A, P ) :- findall( B, descendant( B, A ), L ), remove_dup_acts( L, [], P ).
+%/**
+% * descendants/2
+% * Holds if P is the list containing all descendants of P
+% */
+%descendants( A, P ) :- findall( B, descendant( B, A ), L ), remove_dup_acts( L, [], P ).
 
-/**
- * remove_dup_acts/3
- * Holds if L1 is the set of actions obtained from the list L
- */
-remove_dup_acts( [], L, L ).
-remove_dup_acts( [ Act | Rest ], L, L1 ) :-
-    Act =.. [ Functor | Args ],
-    (
-        member( X, L ), 
-        X =.. [ Functor | Args ]
-      ->
-        remove_dup_acts( Rest, L, L1 )
-      ;
-        Lr = [ Act | L ],
-        remove_dup_acts( Rest, Lr, L1 )
-    ).
+%/**
+% * remove_dup_acts/3
+% * Holds if L1 is the set of actions obtained from the list L
+% */
+%remove_dup_acts( [], L, L ).
+%remove_dup_acts( [ Act | Rest ], L, L1 ) :-
+%    Act =.. [ Functor | Args ],
+%    (
+%        member( X, L ), 
+%        X =.. [ Functor | Args ]
+%      ->
+%        remove_dup_acts( Rest, L, L1 )
+%      ;
+%        Lr = [ Act | L ],
+%        remove_dup_acts( Rest, Lr, L1 )
+%    ).
