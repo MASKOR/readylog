@@ -70,6 +70,7 @@ t3 :- icp([ if(and([ pos = [X,Y],
 %testf :- icp( and([ epf_sense_item = V ]) ).
 testf :- icp( testf ).
 stf :- vis, icp( findus ).
+klaus :- vis, icp( dialogTest ).
 %stf :- vis, icp( search_item(X,Y) ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%

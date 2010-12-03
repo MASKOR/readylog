@@ -128,7 +128,8 @@ xTra(exogf_Update, _H) :- !,
 	getval( real_item_pos, V_ITEM_POS ), 
 	%printColor( yellow, " V_ITEM_POS = %w \n", [V_ITEM_POS]), 
 	setval( wm_item_pos, V_ITEM_POS ),
-	getval( real_carry_item, V_CARRY_ITEM ), setval( wm_carry_item, V_CARRY_ITEM ),
+	getval( real_carry_item, V_CARRY_ITEM ), 
+	setval( wm_carry_item, V_CARRY_ITEM ),
 	%%
 	printf(" *** exogf_Update DONE. *** \n", []), flush(output).
 
@@ -140,6 +141,51 @@ xTra(exogf_Update, _H) :- !,
 
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %% deterministic execution
+
+xTra(processed_utterance,H) :-
+	printColor( black, " xTra: EXEC 'clear last utterance'\n", []),
+	execdelay,
+	process_xtra_events.
+
+xTra(init_ip(_,_),H) :-
+	process_xtra_events.
+
+xTra(interpret_action(_),H) :-
+	process_xtra_events.
+
+xTra(interpret_object(_),H) :-
+	process_xtra_events.
+
+xTra(assign_argument(_),H) :-
+	process_xtra_events.
+
+xTra(init_vp(_),H) :-
+	process_xtra_events.
+
+xTra(init_ip(_),H) :-
+	process_xtra_events.
+
+xTra(reject,H) :-
+	printColor( red, " xTra: EXEC 'reject'\n", []),
+	process_xtra_events.
+
+xTra(clarify,H) :-
+	printColor( yellow, " xTra: EXEC 'clarify'\n", []),
+	process_xtra_events.
+
+xTra(say(U),H) :-
+	printColor( green, " xTra: EXEC 'say':", []),
+	printf(" %w \n", [U]),
+	execdelay,
+	% passing utterance on to voice synthesizer
+	setval( real_robot_utter, U ),
+	process_xtra_events.
+	
+xTra(wait,_H) :-
+	printColor( black, " xTra: EXEC 'wait'\n", []),
+	sleep( 2 ),
+	execdelay,
+	process_xtra_events.
 
 xTra(go_right,H) :- 
 	printColor( pink, " xTra: EXEC 'go_right'", []), 
@@ -386,6 +432,16 @@ translateActionToKey( Key, Action ) :-
         Key = 115, !,
         printf( "Got Key 's'!\n", [] ), flush( output ),
         Action = show_fluents.
+
+% Listen Button (l)
+%
+translateActionToKey( Key, Action ) :-
+        Key = 108, !,
+        printf( "Got Key 'l'!\n", [] ), flush( output ),
+        printf( "** please type your message:\n", [] ), flush( output ),
+	read_string(end_of_line,_,InputLine),
+        printf( "** you said: %w\n", [InputLine] ), flush( output ),
+        Action = hear(InputLine).
 
 % Teleport Button (t)
 %
