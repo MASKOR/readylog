@@ -1,0 +1,54 @@
+attribute(location,"accessible location").
+attribute(portable,"portable object").
+constant(shake_head,head,mandatory,head).
+entity(bath,"broom_").
+entity(cup,"cup007").
+entity(kitchen,"kitchen_").
+entity_attribute(bath,location).
+entity_attribute(cup,portable).
+entity_attribute(kitchen,location).
+parameter(fetch,targetobject,mandatory).
+parameter(goto,targetlocation,mandatory).
+parameter(move_object,targetlocation,mandatory).
+parameter(move_object,targetobject,mandatory).
+parameter_attribute(fetch,targetobject,portable).
+parameter_attribute(goto,targetlocation,location).
+parameter_attribute(move_object,targetlocation,location).
+parameter_attribute(move_object,targetobject,portable).
+preposition(goto,targetlocation,to).
+preposition(move_object,targetlocation,to).
+skill(fetch,"cup_act{targetobject}").
+skill(goto,"ppgoto{place=targetlocation}").
+skill(move_object,"serialexec{ cup_act{targetobject}, ppgoto{place=targetlocation} }").
+skill(shake_head,"shake_head{}").
+synonym(anything,portable).
+synonym(anywhere,location).
+synonym(any,portable).
+synonym(bath,bath).
+synonym(bath_room,bath).
+synonym(bring,fetch).
+synonym(bring,move_object).
+synonym(collect,fetch).
+synonym(cup,cup).
+synonym(drive,goto).
+synonym(fetch,fetch).
+synonym(go,goto).
+synonym(kitchen,kitchen).
+synonym(location,location).
+synonym(move,fetch).
+synonym(move,goto).
+synonym(move,move_object).
+synonym(mug,cup).
+synonym(navigate,goto).
+synonym(object,portable).
+synonym(place,location).
+synonym(run,goto).
+synonym(shake,shake_head).
+synonym(something,portable).
+synonym(somewhere,location).
+synonym(some,portable).
+synonym(thing,portable).
+synonym(walk,goto).
+:- setval(all_actions, [interpret_action(fetch),interpret_action(move_object),interpret_action(goto),interpret_action(shake_head),reject]).
+:- setval(all_entities, [interpret_object(kitchen),interpret_object(bath),interpret_object(cup),reject]).
+:- setval(all_parameters, [assign_argument(targetobject),assign_argument(targetobject),assign_argument(targetlocation),assign_argument(targetlocation),reject]).

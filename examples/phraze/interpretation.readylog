@@ -1,0 +1,250 @@
+/* ***************************************************************************
+ *  ,=³ .%%% %%%%%%%. .%%%%%.  .%%%%%.   %%%%%.%%. %. %%%%%%%% %% Rheinisch-
+ * [==].%%%   %%   %% %%   %%  %%   %%   %%  %%'%%.%%.%% %% %% %% Westfälische
+ *  //l%%%    %%   %% %%%%. ' %%       @ %%%%%' '%%%%%%% %% %%%%% Technische
+ * [==]%%     %%|=%%   %%=>%  %%         %%  %%  '%%'%%% %% %% %% Hochschule
+ * [==]%%%    %%   %% . '%%%% %%  '%%%   %%   %%  '% '%% %% %% %% Aachen
+ * [==]'%%%   %%   %% %%   %%  %%   %%   http://kbsg.rwth-aachen.de/
+ * o^^o '%%% %%%%%%%' '%%%%%'O '%%%%%'   Knowledge Based Systems Group
+ * ***************************************************************************
+ *
+ *           $Id: maze.readylog 68 2007-12-06 18:30:15Z stf $
+ *        author: Stefan Schiffer <schiffer@cs.rwth-aachen.de>
+ *   description: Definition of the MAZE domain in ReadyLog
+ *
+ * ************************************************************************ */
+
+:- write(" --> loading interpretation.readylog ... \n").
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  FLUENTS                                                           %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  PRIMITIVE FLUENTS                   %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  each prim_fluent is followed 
+%%  by its intial value
+
+% fluent indicating whether the spoken verb has been interpreted
+prim_fluent( finished_action ).
+initial_val( finished_action, false ).
+
+% fluent indicating whether all spoken objects have been interpreted
+prim_fluent( finished_objects ).
+initial_val( finished_objects, false ).
+
+% fluent indicating whether all assumed objects have been assigned to possible arguments
+prim_fluent( finished_assignments ).
+initial_val( finished_assignments, false ).
+
+% fluent containing the spoken verb
+prim_fluent( spoken_verb ).
+initial_val( spoken_verb, nil ).
+
+% fluent containing the assumed action
+prim_fluent( assumed_action ).
+initial_val( assumed_action, nil ).
+
+% fluent containing the spoken objects
+prim_fluent( spoken_objects ).
+initial_val( spoken_objects, [] ).
+
+% fluent containing the objects assumed so far
+prim_fluent( assumed_objects ).
+initial_val( assumed_objects, [] ).
+
+% fluent containing the arguments assumed so far
+prim_fluent( assumed_arguments ).
+initial_val( assumed_arguments, [] ).
+
+% fluent indicating the number of interpretation steps performed
+prim_fluent( interpretation_count ).
+initial_val( interpretation_count, 0 ).
+
+% fluent indicating the number of clarification actions performed
+prim_fluent( clarification_count ).
+initial_val( clarification_count, 0 ).
+
+% fluent containing the last user utterance
+prim_fluent( last_user_utterance ).
+initial_val( last_user_utterance, "" ).
+
+% fluent indicating if there was a new user utterance
+prim_fluent( new_user_utter ).
+initial_val( new_user_utter, false ).
+
+% fluent indicating whether all verb phrases have been processed
+prim_fluent(vp_finished).
+initial_val(vp_finished, false).
+
+% fluent containing the spoken verbphrases
+prim_fluent(verbphrases).
+initial_val(verbphrases, []).
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  ACTIONS                                                           %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  PRIMITIVE ACTIONS                   %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
+%%  each prim_action is followed 
+%%  by its precondition axiom
+%%  and by its causes_val statement
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%% INTERPRET_ACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+prim_action(interpret_action(_S)).
+poss(interpret_action(_S), 
+			and([ 	spoken_verb = V,
+				synonym(V,_S),
+				not finished_action,
+				not finished_objects,
+				not finished_assignments
+				])).
+causes_val(interpret_action(_S), spoken_verb, V, V = nil).	
+causes_val(interpret_action(_S), assumed_action, V, V = _S).
+causes_val(interpret_action(_S), finished_action, V, V = true).
+causes_val(interpret_action(_S), interpretation_count, V, V is interpretation_count+1).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%% INTERPRET_OBJECT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+prim_action(interpret_object(_E)).
+poss(interpret_object(_E), 
+			and([ 	spoken_objects = [[_,[_,_O]]|_R],
+				synonym(_O,_E),
+				finished_action,
+				not finished_objects,
+				not finished_assignments
+				])).
+causes_val(interpret_object(_E), assumed_objects, V, and([ [[_P,[_,_]]|_] = spoken_objects, _T = assumed_objects, V = [[_P,_E]|_T]]) ).
+causes_val(interpret_object(_E), spoken_objects, V, spoken_objects = [_|V]).	
+causes_val(interpret_object(_E), finished_objects, V, and([ _T = spoken_objects, lif( length(_T,1), V = true, V = false) ])).
+causes_val(interpret_object(_E), interpretation_count, V, V is interpretation_count+1).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%% ASSIGN_ARGUMENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+prim_action(assign_argument(_P)).
+poss(assign_argument(_P), 
+			and([ 	not member([_P,_], assumed_arguments),
+				assumed_objects = [[_Prep,_Ent]|_R],
+				entity_attribute(_Ent,Att),
+				assumed_action = Act,
+				parameter(Act,_P,_),
+				parameter_attribute(Act,_P,Att),
+				finished_action,
+				finished_objects,
+				not finished_assignments
+				])).
+causes_val(assign_argument(_P), assumed_objects, V, assumed_objects = [_|V] ).
+causes_val(assign_argument(_P), assumed_arguments, V, and([_T = assumed_arguments, assumed_objects = [[_,_E]|_], V = [[_P,_E]|_T]]) ).
+causes_val(assign_argument(_P), finished_assignments, V, and([ _T = assumed_objects, lif( length(_T,1), V = true, V = false) ])).
+causes_val(assign_argument(_P), interpretation_count, V, and([ assumed_action = Act, assumed_objects = [[_Prep,_]|_], lif( preposition(Act,_P,_Prep), V is interpretation_count+2, V is interpretation_count+1) ]) ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% action to initialize the verb phrases to be processed
+prim_action(init_vp(_)).
+poss(init_vp(_), true).
+causes_val(init_vp(VP), verbphrases, V, V = VP ).
+causes_val(init_vp(_), vp_finished, V, V = false).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% action to initialize the interpretation process for each single verb phrase
+prim_action(init_ip(_)).
+poss(init_ip(_), not vp_finished ).
+causes_val(init_ip([[V|_]|_]), spoken_verb, S, S = V).
+causes_val(init_ip([[_,[objects|[O]]]|_]), spoken_objects, S, S = O).
+causes_val(init_ip(_), verbphrases, V, verbphrases = [_|V]).
+causes_val(init_ip(_), vp_finished, V, and([ verbphrases = VP, lif( length(VP,1), V = true, V = false ) ]) ).
+causes_val(init_ip(_), assumed_action, V, V = nil).
+causes_val(init_ip(_), assumed_objects, V, V = []).
+causes_val(init_ip(_), assumed_arguments, V, V = []).
+causes_val(init_ip(_), interpretation_count, V, V = 0).
+causes_val(init_ip(_), clarification_count, V, V = 0).
+causes_val(init_ip(_), finished_action, V, V = false).
+causes_val(init_ip(_), finished_objects, V, V = false).
+causes_val(init_ip(_), finished_assignments, V, V = false).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%% CLARIFY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+prim_action( clarify ).
+poss( clarify, true ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%% REJECT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+prim_action( reject ).
+poss( reject, true ).
+causes_val( reject, assumed_action, V, V = nil).
+causes_val( reject, assumed_objects, V, V = []).
+causes_val( reject, assumed_arguments, V, V = []).
+causes_val( reject, finished_action, V, V = true).
+causes_val( reject, finished_objects, V, V = true).
+causes_val( reject, finished_assignments, V, V = true).
+causes_val( reject, interpretation_count, V, V = 0).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%prim_action(say(_)).
+%poss(say(_), true).
+%causes_val(say(_), new_user_utter, V, V = false).
+%causes_val(say(U), 
+
+%prim_action(processed_utterance).
+%poss(processed_utterance, true).
+%causes_val(processed_utterance, new_user_utter, V, V = false).
+
+%prim_action(wait).
+%poss(wait, true).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%% INTERPRETATION PROCEDURE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+proc( interpret_utterance( Essence ),
+	[
+		?( split_essence( Essence ) = VPPrime ),
+		init_vp(VPPrime),
+		?( getval( all_actions, AllAct ) ),
+		?( getval( all_entities, AllEnt ) ),
+		?( getval( all_parameters, AllPar ) ),
+		while( neg( vp_finished ), [
+	
+			% INITIALIZE
+			init_ip(verbphrases),
+
+			% INTERPRETATION
+			solve( [ 
+				nondet( AllAct ), 
+				while( neg( finished_objects ), nondet( AllEnt ) ),
+				while( neg( finished_assignments ), nondet( AllPar ) )
+			], 7, reward_interpretation ), % --- the horizon depends on the number of spoken objects (times 2) plus one for the spoken verb
+
+			% PARAMETER CHECK
+			% have all mandatory arguments been instantiated? TODO: as a separate action?
+%			?( parameter( assumed_action, Para, mandatory ) ),
+%			if( member([Para,_], assumed_arguments), say("yes"), say(Para) ),
+
+			% DEBUG			
+%			say( assumed_action ),		
+%			say( assumed_objects ),		
+%			say( assumed_arguments ),			
+%			if( finished_assignments, say('finished'), say('not finished') ),
+			cout("Extracted command:\n"),
+			cout( form_command(assumed_action, assumed_arguments) ),
+			cout("\n")
+		])
+	]).
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- write(" <-- loading interpretation.readylog done.\n").
