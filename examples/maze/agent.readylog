@@ -28,10 +28,6 @@
 
 %% MazeDomain definition
 :- ensure_loaded("maze.readylog").
-%% Taxonomy
-:- ensure_loaded("taxonomy.readylog").
-%% Interpretation theory
-:- ensure_loaded("interpretation.readylog").
 %% Functions
 :- ensure_loaded("functions.readylog").
 
@@ -273,41 +269,6 @@ proc(visit_nondet_det,
 %%  FIND AND GET ITEM                                                 %%
 %% ================================================================== %%
 
-proc( waitForUtterance( Utterance ),
-	[
-	   while( neg( new_user_utter = true ), [ wait ]),
-	   ?( last_user_utterance = Utterance )
-	]
-).
-	   
-
-proc( dialogTest,
-      [
-         cout(" === STARTING DIALOG TEST === \n"),
-	 exogf_Update,
-	 waitForUtterance(Utterance),
-	 ?( process_utterance(Utterance) = Essence ),
-	 say(Essence),
-	 interpret_utterance(Essence),
-         cout(" === FINISHING DIALOG TEST === \n")
-      ]
-    ).
-
-
-proc( findus2,
-      [
-         cout(" === STARTING FINDUS 2 === \n"),
-         exogf_Update,
-         %% save current pos to return item
-         ?( pos = [X,Y] ),
-         search_item( XI, YI ),
-         cout( green, " *** found item at %w,%w *** \n", [XI,YI] ),
-	 reset_visited,
-         goto_item( X, Y ),
-         cout(" === FINISHING FINDUS 2 === \n")
-      ]
-    ).
-
 proc( findus,
       [
          cout(" === STARTING FINDUS === \n"),
@@ -315,9 +276,7 @@ proc( findus,
          %% save current pos to return item
          ?( pos = [X,Y] ),
          search_item( XI, YI ),
-	 if( ( last_user_utterance = "blubb" ),
-		say('Ja'),
-		say('Nein')),
+         cout( green, " *** found item at %w,%w *** \n", [XI,YI] ),
          goto_item( XI, YI ),
          grab_item,
          reset_visited,

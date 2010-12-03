@@ -16,8 +16,6 @@
 
 :- write(" --> loading functions.readylog ...\n").
 
-:- ensure_loaded("language_processing.pl").
-
 %% ================================================================== %%
 %%  REWARD FUNCTIONS                                                  %%
 %% ================================================================== %%
@@ -97,48 +95,5 @@ function( f_item_pos_by_id(PosID), V,
                  V = [XI, YI]
               ])
         ).
-
-%%%%%%%%%%%%%%% MANDATORY FUNCTIONS FOR INTERPRETATION:
-
-function( reward_interpretation, V,
-		and([ 	BUMS = interpretation_count, writeln(BUMS),
-			lif(assumed_action=nil, _A = 0, _A = 1),
-			length(assumed_objects,_L1), _B is _L1+_A,
-%			member_count([nil,_],assumed_objects,_L2), _C is _B-_L2,
-			length(assumed_arguments,_L3), V is _B+(2*_L3),
-			writeln(V), writeln('----')
-		])
-	).
-
-function( process_utterance(Utterance), Essence,
-		and([
-			process_utterance_external(Utterance,Essence)
-		])
-	).
-
-function( split_essence(Essence), VerbPhrases,
-		and([
-			split_essence_external(Essence, VerbPhrases)
-		])
-	).
-
-function( form_command(S,O), C,
-		and([
-			skill(S,SPrime),
-			substitute_arguments(O,SPrime,C)
-		])
-	).
-
-member_count(_,[],0).
-member_count(Elem,[Elem|Rest],N) :- !, member_count(Elem,Rest,M), N is M+1.
-member_count(Elem,[_|Rest],N) :- member_count(Elem,Rest,N).
-
-substitute_arguments([],String,String).
-substitute_arguments([[_P,_E]|R],InputString,OutputString) :- atom_string(_P,_PPrime), entity(_E,_EPrime), subs(InputString,_PPrime,_EPrime,InputStringPrime), substitute_arguments(R,InputStringPrime,OutputString).
-
-subs(A,B,C,D) :- string_list(A,APrime), string_list(B,BPrime), string_list(C,CPrime), substring_(APrime,BPrime,CPrime,DPrime), string_list(D,DPrime).
-substring_([],_,_,[]).
-substring_(X, S, T, Y) :- append(S, Xt, X), !, substring_(Xt, S, T, Yt), append(T, Yt, Y).
-substring_([Xh|Xt], S, T, [Xh|Yt]) :- substring_(Xt, S, T, Yt).
 
 :- write(" <-- loading functions.readylog done.\n").

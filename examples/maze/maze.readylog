@@ -189,18 +189,6 @@ exog_fluent_getValue(epf_sense_item, V, S) :- !,
 %poss(g, true).
 %causes_val(g, pos, V, V=[2,2]).
 
-prim_action(say(_)).
-poss(say(_), true).
-%causes_val(say(_), new_user_utter, V, V = false).
-%causes_val(say(U), 
-
-prim_action(processed_utterance).
-poss(processed_utterance, true).
-causes_val(processed_utterance, new_user_utter, V, V = false).
-
-prim_action(wait).
-poss(wait, true).
-
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %%  MOVEMENT             %%
 %% %%%%%%%%%%%%%%%%%%%%% %%
@@ -694,11 +682,6 @@ causes_val(teleport(X,Y), pos, V,
            V=[X,Y]
           ).
 
-
-exog_action(hear(_)).
-poss(hear(_), true).
-causes_val(hear(_), new_user_utter, V, V = true).
-causes_val(hear(U), last_user_utterance, V, V=U).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
