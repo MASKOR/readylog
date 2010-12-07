@@ -7,6 +7,11 @@ entity(kitchen,"kitchen_").
 entity_attribute(bath,location).
 entity_attribute(cup,portable).
 entity_attribute(kitchen,location).
+mandatory_parameters(fetch,[targetobject]).
+mandatory_parameters(getting_lost,[]).
+mandatory_parameters(goto,[targetlocation]).
+mandatory_parameters(move_object,[targetobject,targetlocation]).
+mandatory_parameters(shake_head,[head]).
 parameter(fetch,targetobject,mandatory).
 parameter(goto,targetlocation,mandatory).
 parameter(move_object,targetlocation,mandatory).
@@ -18,6 +23,7 @@ parameter_attribute(move_object,targetobject,portable).
 preposition(goto,targetlocation,to).
 preposition(move_object,targetlocation,to).
 skill(fetch,"cup_act{targetobject}").
+skill(getting_lost,"scram{}").
 skill(goto,"ppgoto{place=targetlocation}").
 skill(move_object,"serialexec{ cup_act{targetobject}, ppgoto{place=targetlocation} }").
 skill(shake_head,"shake_head{}").
@@ -32,10 +38,12 @@ synonym(collect,fetch).
 synonym(cup,cup).
 synonym(drive,goto).
 synonym(fetch,fetch).
+synonym(go,getting_lost).
 synonym(go,goto).
 synonym(kitchen,kitchen).
 synonym(location,location).
 synonym(move,fetch).
+synonym(move,getting_lost).
 synonym(move,goto).
 synonym(move,move_object).
 synonym(mug,cup).
@@ -43,12 +51,15 @@ synonym(navigate,goto).
 synonym(object,portable).
 synonym(place,location).
 synonym(run,goto).
+synonym(scat,getting_lost).
+synonym(scram,getting_lost).
 synonym(shake,shake_head).
 synonym(something,portable).
 synonym(somewhere,location).
 synonym(some,portable).
 synonym(thing,portable).
+synonym(transport,move_object).
 synonym(walk,goto).
-:- setval(all_actions, [interpret_action(fetch),interpret_action(move_object),interpret_action(goto),interpret_action(shake_head),reject]).
-:- setval(all_entities, [interpret_object(kitchen),interpret_object(bath),interpret_object(cup),reject]).
-:- setval(all_parameters, [assign_argument(targetobject),assign_argument(targetobject),assign_argument(targetlocation),assign_argument(targetlocation),reject]).
+:- setval(all_actions, [getting_lost,fetch,move_object,goto,shake_head]).
+:- setval(all_entities, [kitchen,bath,cup]).
+:- setval(all_parameters, [targetobject,targetobject,targetlocation,targetlocation]).

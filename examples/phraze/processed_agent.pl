@@ -20,15 +20,21 @@ prolog_function( f_sense_item, PreVar152, S ) :- has_val(epf_sense_item, PreVar1
 prolog_function( f_item_pos_by_id(PreVar160) ).
 prolog_function( f_item_pos_by_id(PreVar160), PreVar207, S ) :- (PreVar159 is PreVar160 - (5), PreVar158 is PreVar159), (PreVar163 is PreVar160 - (4), PreVar162 is PreVar163), (PreVar167 is PreVar158 mod 3, PreVar166 is PreVar167), (PreVar171 is PreVar162 div 3, PreVar170 is PreVar171), (PreVar166=2 -> PreVar178 = -1 ; PreVar178 = PreVar166), PreVar186 = PreVar170, (has_val(pos, PreVar192, S), PreVar192=[PreVar197, PreVar198]), (PreVar200 is PreVar197 + PreVar178, PreVar199 is PreVar200), (PreVar204 is PreVar198 + PreVar186, PreVar203 is PreVar204), PreVar207=[PreVar199, PreVar203].
 prolog_function( reward_interpretation ).
-prolog_function( reward_interpretation, PreVar249, S ) :- (has_val(interpretation_count, PreVar216, S), PreVar213 = PreVar216), writeln(PreVar213), (has_val(assumed_action, PreVar222, S), PreVar222=nil -> PreVar227=0 ; PreVar227=1), (has_val(assumed_objects, PreVar235, S), length(PreVar235, PreVar239)), (PreVar241 is PreVar239 + PreVar227, PreVar240 is PreVar241), (has_val(assumed_arguments, PreVar244, S), length(PreVar244, PreVar248)), ((PreVar252 is (2) * PreVar248, PreVar250 is PreVar240 + PreVar252), PreVar249 is PreVar250), writeln(PreVar249), writeln(----).
+prolog_function( reward_interpretation, PreVar249, S ) :- (has_val(assumed_action, PreVar215, S), PreVar215=nil -> PreVar220=0 ; PreVar220=1), (has_val(assumed_objects, PreVar228, S), length(PreVar228, PreVar232)), (PreVar234 is PreVar232 + PreVar220, PreVar233 is PreVar234), ((has_val(preposition_count, PreVar240, S), PreVar238 is PreVar233 + PreVar240), PreVar237 is PreVar238), (has_val(assumed_arguments, PreVar244, S), length(PreVar244, PreVar248)), (PreVar252 is (2) * PreVar248, PreVar250 is PreVar237 + PreVar252), PreVar249 is PreVar250.
 prolog_function( process_utterance(PreVar255) ).
 prolog_function( process_utterance(PreVar255), PreVar256, S ) :- process_utterance_external(PreVar255, PreVar256).
 prolog_function( split_essence(PreVar257) ).
 prolog_function( split_essence(PreVar257), PreVar258, S ) :- split_essence_external(PreVar257, PreVar258).
 prolog_function( form_command(PreVar259, PreVar261) ).
 prolog_function( form_command(PreVar259, PreVar261), PreVar263, S ) :- skill(PreVar259, PreVar260), substitute_arguments(PreVar261, PreVar260, PreVar263).
-prolog_function( adl(PreVar264, PreVar265) ).
-prolog_function( adl(PreVar264, PreVar265), PreVar266, S ) :- append(PreVar264, PreVar265, PreVar266).
+prolog_function( filter_mandatory_parameters ).
+prolog_function( filter_mandatory_parameters, PreVar276, S ) :- (has_val(assumed_arguments, PreVar264, S), flatten_argument_list(PreVar264, PreVar268)), (has_val(assumed_action, PreVar269, S), mandatory_parameters(PreVar269, PreVar273)), subtract(PreVar273, PreVar268, PreVar276).
+prolog_function( filter_list_by_synonyms(PreVar277, PreVar278) ).
+prolog_function( filter_list_by_synonyms(PreVar277, PreVar278), PreVar279, S ) :- flbs(PreVar277, PreVar278, PreVar279).
+prolog_function( filter_list_by_attribute(PreVar280, PreVar281, PreVar282) ).
+prolog_function( filter_list_by_attribute(PreVar280, PreVar281, PreVar282), PreVar285, S ) :- flba(PreVar280, PreVar281, PreVar282, PreVar283), remove_dups(PreVar283, PreVar285).
+prolog_function( adl(PreVar286, PreVar287) ).
+prolog_function( adl(PreVar286, PreVar287), PreVar288, S ) :- append(PreVar286, PreVar287, PreVar288).
 stoch_proc(right_det).
 stoch_proc(left_det).
 stoch_proc(down_det).
@@ -37,22 +43,31 @@ stoch_proc(right_st).
 stoch_proc(left_st).
 stoch_proc(down_st).
 stoch_proc(up_st).
+stoch_proc(int_action_det(Skill)).
+stoch_proc(int_object_det(Entity)).
+stoch_proc(int_argument_det(Parameter)).
 stoch_proc_outcomes(right_det, S, Outcomes, SenseEffect) :- Outcomes=[([go_right], 1.0, true)], SenseEffect = [], !.
 stoch_proc_outcomes(left_det, S, Outcomes, SenseEffect) :- Outcomes=[([go_left], 1.0, true)], SenseEffect = [], !.
 stoch_proc_outcomes(down_det, S, Outcomes, SenseEffect) :- Outcomes=[([go_down], 1.0, true)], SenseEffect = [], !.
 stoch_proc_outcomes(up_det, S, Outcomes, SenseEffect) :- Outcomes=[([go_up], 1.0, true)], SenseEffect = [], !.
-stoch_proc_outcomes(right_st, S, Outcomes, SenseEffect) :- (has_val(pos, PreVar269, S), PreVar269=[PreVar274, PreVar275]), (PreVar277 is PreVar274 + (1), PreVar276 is PreVar277), Outcomes=[(go_right, 0.5, pos=[PreVar276, PreVar275]), (noop, 0.5, pos=[PreVar274, PreVar275])], SenseEffect=[exogf_Update], !.
-stoch_proc_outcomes(left_st, S, Outcomes, SenseEffect) :- (has_val(pos, PreVar282, S), PreVar282=[PreVar287, PreVar288]), (PreVar290 is PreVar287 - (1), PreVar289 is PreVar290), Outcomes=[(go_left, 0.5, pos=[PreVar289, PreVar288]), (noop, 0.5, pos=[PreVar287, PreVar288])], SenseEffect=[exogf_Update], !.
-stoch_proc_outcomes(down_st, S, Outcomes, SenseEffect) :- (has_val(pos, PreVar295, S), PreVar295=[PreVar300, PreVar301]), (PreVar303 is PreVar301 - (1), PreVar302 is PreVar303), Outcomes=[(go_down, 0.5, pos=[PreVar300, PreVar302]), (noop, 0.5, pos=[PreVar300, PreVar301])], SenseEffect=[exogf_Update], !.
-stoch_proc_outcomes(up_st, S, Outcomes, SenseEffect) :- (has_val(pos, PreVar308, S), PreVar308=[PreVar313, PreVar314]), (PreVar316 is PreVar314 + (1), PreVar315 is PreVar316), Outcomes=[(go_up, 0.5, pos=[PreVar313, PreVar315]), (noop, 0.5, pos=[PreVar313, PreVar314])], SenseEffect=[exogf_Update], !.
+stoch_proc_outcomes(right_st, S, Outcomes, SenseEffect) :- (has_val(pos, PreVar291, S), PreVar291=[PreVar296, PreVar297]), (PreVar299 is PreVar296 + (1), PreVar298 is PreVar299), Outcomes=[(go_right, 0.5, pos=[PreVar298, PreVar297]), (noop, 0.5, pos=[PreVar296, PreVar297])], SenseEffect=[exogf_Update], !.
+stoch_proc_outcomes(left_st, S, Outcomes, SenseEffect) :- (has_val(pos, PreVar304, S), PreVar304=[PreVar309, PreVar310]), (PreVar312 is PreVar309 - (1), PreVar311 is PreVar312), Outcomes=[(go_left, 0.5, pos=[PreVar311, PreVar310]), (noop, 0.5, pos=[PreVar309, PreVar310])], SenseEffect=[exogf_Update], !.
+stoch_proc_outcomes(down_st, S, Outcomes, SenseEffect) :- (has_val(pos, PreVar317, S), PreVar317=[PreVar322, PreVar323]), (PreVar325 is PreVar323 - (1), PreVar324 is PreVar325), Outcomes=[(go_down, 0.5, pos=[PreVar322, PreVar324]), (noop, 0.5, pos=[PreVar322, PreVar323])], SenseEffect=[exogf_Update], !.
+stoch_proc_outcomes(up_st, S, Outcomes, SenseEffect) :- (has_val(pos, PreVar330, S), PreVar330=[PreVar335, PreVar336]), (PreVar338 is PreVar336 + (1), PreVar337 is PreVar338), Outcomes=[(go_up, 0.5, pos=[PreVar335, PreVar337]), (noop, 0.5, pos=[PreVar335, PreVar336])], SenseEffect=[exogf_Update], !.
+stoch_proc_outcomes(int_action_det(PreVar341), S, Outcomes, SenseEffect) :- Outcomes=[([interpret_action(PreVar341)], 1.0, true)], SenseEffect = [], !.
+stoch_proc_outcomes(int_object_det(PreVar342), S, Outcomes, SenseEffect) :- Outcomes=[([interpret_object(PreVar342)], 1.0, true)], SenseEffect = [], !.
+stoch_proc_outcomes(int_argument_det(PreVar343), S, Outcomes, SenseEffect) :- Outcomes=[([assign_argument(PreVar343)], 1.0, true)], SenseEffect = [], !.
 stoch_proc_poss(right_det, S) :- true, !.
-stoch_proc_poss(left_det, S) :- (has_val(pos, PreVar321, S), PreVar321=[PreVar326, PreVar327]), is_pos(PreVar326, PreVar327), (PreVar331 is PreVar326 - (1), PreVar330 is PreVar331), is_pos(PreVar330, PreVar327), not is_wall(PreVar326, PreVar327, PreVar330, PreVar327), !.
-stoch_proc_poss(down_det, S) :- (has_val(pos, PreVar342, S), PreVar342=[PreVar347, PreVar348]), is_pos(PreVar347, PreVar348), (PreVar352 is PreVar348 - (1), PreVar351 is PreVar352), is_pos(PreVar347, PreVar351), not is_wall(PreVar347, PreVar348, PreVar347, PreVar351), !.
-stoch_proc_poss(up_det, S) :- (has_val(pos, PreVar363, S), PreVar363=[PreVar368, PreVar369]), is_pos(PreVar368, PreVar369), (PreVar373 is PreVar369 + (1), PreVar372 is PreVar373), is_pos(PreVar368, PreVar372), not is_wall(PreVar368, PreVar369, PreVar368, PreVar372), !.
-stoch_proc_poss(right_st, S) :- (has_val(pos, PreVar384, S), PreVar384=[PreVar389, PreVar390]), is_pos(PreVar389, PreVar390), (PreVar394 is PreVar389 + (1), PreVar393 is PreVar394), is_pos(PreVar393, PreVar390), not is_wall(PreVar389, PreVar390, PreVar393, PreVar390), !.
-stoch_proc_poss(left_st, S) :- (has_val(pos, PreVar405, S), PreVar405=[PreVar410, PreVar411]), is_pos(PreVar410, PreVar411), (PreVar415 is PreVar410 - (1), PreVar414 is PreVar415), is_pos(PreVar414, PreVar411), not is_wall(PreVar410, PreVar411, PreVar414, PreVar411), !.
-stoch_proc_poss(down_st, S) :- (has_val(pos, PreVar426, S), PreVar426=[PreVar431, PreVar432]), is_pos(PreVar431, PreVar432), (PreVar436 is PreVar432 - (1), PreVar435 is PreVar436), is_pos(PreVar431, PreVar435), not is_wall(PreVar431, PreVar432, PreVar431, PreVar435), !.
-stoch_proc_poss(up_st, S) :- (has_val(pos, PreVar447, S), PreVar447=[PreVar452, PreVar453]), is_pos(PreVar452, PreVar453), (PreVar457 is PreVar453 + (1), PreVar456 is PreVar457), is_pos(PreVar452, PreVar456), not is_wall(PreVar452, PreVar453, PreVar452, PreVar456), !.
+stoch_proc_poss(left_det, S) :- (has_val(pos, PreVar346, S), PreVar346=[PreVar351, PreVar352]), is_pos(PreVar351, PreVar352), (PreVar356 is PreVar351 - (1), PreVar355 is PreVar356), is_pos(PreVar355, PreVar352), not is_wall(PreVar351, PreVar352, PreVar355, PreVar352), !.
+stoch_proc_poss(down_det, S) :- (has_val(pos, PreVar367, S), PreVar367=[PreVar372, PreVar373]), is_pos(PreVar372, PreVar373), (PreVar377 is PreVar373 - (1), PreVar376 is PreVar377), is_pos(PreVar372, PreVar376), not is_wall(PreVar372, PreVar373, PreVar372, PreVar376), !.
+stoch_proc_poss(up_det, S) :- (has_val(pos, PreVar388, S), PreVar388=[PreVar393, PreVar394]), is_pos(PreVar393, PreVar394), (PreVar398 is PreVar394 + (1), PreVar397 is PreVar398), is_pos(PreVar393, PreVar397), not is_wall(PreVar393, PreVar394, PreVar393, PreVar397), !.
+stoch_proc_poss(right_st, S) :- (has_val(pos, PreVar409, S), PreVar409=[PreVar414, PreVar415]), is_pos(PreVar414, PreVar415), (PreVar419 is PreVar414 + (1), PreVar418 is PreVar419), is_pos(PreVar418, PreVar415), not is_wall(PreVar414, PreVar415, PreVar418, PreVar415), !.
+stoch_proc_poss(left_st, S) :- (has_val(pos, PreVar430, S), PreVar430=[PreVar435, PreVar436]), is_pos(PreVar435, PreVar436), (PreVar440 is PreVar435 - (1), PreVar439 is PreVar440), is_pos(PreVar439, PreVar436), not is_wall(PreVar435, PreVar436, PreVar439, PreVar436), !.
+stoch_proc_poss(down_st, S) :- (has_val(pos, PreVar451, S), PreVar451=[PreVar456, PreVar457]), is_pos(PreVar456, PreVar457), (PreVar461 is PreVar457 - (1), PreVar460 is PreVar461), is_pos(PreVar456, PreVar460), not is_wall(PreVar456, PreVar457, PreVar456, PreVar460), !.
+stoch_proc_poss(up_st, S) :- (has_val(pos, PreVar472, S), PreVar472=[PreVar477, PreVar478]), is_pos(PreVar477, PreVar478), (PreVar482 is PreVar478 + (1), PreVar481 is PreVar482), is_pos(PreVar477, PreVar481), not is_wall(PreVar477, PreVar478, PreVar477, PreVar481), !.
+stoch_proc_poss(int_action_det(_18695), S) :- true, !.
+stoch_proc_poss(int_object_det(_18702), S) :- true, !.
+stoch_proc_poss(int_argument_det(_18709), S) :- true, !.
 stoch_proc_costs(right_det, 1, S) :- true, !.
 stoch_proc_costs(left_det, 1, S) :- true, !.
 stoch_proc_costs(down_det, 1, S) :- true, !.
@@ -61,80 +76,83 @@ stoch_proc_costs(right_st, 1, S) :- true, !.
 stoch_proc_costs(left_st, 1, S) :- true, !.
 stoch_proc_costs(down_st, 1, S) :- true, !.
 stoch_proc_costs(up_st, 1, S) :- true, !.
+stoch_proc_costs(int_action_det(_18801), PreVar491, S) :- PreVar491=0, !.
+stoch_proc_costs(int_object_det(_18815), PreVar495, S) :- PreVar495=0, !.
+stoch_proc_costs(int_argument_det(_18829), PreVar499, S) :- PreVar499=0, !.
 event_aux(e_loose_item).
-event_outcomes(e_loose_item, S, Outcomes, SenseEffect) :- (has_val(epf_carry_item, PreVar469, S), PreVar466 = PreVar469), Outcomes=[(set(epf_carry_item, false), 0.3, epf_carry_item=false), ([], 0.7, epf_carry_item=true)], SenseEffect=[exogf_Update], !.
-prolog_event_poss(e_loose_item, S) :- getval(agent_loose_item_enabled, true), has_val(epf_carry_item, PreVar477, S), PreVar477=true, !.
+event_outcomes(e_loose_item, S, Outcomes, SenseEffect) :- (has_val(epf_carry_item, PreVar506, S), PreVar503 = PreVar506), Outcomes=[(set(epf_carry_item, false), 0.3, epf_carry_item=false), ([], 0.7, epf_carry_item=true)], SenseEffect=[exogf_Update], !.
+prolog_event_poss(e_loose_item, S) :- getval(agent_loose_item_enabled, true), has_val(epf_carry_item, PreVar514, S), PreVar514=true, !.
 ssa( online, false, [clipOnline|Srest] ) :- !, true.
-ssa( epf_carry_item, PreVar482, [drop_item|Srest] ) :- !, PreVar482=false.
-ssa( num_visited, PreVar508, [go_down|Srest] ) :- !, (has_val(pos, PreVar488, Srest), PreVar488=[PreVar493, PreVar494]), PreVar495 = PreVar493, (PreVar500 is PreVar494 - (1), PreVar499 is PreVar500), (has_val(visited(PreVar495, PreVar499), true, Srest) -> has_val(num_visited, PreVar511, Srest), PreVar508 = PreVar511 ; (has_val(num_visited, PreVar517, Srest), PreVar516 is PreVar517 + (1)), PreVar508 is PreVar516).
-ssa( pos, PreVar535, [go_down|Srest] ) :- !, (has_val(pos, PreVar524, Srest), PreVar524=[PreVar529, PreVar530]), (PreVar532 is PreVar530 - (1), PreVar531 is PreVar532), PreVar535=[PreVar529, PreVar531].
-ssa( visited(PreVar550, PreVar554), true, [go_down|Srest] ) :- !, (has_val(pos, PreVar543, Srest), PreVar543=[PreVar548, PreVar549]), PreVar550 = PreVar548, PreVar555 is PreVar549 - (1), PreVar554 is PreVar555.
-ssa( num_visited, PreVar580, [go_down_st|Srest] ) :- !, (has_val(pos, PreVar560, Srest), PreVar560=[PreVar565, PreVar566]), PreVar567 = PreVar565, (PreVar572 is PreVar566 - (1), PreVar571 is PreVar572), (has_val(visited(PreVar567, PreVar571), true, Srest) -> has_val(num_visited, PreVar581, Srest), PreVar580 is PreVar581 ; (has_val(num_visited, PreVar587, Srest), PreVar586 is PreVar587 + (1)), PreVar580 is PreVar586).
-ssa( pos, PreVar607, [go_down_st|Srest] ) :- !, (has_val(pos, PreVar594, Srest), PreVar594=[PreVar599, PreVar600]), (PreVar604 is PreVar600 - (1), PreVar601 = PreVar604), PreVar607=[PreVar599, PreVar601].
-ssa( visited(PreVar622, PreVar626), true, [go_down_st|Srest] ) :- !, (has_val(pos, PreVar615, Srest), PreVar615=[PreVar620, PreVar621]), PreVar622 = PreVar620, PreVar627 is PreVar621 - (1), PreVar626 is PreVar627.
-ssa( num_visited, PreVar652, [go_left|Srest] ) :- !, (has_val(pos, PreVar632, Srest), PreVar632=[PreVar637, PreVar638]), (PreVar640 is PreVar637 - (1), PreVar639 is PreVar640), PreVar643 = PreVar638, (has_val(visited(PreVar639, PreVar643), true, Srest) -> has_val(num_visited, PreVar655, Srest), PreVar652 = PreVar655 ; (has_val(num_visited, PreVar661, Srest), PreVar660 is PreVar661 + (1)), PreVar652 is PreVar660).
-ssa( pos, PreVar679, [go_left|Srest] ) :- !, (has_val(pos, PreVar668, Srest), PreVar668=[PreVar673, PreVar674]), (PreVar676 is PreVar673 - (1), PreVar675 is PreVar676), PreVar679=[PreVar675, PreVar674].
-ssa( visited(PreVar694, PreVar698), true, [go_left|Srest] ) :- !, (has_val(pos, PreVar687, Srest), PreVar687=[PreVar692, PreVar693]), (PreVar695 is PreVar692 - (1), PreVar694 is PreVar695), PreVar698 = PreVar693.
-ssa( num_visited, PreVar724, [go_left_st|Srest] ) :- !, (has_val(pos, PreVar704, Srest), PreVar704=[PreVar709, PreVar710]), (PreVar712 is PreVar709 - (1), PreVar711 is PreVar712), PreVar715 = PreVar710, (has_val(visited(PreVar711, PreVar715), true, Srest) -> has_val(num_visited, PreVar725, Srest), PreVar724 is PreVar725 ; (has_val(num_visited, PreVar731, Srest), PreVar730 is PreVar731 + (1)), PreVar724 is PreVar730).
-ssa( pos, PreVar751, [go_left_st|Srest] ) :- !, (has_val(pos, PreVar738, Srest), PreVar738=[PreVar743, PreVar744]), (PreVar748 is PreVar743 - (1), PreVar745 = PreVar748), PreVar751=[PreVar745, PreVar744].
-ssa( visited(PreVar766, PreVar770), true, [go_left_st|Srest] ) :- !, (has_val(pos, PreVar759, Srest), PreVar759=[PreVar764, PreVar765]), (PreVar767 is PreVar764 - (1), PreVar766 is PreVar767), PreVar770 = PreVar765.
-ssa( num_visited, PreVar796, [go_right|Srest] ) :- !, (has_val(pos, PreVar776, Srest), PreVar776=[PreVar781, PreVar782]), (PreVar784 is PreVar781 + (1), PreVar783 is PreVar784), PreVar787 = PreVar782, (has_val(visited(PreVar783, PreVar787), true, Srest) -> has_val(num_visited, PreVar799, Srest), PreVar796 = PreVar799 ; (has_val(num_visited, PreVar805, Srest), PreVar804 is PreVar805 + (1)), PreVar796 is PreVar804).
-ssa( pos, PreVar823, [go_right|Srest] ) :- !, (has_val(pos, PreVar812, Srest), PreVar812=[PreVar817, PreVar818]), (PreVar820 is PreVar817 + (1), PreVar819 is PreVar820), PreVar823=[PreVar819, PreVar818].
-ssa( visited(PreVar838, PreVar842), true, [go_right|Srest] ) :- !, (has_val(pos, PreVar831, Srest), PreVar831=[PreVar836, PreVar837]), (PreVar839 is PreVar836 + (1), PreVar838 is PreVar839), PreVar842 = PreVar837.
-ssa( num_visited, PreVar868, [go_right_st|Srest] ) :- !, (has_val(pos, PreVar848, Srest), PreVar848=[PreVar853, PreVar854]), (PreVar856 is PreVar853 + (1), PreVar855 is PreVar856), PreVar859 = PreVar854, (has_val(visited(PreVar855, PreVar859), true, Srest) -> has_val(num_visited, PreVar869, Srest), PreVar868 is PreVar869 ; (has_val(num_visited, PreVar875, Srest), PreVar874 is PreVar875 + (1)), PreVar868 is PreVar874).
-ssa( pos, PreVar895, [go_right_st|Srest] ) :- !, (has_val(pos, PreVar882, Srest), PreVar882=[PreVar887, PreVar888]), (PreVar892 is PreVar887 + (1), PreVar889 = PreVar892), PreVar895=[PreVar889, PreVar888].
-ssa( visited(PreVar910, PreVar914), true, [go_right_st|Srest] ) :- !, (has_val(pos, PreVar903, Srest), PreVar903=[PreVar908, PreVar909]), (PreVar911 is PreVar908 + (1), PreVar910 is PreVar911), PreVar914 = PreVar909.
-ssa( num_visited, PreVar940, [go_up|Srest] ) :- !, (has_val(pos, PreVar920, Srest), PreVar920=[PreVar925, PreVar926]), PreVar927 = PreVar925, (PreVar932 is PreVar926 + (1), PreVar931 is PreVar932), (has_val(visited(PreVar927, PreVar931), true, Srest) -> has_val(num_visited, PreVar943, Srest), PreVar940 = PreVar943 ; (has_val(num_visited, PreVar949, Srest), PreVar948 is PreVar949 + (1)), PreVar940 is PreVar948).
-ssa( pos, PreVar967, [go_up|Srest] ) :- !, (has_val(pos, PreVar956, Srest), PreVar956=[PreVar961, PreVar962]), (PreVar964 is PreVar962 + (1), PreVar963 is PreVar964), PreVar967=[PreVar961, PreVar963].
-ssa( visited(PreVar982, PreVar986), true, [go_up|Srest] ) :- !, (has_val(pos, PreVar975, Srest), PreVar975=[PreVar980, PreVar981]), PreVar982 = PreVar980, PreVar987 is PreVar981 + (1), PreVar986 is PreVar987.
-ssa( num_visited, PreVar1012, [go_up_st|Srest] ) :- !, (has_val(pos, PreVar992, Srest), PreVar992=[PreVar997, PreVar998]), PreVar999 = PreVar997, (PreVar1004 is PreVar998 + (1), PreVar1003 is PreVar1004), (has_val(visited(PreVar999, PreVar1003), true, Srest) -> has_val(num_visited, PreVar1013, Srest), PreVar1012 is PreVar1013 ; (has_val(num_visited, PreVar1019, Srest), PreVar1018 is PreVar1019 + (1)), PreVar1012 is PreVar1018).
-ssa( pos, PreVar1039, [go_up_st|Srest] ) :- !, (has_val(pos, PreVar1026, Srest), PreVar1026=[PreVar1031, PreVar1032]), (PreVar1036 is PreVar1032 + (1), PreVar1033 = PreVar1036), PreVar1039=[PreVar1031, PreVar1033].
-ssa( visited(PreVar1054, PreVar1058), true, [go_up_st|Srest] ) :- !, (has_val(pos, PreVar1047, Srest), PreVar1047=[PreVar1052, PreVar1053]), PreVar1054 = PreVar1052, PreVar1059 is PreVar1053 + (1), PreVar1058 is PreVar1059.
-ssa( epf_carry_item, PreVar1062, [pickup_item|Srest] ) :- !, PreVar1062=true.
-ssa( new_user_utter, PreVar1066, [processed_utterance|Srest] ) :- !, PreVar1066=false.
-ssa( assumed_action, PreVar1070, [reject|Srest] ) :- !, PreVar1070=nil.
-ssa( assumed_arguments, PreVar1074, [reject|Srest] ) :- !, PreVar1074 = [].
-ssa( assumed_objects, PreVar1078, [reject|Srest] ) :- !, PreVar1078 = [].
-ssa( finished_action, PreVar1082, [reject|Srest] ) :- !, PreVar1082=true.
-ssa( finished_assignments, PreVar1086, [reject|Srest] ) :- !, PreVar1086=true.
-ssa( finished_objects, PreVar1090, [reject|Srest] ) :- !, PreVar1090=true.
-ssa( interpretation_count, PreVar1094, [reject|Srest] ) :- !, PreVar1094=0.
-ssa( visited(_31031, _31032), PreVar1098, [reset_visited|Srest] ) :- !, PreVar1098=false.
+ssa( epf_carry_item, PreVar519, [drop_item|Srest] ) :- !, PreVar519=false.
+ssa( num_visited, PreVar545, [go_down|Srest] ) :- !, (has_val(pos, PreVar525, Srest), PreVar525=[PreVar530, PreVar531]), PreVar532 = PreVar530, (PreVar537 is PreVar531 - (1), PreVar536 is PreVar537), (has_val(visited(PreVar532, PreVar536), true, Srest) -> has_val(num_visited, PreVar548, Srest), PreVar545 = PreVar548 ; (has_val(num_visited, PreVar554, Srest), PreVar553 is PreVar554 + (1)), PreVar545 is PreVar553).
+ssa( pos, PreVar572, [go_down|Srest] ) :- !, (has_val(pos, PreVar561, Srest), PreVar561=[PreVar566, PreVar567]), (PreVar569 is PreVar567 - (1), PreVar568 is PreVar569), PreVar572=[PreVar566, PreVar568].
+ssa( visited(PreVar587, PreVar591), true, [go_down|Srest] ) :- !, (has_val(pos, PreVar580, Srest), PreVar580=[PreVar585, PreVar586]), PreVar587 = PreVar585, PreVar592 is PreVar586 - (1), PreVar591 is PreVar592.
+ssa( num_visited, PreVar617, [go_down_st|Srest] ) :- !, (has_val(pos, PreVar597, Srest), PreVar597=[PreVar602, PreVar603]), PreVar604 = PreVar602, (PreVar609 is PreVar603 - (1), PreVar608 is PreVar609), (has_val(visited(PreVar604, PreVar608), true, Srest) -> has_val(num_visited, PreVar618, Srest), PreVar617 is PreVar618 ; (has_val(num_visited, PreVar624, Srest), PreVar623 is PreVar624 + (1)), PreVar617 is PreVar623).
+ssa( pos, PreVar644, [go_down_st|Srest] ) :- !, (has_val(pos, PreVar631, Srest), PreVar631=[PreVar636, PreVar637]), (PreVar641 is PreVar637 - (1), PreVar638 = PreVar641), PreVar644=[PreVar636, PreVar638].
+ssa( visited(PreVar659, PreVar663), true, [go_down_st|Srest] ) :- !, (has_val(pos, PreVar652, Srest), PreVar652=[PreVar657, PreVar658]), PreVar659 = PreVar657, PreVar664 is PreVar658 - (1), PreVar663 is PreVar664.
+ssa( num_visited, PreVar689, [go_left|Srest] ) :- !, (has_val(pos, PreVar669, Srest), PreVar669=[PreVar674, PreVar675]), (PreVar677 is PreVar674 - (1), PreVar676 is PreVar677), PreVar680 = PreVar675, (has_val(visited(PreVar676, PreVar680), true, Srest) -> has_val(num_visited, PreVar692, Srest), PreVar689 = PreVar692 ; (has_val(num_visited, PreVar698, Srest), PreVar697 is PreVar698 + (1)), PreVar689 is PreVar697).
+ssa( pos, PreVar716, [go_left|Srest] ) :- !, (has_val(pos, PreVar705, Srest), PreVar705=[PreVar710, PreVar711]), (PreVar713 is PreVar710 - (1), PreVar712 is PreVar713), PreVar716=[PreVar712, PreVar711].
+ssa( visited(PreVar731, PreVar735), true, [go_left|Srest] ) :- !, (has_val(pos, PreVar724, Srest), PreVar724=[PreVar729, PreVar730]), (PreVar732 is PreVar729 - (1), PreVar731 is PreVar732), PreVar735 = PreVar730.
+ssa( num_visited, PreVar761, [go_left_st|Srest] ) :- !, (has_val(pos, PreVar741, Srest), PreVar741=[PreVar746, PreVar747]), (PreVar749 is PreVar746 - (1), PreVar748 is PreVar749), PreVar752 = PreVar747, (has_val(visited(PreVar748, PreVar752), true, Srest) -> has_val(num_visited, PreVar762, Srest), PreVar761 is PreVar762 ; (has_val(num_visited, PreVar768, Srest), PreVar767 is PreVar768 + (1)), PreVar761 is PreVar767).
+ssa( pos, PreVar788, [go_left_st|Srest] ) :- !, (has_val(pos, PreVar775, Srest), PreVar775=[PreVar780, PreVar781]), (PreVar785 is PreVar780 - (1), PreVar782 = PreVar785), PreVar788=[PreVar782, PreVar781].
+ssa( visited(PreVar803, PreVar807), true, [go_left_st|Srest] ) :- !, (has_val(pos, PreVar796, Srest), PreVar796=[PreVar801, PreVar802]), (PreVar804 is PreVar801 - (1), PreVar803 is PreVar804), PreVar807 = PreVar802.
+ssa( num_visited, PreVar833, [go_right|Srest] ) :- !, (has_val(pos, PreVar813, Srest), PreVar813=[PreVar818, PreVar819]), (PreVar821 is PreVar818 + (1), PreVar820 is PreVar821), PreVar824 = PreVar819, (has_val(visited(PreVar820, PreVar824), true, Srest) -> has_val(num_visited, PreVar836, Srest), PreVar833 = PreVar836 ; (has_val(num_visited, PreVar842, Srest), PreVar841 is PreVar842 + (1)), PreVar833 is PreVar841).
+ssa( pos, PreVar860, [go_right|Srest] ) :- !, (has_val(pos, PreVar849, Srest), PreVar849=[PreVar854, PreVar855]), (PreVar857 is PreVar854 + (1), PreVar856 is PreVar857), PreVar860=[PreVar856, PreVar855].
+ssa( visited(PreVar875, PreVar879), true, [go_right|Srest] ) :- !, (has_val(pos, PreVar868, Srest), PreVar868=[PreVar873, PreVar874]), (PreVar876 is PreVar873 + (1), PreVar875 is PreVar876), PreVar879 = PreVar874.
+ssa( num_visited, PreVar905, [go_right_st|Srest] ) :- !, (has_val(pos, PreVar885, Srest), PreVar885=[PreVar890, PreVar891]), (PreVar893 is PreVar890 + (1), PreVar892 is PreVar893), PreVar896 = PreVar891, (has_val(visited(PreVar892, PreVar896), true, Srest) -> has_val(num_visited, PreVar906, Srest), PreVar905 is PreVar906 ; (has_val(num_visited, PreVar912, Srest), PreVar911 is PreVar912 + (1)), PreVar905 is PreVar911).
+ssa( pos, PreVar932, [go_right_st|Srest] ) :- !, (has_val(pos, PreVar919, Srest), PreVar919=[PreVar924, PreVar925]), (PreVar929 is PreVar924 + (1), PreVar926 = PreVar929), PreVar932=[PreVar926, PreVar925].
+ssa( visited(PreVar947, PreVar951), true, [go_right_st|Srest] ) :- !, (has_val(pos, PreVar940, Srest), PreVar940=[PreVar945, PreVar946]), (PreVar948 is PreVar945 + (1), PreVar947 is PreVar948), PreVar951 = PreVar946.
+ssa( num_visited, PreVar977, [go_up|Srest] ) :- !, (has_val(pos, PreVar957, Srest), PreVar957=[PreVar962, PreVar963]), PreVar964 = PreVar962, (PreVar969 is PreVar963 + (1), PreVar968 is PreVar969), (has_val(visited(PreVar964, PreVar968), true, Srest) -> has_val(num_visited, PreVar980, Srest), PreVar977 = PreVar980 ; (has_val(num_visited, PreVar986, Srest), PreVar985 is PreVar986 + (1)), PreVar977 is PreVar985).
+ssa( pos, PreVar1004, [go_up|Srest] ) :- !, (has_val(pos, PreVar993, Srest), PreVar993=[PreVar998, PreVar999]), (PreVar1001 is PreVar999 + (1), PreVar1000 is PreVar1001), PreVar1004=[PreVar998, PreVar1000].
+ssa( visited(PreVar1019, PreVar1023), true, [go_up|Srest] ) :- !, (has_val(pos, PreVar1012, Srest), PreVar1012=[PreVar1017, PreVar1018]), PreVar1019 = PreVar1017, PreVar1024 is PreVar1018 + (1), PreVar1023 is PreVar1024.
+ssa( num_visited, PreVar1049, [go_up_st|Srest] ) :- !, (has_val(pos, PreVar1029, Srest), PreVar1029=[PreVar1034, PreVar1035]), PreVar1036 = PreVar1034, (PreVar1041 is PreVar1035 + (1), PreVar1040 is PreVar1041), (has_val(visited(PreVar1036, PreVar1040), true, Srest) -> has_val(num_visited, PreVar1050, Srest), PreVar1049 is PreVar1050 ; (has_val(num_visited, PreVar1056, Srest), PreVar1055 is PreVar1056 + (1)), PreVar1049 is PreVar1055).
+ssa( pos, PreVar1076, [go_up_st|Srest] ) :- !, (has_val(pos, PreVar1063, Srest), PreVar1063=[PreVar1068, PreVar1069]), (PreVar1073 is PreVar1069 + (1), PreVar1070 = PreVar1073), PreVar1076=[PreVar1068, PreVar1070].
+ssa( visited(PreVar1091, PreVar1095), true, [go_up_st|Srest] ) :- !, (has_val(pos, PreVar1084, Srest), PreVar1084=[PreVar1089, PreVar1090]), PreVar1091 = PreVar1089, PreVar1096 is PreVar1090 + (1), PreVar1095 is PreVar1096.
+ssa( epf_carry_item, PreVar1099, [pickup_item|Srest] ) :- !, PreVar1099=true.
+ssa( new_user_utter, PreVar1103, [processed_utterance|Srest] ) :- !, PreVar1103=false.
+ssa( assumed_action, PreVar1107, [reject|Srest] ) :- !, PreVar1107=nil.
+ssa( assumed_arguments, PreVar1111, [reject|Srest] ) :- !, PreVar1111 = [].
+ssa( assumed_objects, PreVar1115, [reject|Srest] ) :- !, PreVar1115 = [].
+ssa( finished_action, PreVar1119, [reject|Srest] ) :- !, PreVar1119=true.
+ssa( finished_assignments, PreVar1123, [reject|Srest] ) :- !, PreVar1123=true.
+ssa( finished_objects, PreVar1127, [reject|Srest] ) :- !, PreVar1127=true.
+ssa( preposition_count, PreVar1131, [reject|Srest] ) :- !, PreVar1131=0.
+ssa( visited(_33472, _33473), PreVar1135, [reset_visited|Srest] ) :- !, PreVar1135=false.
 ssa( online, true, [setOnline|Srest] ) :- !, true.
-ssa( assumed_objects, NewValue, [assign_argument(_P)|Srest] ) :- !, has_val(assumed_objects, PreVar1104, Srest), PreVar1104=[PreVar1109|NewValue].
-ssa( assumed_arguments, PreVar1127, [assign_argument(PreVar1132)|Srest] ) :- !, (has_val(assumed_arguments, PreVar1113, Srest), PreVar1110 = PreVar1113), (has_val(assumed_objects, PreVar1119, Srest), PreVar1119=[[PreVar1125, PreVar1126]|L2]), PreVar1127=[[PreVar1132, PreVar1126]|PreVar1110].
-ssa( finished_assignments, PreVar1143, [assign_argument(_P)|Srest] ) :- !, (has_val(assumed_objects, PreVar1137, Srest), PreVar1134 = PreVar1137), (length(PreVar1134, 1) -> PreVar1143=true ; PreVar1143=false).
-ssa( interpretation_count, PreVar1171, [assign_argument(PreVar1169)|Srest] ) :- !, (has_val(assumed_action, PreVar1153, Srest), PreVar1153 = PreVar1152), (has_val(assumed_objects, PreVar1160, Srest), PreVar1160=[[PreVar1166, PreVar1167]|L2]), (preposition(PreVar1152, PreVar1169, PreVar1166) -> (has_val(interpretation_count, PreVar1173, Srest), PreVar1172 is PreVar1173 + (2)), PreVar1171 is PreVar1172 ; (has_val(interpretation_count, PreVar1180, Srest), PreVar1179 is PreVar1180 + (1)), PreVar1171 is PreVar1179).
-ssa( new_user_utter, PreVar1185, [hear(_31070)|Srest] ) :- !, PreVar1185=true.
-ssa( last_user_utterance, PreVar1189, [hear(PreVar1190)|Srest] ) :- !, PreVar1189 = PreVar1190.
-ssa( verbphrases, NewValue, [init_ip(_31555)|Srest] ) :- !, has_val(verbphrases, PreVar1195, Srest), PreVar1195=[PreVar1200|NewValue].
-ssa( vp_finished, PreVar1210, [init_ip(_31574)|Srest] ) :- !, (has_val(verbphrases, PreVar1203, Srest), PreVar1203 = PreVar1202), (length(PreVar1202, 1) -> PreVar1210=true ; PreVar1210=false).
-ssa( assumed_action, PreVar1218, [init_ip(_31611)|Srest] ) :- !, PreVar1218=nil.
-ssa( assumed_objects, PreVar1222, [init_ip(_31628)|Srest] ) :- !, PreVar1222 = [].
-ssa( assumed_arguments, PreVar1226, [init_ip(_31645)|Srest] ) :- !, PreVar1226 = [].
-ssa( interpretation_count, PreVar1230, [init_ip(_31662)|Srest] ) :- !, PreVar1230=0.
-ssa( clarification_count, PreVar1234, [init_ip(_31679)|Srest] ) :- !, PreVar1234=0.
-ssa( finished_action, PreVar1238, [init_ip(_31696)|Srest] ) :- !, PreVar1238=false.
-ssa( finished_objects, PreVar1242, [init_ip(_31713)|Srest] ) :- !, PreVar1242=false.
-ssa( finished_assignments, PreVar1246, [init_ip(_31730)|Srest] ) :- !, PreVar1246=false.
-ssa( spoken_verb, PreVar1250, [init_ip([[PreVar1251|_31509]|_31507])|Srest] ) :- !, PreVar1250 = PreVar1251.
-ssa( spoken_objects, PreVar1254, [init_ip([[_31530, [objects, PreVar1255]]|_31529])|Srest] ) :- !, PreVar1254 = PreVar1255.
-ssa( verbphrases, PreVar1258, [init_vp(PreVar1259)|Srest] ) :- !, PreVar1258 = PreVar1259.
-ssa( vp_finished, PreVar1262, [init_vp(_31488)|Srest] ) :- !, PreVar1262=false.
-ssa( spoken_verb, PreVar1266, [interpret_action(_S)|Srest] ) :- !, PreVar1266=nil.
-ssa( assumed_action, PreVar1270, [interpret_action(PreVar1271)|Srest] ) :- !, PreVar1270 = PreVar1271.
-ssa( finished_action, PreVar1274, [interpret_action(_S)|Srest] ) :- !, PreVar1274=true.
-ssa( interpretation_count, PreVar1278, [interpret_action(_S)|Srest] ) :- !, (has_val(interpretation_count, PreVar1280, Srest), PreVar1279 is PreVar1280 + (1)), PreVar1278 is PreVar1279.
-ssa( assumed_objects, PreVar1304, [interpret_object(PreVar1310)|Srest] ) :- !, (has_val(spoken_objects, PreVar1288, Srest), [[PreVar1290, [PreVar1292, PreVar1293]]|L2] = PreVar1288), (has_val(assumed_objects, PreVar1300, Srest), PreVar1297 = PreVar1300), PreVar1304=[[PreVar1290, PreVar1310]|PreVar1297].
-ssa( spoken_objects, NewValue, [interpret_object(_E)|Srest] ) :- !, has_val(spoken_objects, PreVar1313, Srest), PreVar1313=[PreVar1318|NewValue].
-ssa( finished_objects, PreVar1328, [interpret_object(_E)|Srest] ) :- !, (has_val(spoken_objects, PreVar1322, Srest), PreVar1319 = PreVar1322), (length(PreVar1319, 1) -> PreVar1328=true ; PreVar1328=false).
-ssa( interpretation_count, PreVar1336, [interpret_object(_E)|Srest] ) :- !, (has_val(interpretation_count, PreVar1338, Srest), PreVar1337 is PreVar1338 + (1)), PreVar1336 is PreVar1337.
+ssa( assumed_objects, NewValue, [assign_argument(_P)|Srest] ) :- !, has_val(assumed_objects, PreVar1141, Srest), PreVar1141=[PreVar1146|NewValue].
+ssa( assumed_arguments, PreVar1164, [assign_argument(PreVar1169)|Srest] ) :- !, (has_val(assumed_arguments, PreVar1150, Srest), PreVar1147 = PreVar1150), (has_val(assumed_objects, PreVar1156, Srest), PreVar1156=[[PreVar1162, PreVar1163]|L2]), PreVar1164=[[PreVar1169, PreVar1163]|PreVar1147].
+ssa( finished_assignments, PreVar1180, [assign_argument(_P)|Srest] ) :- !, (has_val(assumed_objects, PreVar1174, Srest), PreVar1171 = PreVar1174), (length(PreVar1171, 1) -> has_val(finished_objects, PreVar1183, Srest), PreVar1180 = PreVar1183 ; PreVar1180=false).
+ssa( preposition_count, PreVar1211, [assign_argument(PreVar1209)|Srest] ) :- !, (has_val(assumed_action, PreVar1193, Srest), PreVar1193 = PreVar1192), (has_val(assumed_objects, PreVar1200, Srest), PreVar1200=[[PreVar1206, PreVar1207]|L2]), (preposition(PreVar1192, PreVar1209, PreVar1206) -> (has_val(preposition_count, PreVar1213, Srest), PreVar1212 is PreVar1213 + (1)), PreVar1211 is PreVar1212 ; has_val(preposition_count, PreVar1219, Srest), PreVar1211 is PreVar1219).
+ssa( new_user_utter, PreVar1223, [hear(_33511)|Srest] ) :- !, PreVar1223=true.
+ssa( last_user_utterance, PreVar1227, [hear(PreVar1228)|Srest] ) :- !, PreVar1227 = PreVar1228.
+ssa( verbphrases, NewValue, [init_ip(_34025)|Srest] ) :- !, has_val(verbphrases, PreVar1233, Srest), PreVar1233=[PreVar1238|NewValue].
+ssa( vp_finished, PreVar1248, [init_ip(_34044)|Srest] ) :- !, (has_val(verbphrases, PreVar1241, Srest), PreVar1241 = PreVar1240), (length(PreVar1240, 1) -> PreVar1248=true ; PreVar1248=false).
+ssa( assumed_action, PreVar1256, [init_ip(_34081)|Srest] ) :- !, PreVar1256=nil.
+ssa( assumed_objects, PreVar1260, [init_ip(_34098)|Srest] ) :- !, PreVar1260 = [].
+ssa( assumed_arguments, PreVar1264, [init_ip(_34115)|Srest] ) :- !, PreVar1264 = [].
+ssa( preposition_count, PreVar1268, [init_ip(_34132)|Srest] ) :- !, PreVar1268=0.
+ssa( clarification_count, PreVar1272, [init_ip(_34149)|Srest] ) :- !, PreVar1272=0.
+ssa( finished_action, PreVar1276, [init_ip(_34166)|Srest] ) :- !, PreVar1276=false.
+ssa( finished_objects, PreVar1280, [init_ip(_34183)|Srest] ) :- !, PreVar1280=false.
+ssa( finished_assignments, PreVar1284, [init_ip(_34200)|Srest] ) :- !, PreVar1284=false.
+ssa( spoken_verb, PreVar1288, [init_ip([[PreVar1289|_33979]|_33977])|Srest] ) :- !, PreVar1288 = PreVar1289.
+ssa( spoken_objects, PreVar1292, [init_ip([[_34000, [objects, PreVar1293]]|_33999])|Srest] ) :- !, PreVar1292 = PreVar1293.
+ssa( verbphrases, PreVar1296, [init_vp(PreVar1297)|Srest] ) :- !, PreVar1296 = PreVar1297.
+ssa( vp_finished, PreVar1300, [init_vp(_33958)|Srest] ) :- !, PreVar1300=false.
+ssa( spoken_verb, PreVar1304, [interpret_action(_S)|Srest] ) :- !, PreVar1304=nil.
+ssa( assumed_action, PreVar1308, [interpret_action(PreVar1309)|Srest] ) :- !, PreVar1308 = PreVar1309.
+ssa( finished_action, PreVar1312, [interpret_action(_S)|Srest] ) :- !, PreVar1312=true.
+ssa( finished_objects, PreVar1325, [interpret_action(_33600)|Srest] ) :- !, (has_val(spoken_objects, PreVar1318, Srest), PreVar1318 = PreVar1317), (length(PreVar1317, 0) -> PreVar1325=true ; has_val(finished_objects, PreVar1332, Srest), PreVar1325 = PreVar1332).
+ssa( finished_assignments, PreVar1345, [interpret_action(_33637)|Srest] ) :- !, (has_val(spoken_objects, PreVar1338, Srest), PreVar1338 = PreVar1337), (length(PreVar1337, 0) -> PreVar1345=true ; has_val(finished_assignments, PreVar1352, Srest), PreVar1345 = PreVar1352).
+ssa( assumed_objects, PreVar1375, [interpret_object(PreVar1381)|Srest] ) :- !, (has_val(spoken_objects, PreVar1359, Srest), [[PreVar1361, [PreVar1363, PreVar1364]]|L2] = PreVar1359), (has_val(assumed_objects, PreVar1371, Srest), PreVar1368 = PreVar1371), PreVar1375=[[PreVar1361, PreVar1381]|PreVar1368].
+ssa( spoken_objects, NewValue, [interpret_object(_E)|Srest] ) :- !, has_val(spoken_objects, PreVar1384, Srest), PreVar1384=[PreVar1389|NewValue].
+ssa( finished_objects, PreVar1399, [interpret_object(_E)|Srest] ) :- !, (has_val(spoken_objects, PreVar1393, Srest), PreVar1390 = PreVar1393), (length(PreVar1390, 1) -> PreVar1399=true ; PreVar1399=false).
 ssa( start, NewValue, [setTime(NewValue)|Srest] ) :- !, true.
-ssa( start, NewValue, [ccUpdate(_29808, NewValue)|Srest] ) :- !, true.
+ssa( start, NewValue, [ccUpdate(_32249, NewValue)|Srest] ) :- !, true.
 ssa( action, NewValue, [reply(action, NewValue)|Srest] ) :- !, true.
 ssa( action, NewValue, [send(action, NewValue)|Srest] ) :- !, true.
 ssa( Fluent, NewValue, [set(Fluent, NewValue)|Srest] ) :- !, true.
-ssa( pos, PreVar1343, [teleport(PreVar1347, PreVar1348)|Srest] ) :- !, PreVar1343=[PreVar1347, PreVar1348].
+ssa( pos, PreVar1407, [teleport(PreVar1411, PreVar1412)|Srest] ) :- !, PreVar1407=[PreVar1411, PreVar1412].
 
 /* 	___ dummy SSAs ___ */
 ssa( action, NewValue, [set(action, NewValue)|_] ) :- !.
@@ -147,24 +165,24 @@ ssa( eval_registers, NewValue, [set(eval_registers, NewValue)|_] ) :- !.
 ssa( finished_action, NewValue, [set(finished_action, NewValue)|_] ) :- !.
 ssa( finished_assignments, NewValue, [set(finished_assignments, NewValue)|_] ) :- !.
 ssa( finished_objects, NewValue, [set(finished_objects, NewValue)|_] ) :- !.
-ssa( interpretation_count, NewValue, [set(interpretation_count, NewValue)|_] ) :- !.
 ssa( know_item_pos, NewValue, [set(know_item_pos, NewValue)|_] ) :- !.
 ssa( last_user_utterance, NewValue, [set(last_user_utterance, NewValue)|_] ) :- !.
 ssa( new_user_utter, NewValue, [set(new_user_utter, NewValue)|_] ) :- !.
 ssa( num_visited, NewValue, [set(num_visited, NewValue)|_] ) :- !.
 ssa( online, NewValue, [set(online, NewValue)|_] ) :- !.
+ssa( preposition_count, NewValue, [set(preposition_count, NewValue)|_] ) :- !.
 ssa( spoken_objects, NewValue, [set(spoken_objects, NewValue)|_] ) :- !.
 ssa( spoken_verb, NewValue, [set(spoken_verb, NewValue)|_] ) :- !.
 ssa( start, NewValue, [set(start, NewValue)|_] ) :- !.
 ssa( useAbstraction, NewValue, [set(useAbstraction, NewValue)|_] ) :- !.
 ssa( verbphrases, NewValue, [set(verbphrases, NewValue)|_] ) :- !.
 ssa( vp_finished, NewValue, [set(vp_finished, NewValue)|_] ) :- !.
-ssa( bel(_73767), NewValue, [set(bel(_73767), NewValue)|_] ) :- !.
-ssa( ltp(_73771), NewValue, [set(ltp(_73771), NewValue)|_] ) :- !.
-ssa( pproj(_73755, _73756), NewValue, [set(pproj(_73755, _73756), NewValue)|_] ) :- !.
+ssa( bel(_77295), NewValue, [set(bel(_77295), NewValue)|_] ) :- !.
+ssa( ltp(_77299), NewValue, [set(ltp(_77299), NewValue)|_] ) :- !.
+ssa( pproj(_77283, _77284), NewValue, [set(pproj(_77283, _77284), NewValue)|_] ) :- !.
 ssa( visited(_X, _Y), NewValue, [set(visited(_X, _Y), NewValue)|_] ) :- !.
-ssa( lookahead(_73760, _73761, _73762, _73763), NewValue, [set(lookahead(_73760, _73761, _73762, _73763), NewValue)|_] ) :- !.
-ssa( pll(_73748, _73749, _73750, _73751), NewValue, [set(pll(_73748, _73749, _73750, _73751), NewValue)|_] ) :- !.
+ssa( lookahead(_77288, _77289, _77290, _77291), NewValue, [set(lookahead(_77288, _77289, _77290, _77291), NewValue)|_] ) :- !.
+ssa( pll(_77276, _77277, _77278, _77279), NewValue, [set(pll(_77276, _77277, _77278, _77279), NewValue)|_] ) :- !.
 ssa( epf_carry_item, NewValue, [set(epf_carry_item, NewValue)|_] ) :- !.
 ssa( epf_item_pos, NewValue, [set(epf_item_pos, NewValue)|_] ) :- !.
 ssa( epf_sense_item, NewValue, [set(epf_sense_item, NewValue)|_] ) :- !.
@@ -183,38 +201,38 @@ ssa( eval_registers, NewValue, [_UnknownAction|Srest] ) :- !, has_val(eval_regis
 ssa( finished_action, NewValue, [_UnknownAction|Srest] ) :- !, has_val(finished_action, NewValue, Srest).
 ssa( finished_assignments, NewValue, [_UnknownAction|Srest] ) :- !, has_val(finished_assignments, NewValue, Srest).
 ssa( finished_objects, NewValue, [_UnknownAction|Srest] ) :- !, has_val(finished_objects, NewValue, Srest).
-ssa( interpretation_count, NewValue, [_UnknownAction|Srest] ) :- !, has_val(interpretation_count, NewValue, Srest).
 ssa( know_item_pos, NewValue, [_UnknownAction|Srest] ) :- !, has_val(know_item_pos, NewValue, Srest).
 ssa( last_user_utterance, NewValue, [_UnknownAction|Srest] ) :- !, has_val(last_user_utterance, NewValue, Srest).
 ssa( new_user_utter, NewValue, [_UnknownAction|Srest] ) :- !, has_val(new_user_utter, NewValue, Srest).
 ssa( num_visited, NewValue, [_UnknownAction|Srest] ) :- !, has_val(num_visited, NewValue, Srest).
 ssa( online, NewValue, [_UnknownAction|Srest] ) :- !, has_val(online, NewValue, Srest).
+ssa( preposition_count, NewValue, [_UnknownAction|Srest] ) :- !, has_val(preposition_count, NewValue, Srest).
 ssa( spoken_objects, NewValue, [_UnknownAction|Srest] ) :- !, has_val(spoken_objects, NewValue, Srest).
 ssa( spoken_verb, NewValue, [_UnknownAction|Srest] ) :- !, has_val(spoken_verb, NewValue, Srest).
 ssa( start, NewValue, [_UnknownAction|Srest] ) :- !, has_val(start, NewValue, Srest).
 ssa( useAbstraction, NewValue, [_UnknownAction|Srest] ) :- !, has_val(useAbstraction, NewValue, Srest).
 ssa( verbphrases, NewValue, [_UnknownAction|Srest] ) :- !, has_val(verbphrases, NewValue, Srest).
 ssa( vp_finished, NewValue, [_UnknownAction|Srest] ) :- !, has_val(vp_finished, NewValue, Srest).
-ssa( bel(_73767), NewValue, [_UnknownAction|Srest] ) :- !, has_val(bel(_73767), NewValue, Srest).
-ssa( ltp(_73771), NewValue, [_UnknownAction|Srest] ) :- !, has_val(ltp(_73771), NewValue, Srest).
-ssa( pproj(_73755, _73756), NewValue, [_UnknownAction|Srest] ) :- !, has_val(pproj(_73755, _73756), NewValue, Srest).
+ssa( bel(_77295), NewValue, [_UnknownAction|Srest] ) :- !, has_val(bel(_77295), NewValue, Srest).
+ssa( ltp(_77299), NewValue, [_UnknownAction|Srest] ) :- !, has_val(ltp(_77299), NewValue, Srest).
+ssa( pproj(_77283, _77284), NewValue, [_UnknownAction|Srest] ) :- !, has_val(pproj(_77283, _77284), NewValue, Srest).
 ssa( visited(_X, _Y), NewValue, [_UnknownAction|Srest] ) :- !, has_val(visited(_X, _Y), NewValue, Srest).
-ssa( lookahead(_73760, _73761, _73762, _73763), NewValue, [_UnknownAction|Srest] ) :- !, has_val(lookahead(_73760, _73761, _73762, _73763), NewValue, Srest).
-ssa( pll(_73748, _73749, _73750, _73751), NewValue, [_UnknownAction|Srest] ) :- !, has_val(pll(_73748, _73749, _73750, _73751), NewValue, Srest).
+ssa( lookahead(_77288, _77289, _77290, _77291), NewValue, [_UnknownAction|Srest] ) :- !, has_val(lookahead(_77288, _77289, _77290, _77291), NewValue, Srest).
+ssa( pll(_77276, _77277, _77278, _77279), NewValue, [_UnknownAction|Srest] ) :- !, has_val(pll(_77276, _77277, _77278, _77279), NewValue, Srest).
 ssa( epf_carry_item, NewValue, [_UnknownAction|Srest] ) :- !, has_val(epf_carry_item, NewValue, Srest).
 ssa( epf_item_pos, NewValue, [_UnknownAction|Srest] ) :- !, has_val(epf_item_pos, NewValue, Srest).
 ssa( epf_sense_item, NewValue, [_UnknownAction|Srest] ) :- !, has_val(epf_sense_item, NewValue, Srest).
 ssa( pos, NewValue, [_UnknownAction|Srest] ) :- !, has_val(pos, NewValue, Srest).
-prolog_poss( send(_R, _74930) ).
-prolog_poss( send(_R, _74930), S ) :- true.
-prolog_poss( reply(_R, _74939) ).
-prolog_poss( reply(_R, _74939), S ) :- true.
+prolog_poss( send(_R, _78458) ).
+prolog_poss( send(_R, _78458), S ) :- true.
+prolog_poss( reply(_R, _78467) ).
+prolog_poss( reply(_R, _78467), S ) :- true.
 prolog_poss( setOnline ).
 prolog_poss( setOnline, S ) :- true.
 prolog_poss( clipOnline ).
 prolog_poss( clipOnline, S ) :- true.
-prolog_poss( setTime(_74957) ).
-prolog_poss( setTime(_74957), S ) :- true.
+prolog_poss( setTime(_78485) ).
+prolog_poss( setTime(_78485), S ) :- true.
 prolog_poss( clipAbstraction ).
 prolog_poss( clipAbstraction, S ) :- true.
 prolog_poss( setAbstraction ).
@@ -223,42 +241,42 @@ prolog_poss( set(_Fluent, _Value) ).
 prolog_poss( set(_Fluent, _Value), S ) :- true.
 prolog_poss( exogf_Update ).
 prolog_poss( exogf_Update, S ) :- true.
-prolog_poss( say(_74989) ).
-prolog_poss( say(_74989), S ) :- true.
+prolog_poss( say(_78517) ).
+prolog_poss( say(_78517), S ) :- true.
 prolog_poss( processed_utterance ).
 prolog_poss( processed_utterance, S ) :- true.
 prolog_poss( wait ).
 prolog_poss( wait, S ) :- true.
 prolog_poss( go_up ).
-prolog_poss( go_up, S ) :- (has_val(pos, PreVar1351, S), PreVar1351=[PreVar1356, PreVar1357]), is_pos(PreVar1356, PreVar1357), (PreVar1361 is PreVar1357 + (1), PreVar1360 is PreVar1361), is_pos(PreVar1356, PreVar1360), not is_wall(PreVar1356, PreVar1357, PreVar1356, PreVar1360).
+prolog_poss( go_up, S ) :- (has_val(pos, PreVar1415, S), PreVar1415=[PreVar1420, PreVar1421]), is_pos(PreVar1420, PreVar1421), (PreVar1425 is PreVar1421 + (1), PreVar1424 is PreVar1425), is_pos(PreVar1420, PreVar1424), not is_wall(PreVar1420, PreVar1421, PreVar1420, PreVar1424).
 prolog_poss( go_down ).
-prolog_poss( go_down, S ) :- (has_val(pos, PreVar1372, S), PreVar1372=[PreVar1377, PreVar1378]), is_pos(PreVar1377, PreVar1378), (PreVar1382 is PreVar1378 - (1), PreVar1381 is PreVar1382), is_pos(PreVar1377, PreVar1381), not is_wall(PreVar1377, PreVar1378, PreVar1377, PreVar1381).
+prolog_poss( go_down, S ) :- (has_val(pos, PreVar1436, S), PreVar1436=[PreVar1441, PreVar1442]), is_pos(PreVar1441, PreVar1442), (PreVar1446 is PreVar1442 - (1), PreVar1445 is PreVar1446), is_pos(PreVar1441, PreVar1445), not is_wall(PreVar1441, PreVar1442, PreVar1441, PreVar1445).
 prolog_poss( go_left ).
-prolog_poss( go_left, S ) :- (has_val(pos, PreVar1393, S), PreVar1393=[PreVar1398, PreVar1399]), is_pos(PreVar1398, PreVar1399), (PreVar1403 is PreVar1398 - (1), PreVar1402 is PreVar1403), is_pos(PreVar1402, PreVar1399), not is_wall(PreVar1398, PreVar1399, PreVar1402, PreVar1399).
+prolog_poss( go_left, S ) :- (has_val(pos, PreVar1457, S), PreVar1457=[PreVar1462, PreVar1463]), is_pos(PreVar1462, PreVar1463), (PreVar1467 is PreVar1462 - (1), PreVar1466 is PreVar1467), is_pos(PreVar1466, PreVar1463), not is_wall(PreVar1462, PreVar1463, PreVar1466, PreVar1463).
 prolog_poss( go_right ).
-prolog_poss( go_right, S ) :- (has_val(pos, PreVar1414, S), PreVar1414=[PreVar1419, PreVar1420]), is_pos(PreVar1419, PreVar1420), (PreVar1424 is PreVar1419 + (1), PreVar1423 is PreVar1424), is_pos(PreVar1423, PreVar1420), not is_wall(PreVar1419, PreVar1420, PreVar1423, PreVar1420).
+prolog_poss( go_right, S ) :- (has_val(pos, PreVar1478, S), PreVar1478=[PreVar1483, PreVar1484]), is_pos(PreVar1483, PreVar1484), (PreVar1488 is PreVar1483 + (1), PreVar1487 is PreVar1488), is_pos(PreVar1487, PreVar1484), not is_wall(PreVar1483, PreVar1484, PreVar1487, PreVar1484).
 prolog_poss( rest ).
-prolog_poss( rest, S ) :- (has_val(pos, PreVar1435, S), PreVar1435=[PreVar1440, PreVar1441]), is_pos(PreVar1440, PreVar1441).
+prolog_poss( rest, S ) :- (has_val(pos, PreVar1499, S), PreVar1499=[PreVar1504, PreVar1505]), is_pos(PreVar1504, PreVar1505).
 prolog_poss( go_up_st ).
-prolog_poss( go_up_st, S ) :- (has_val(pos, PreVar1446, S), PreVar1446=[PreVar1451, PreVar1452]), is_pos(PreVar1451, PreVar1452), (PreVar1456 is PreVar1452 + (1), PreVar1455 is PreVar1456), is_pos(PreVar1451, PreVar1455), not is_wall(PreVar1451, PreVar1452, PreVar1451, PreVar1455).
+prolog_poss( go_up_st, S ) :- (has_val(pos, PreVar1510, S), PreVar1510=[PreVar1515, PreVar1516]), is_pos(PreVar1515, PreVar1516), (PreVar1520 is PreVar1516 + (1), PreVar1519 is PreVar1520), is_pos(PreVar1515, PreVar1519), not is_wall(PreVar1515, PreVar1516, PreVar1515, PreVar1519).
 prolog_poss( go_down ).
-prolog_poss( go_down, S ) :- (has_val(pos, PreVar1467, S), PreVar1467=[PreVar1472, PreVar1473]), is_pos(PreVar1472, PreVar1473), (PreVar1477 is PreVar1473 - (1), PreVar1476 is PreVar1477), is_pos(PreVar1472, PreVar1476), not is_wall(PreVar1472, PreVar1473, PreVar1472, PreVar1476).
+prolog_poss( go_down, S ) :- (has_val(pos, PreVar1531, S), PreVar1531=[PreVar1536, PreVar1537]), is_pos(PreVar1536, PreVar1537), (PreVar1541 is PreVar1537 - (1), PreVar1540 is PreVar1541), is_pos(PreVar1536, PreVar1540), not is_wall(PreVar1536, PreVar1537, PreVar1536, PreVar1540).
 prolog_poss( go_left_st ).
-prolog_poss( go_left_st, S ) :- (has_val(pos, PreVar1488, S), PreVar1488=[PreVar1493, PreVar1494]), is_pos(PreVar1493, PreVar1494), (PreVar1498 is PreVar1493 - (1), PreVar1497 is PreVar1498), is_pos(PreVar1497, PreVar1494), not is_wall(PreVar1493, PreVar1494, PreVar1497, PreVar1494).
+prolog_poss( go_left_st, S ) :- (has_val(pos, PreVar1552, S), PreVar1552=[PreVar1557, PreVar1558]), is_pos(PreVar1557, PreVar1558), (PreVar1562 is PreVar1557 - (1), PreVar1561 is PreVar1562), is_pos(PreVar1561, PreVar1558), not is_wall(PreVar1557, PreVar1558, PreVar1561, PreVar1558).
 prolog_poss( go_right_st ).
-prolog_poss( go_right_st, S ) :- (has_val(pos, PreVar1509, S), PreVar1509=[PreVar1514, PreVar1515]), is_pos(PreVar1514, PreVar1515), (PreVar1519 is PreVar1514 + (1), PreVar1518 is PreVar1519), is_pos(PreVar1518, PreVar1515), not is_wall(PreVar1514, PreVar1515, PreVar1518, PreVar1515).
+prolog_poss( go_right_st, S ) :- (has_val(pos, PreVar1573, S), PreVar1573=[PreVar1578, PreVar1579]), is_pos(PreVar1578, PreVar1579), (PreVar1583 is PreVar1578 + (1), PreVar1582 is PreVar1583), is_pos(PreVar1582, PreVar1579), not is_wall(PreVar1578, PreVar1579, PreVar1582, PreVar1579).
 prolog_poss( pickup_item ).
-prolog_poss( pickup_item, S ) :- (has_val(pos, PreVar1530, S), PreVar1530=[PreVar1535, PreVar1536]), is_pos(PreVar1535, PreVar1536), getval(real_item_pos, [PreVar1541, PreVar1542]), PreVar1535 =:= PreVar1541, PreVar1536 =:= PreVar1542, not has_val(epf_carry_item, true, S).
+prolog_poss( pickup_item, S ) :- (has_val(pos, PreVar1594, S), PreVar1594=[PreVar1599, PreVar1600]), is_pos(PreVar1599, PreVar1600), getval(real_item_pos, [PreVar1605, PreVar1606]), PreVar1599 =:= PreVar1605, PreVar1600 =:= PreVar1606, not has_val(epf_carry_item, true, S).
 prolog_poss( drop_item ).
-prolog_poss( drop_item, S ) :- has_val(epf_carry_item, true, S), (has_val(pos, PreVar1555, S), PreVar1555=[PreVar1560, PreVar1561]), is_pos(PreVar1560, PreVar1561), getval(real_item_pos, [PreVar1566, PreVar1567]), PreVar1560 =:= PreVar1566, PreVar1561 =:= PreVar1567.
+prolog_poss( drop_item, S ) :- has_val(epf_carry_item, true, S), (has_val(pos, PreVar1619, S), PreVar1619=[PreVar1624, PreVar1625]), is_pos(PreVar1624, PreVar1625), getval(real_item_pos, [PreVar1630, PreVar1631]), PreVar1624 =:= PreVar1630, PreVar1625 =:= PreVar1631.
 prolog_poss( noop ).
 prolog_poss( noop, S ) :- true.
 prolog_poss( reset_visited ).
 prolog_poss( reset_visited, S ) :- true.
 prolog_poss( teleport(_X, _Y) ).
 prolog_poss( teleport(_X, _Y), S ) :- true.
-prolog_poss( hear(_75511) ).
-prolog_poss( hear(_75511), S ) :- true.
+prolog_poss( hear(_79039) ).
+prolog_poss( hear(_79039), S ) :- true.
 prolog_poss( cout(_Text) ).
 prolog_poss( cout(_Text), S ) :- true.
 prolog_poss( cout(_Text, _Params) ).
@@ -269,16 +287,16 @@ prolog_poss( printf(_String, _Params) ).
 prolog_poss( printf(_String, _Params), S ) :- true.
 prolog_poss( printf(_Stream, _String, _Params) ).
 prolog_poss( printf(_Stream, _String, _Params), S ) :- true.
-prolog_poss( interpret_action(PreVar1580) ).
-prolog_poss( interpret_action(PreVar1580), S ) :- (has_val(spoken_verb, PreVar1574, S), PreVar1574 = PreVar1573), synonym(PreVar1573, PreVar1580), not has_val(finished_action, true, S), not has_val(finished_objects, true, S), not has_val(finished_assignments, true, S).
-prolog_poss( interpret_object(PreVar1603) ).
-prolog_poss( interpret_object(PreVar1603), S ) :- (has_val(spoken_objects, PreVar1592, S), PreVar1592=[[PreVar1598, [PreVar1600, PreVar1601]]|_R]), synonym(PreVar1601, PreVar1603), has_val(finished_action, true, S), not has_val(finished_objects, true, S), not has_val(finished_assignments, true, S).
-prolog_poss( assign_argument(PreVar1614) ).
-prolog_poss( assign_argument(PreVar1614), S ) :- not (has_val(assumed_arguments, PreVar1616, S), member([PreVar1614, PreVar1615], PreVar1616)), (has_val(assumed_objects, PreVar1622, S), PreVar1622=[[PreVar1628, PreVar1629]|_R]), entity_attribute(PreVar1629, PreVar1631), (has_val(assumed_action, PreVar1634, S), PreVar1634 = PreVar1633), parameter(PreVar1633, PreVar1614, PreVar1641), parameter_attribute(PreVar1633, PreVar1614, PreVar1631), has_val(finished_action, true, S), has_val(finished_objects, true, S), not has_val(finished_assignments, true, S).
-prolog_poss( init_vp(_75712) ).
-prolog_poss( init_vp(_75712), S ) :- true.
-prolog_poss( init_ip(_75719) ).
-prolog_poss( init_ip(_75719), S ) :- not has_val(vp_finished, true, S).
+prolog_poss( interpret_action(PreVar1653) ).
+prolog_poss( interpret_action(PreVar1653), S ) :- not has_val(finished_action, true, S), not has_val(finished_objects, true, S), not has_val(finished_assignments, true, S), (has_val(spoken_verb, PreVar1647, S), PreVar1647 = PreVar1646), synonym(PreVar1646, PreVar1653).
+prolog_poss( interpret_object(PreVar1676) ).
+prolog_poss( interpret_object(PreVar1676), S ) :- has_val(finished_action, true, S), not has_val(finished_objects, true, S), not has_val(finished_assignments, true, S), (has_val(spoken_objects, PreVar1665, S), PreVar1665=[[PreVar1671, [PreVar1673, PreVar1674]]|_R]), synonym(PreVar1674, PreVar1676).
+prolog_poss( assign_argument(PreVar1684) ).
+prolog_poss( assign_argument(PreVar1684), S ) :- has_val(finished_action, true, S), not has_val(finished_assignments, true, S), not (has_val(assumed_arguments, PreVar1686, S), member([PreVar1684, PreVar1685], PreVar1686)), (has_val(assumed_objects, PreVar1692, S), PreVar1692=[[PreVar1698, PreVar1699]|_R]), entity_attribute(PreVar1699, PreVar1701), (has_val(assumed_action, PreVar1704, S), PreVar1704 = PreVar1703), parameter(PreVar1703, PreVar1684, PreVar1711), parameter_attribute(PreVar1703, PreVar1684, PreVar1701).
+prolog_poss( init_vp(_79238) ).
+prolog_poss( init_vp(_79238), S ) :- true.
+prolog_poss( init_ip(_79245) ).
+prolog_poss( init_ip(_79245), S ) :- not has_val(vp_finished, true, S).
 prolog_poss( clarify ).
 prolog_poss( clarify, S ) :- true.
 prolog_poss( reject ).

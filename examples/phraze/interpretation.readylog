@@ -59,8 +59,8 @@ prim_fluent( assumed_arguments ).
 initial_val( assumed_arguments, [] ).
 
 % fluent indicating the number of interpretation steps performed
-prim_fluent( interpretation_count ).
-initial_val( interpretation_count, 0 ).
+prim_fluent( preposition_count ).
+initial_val( preposition_count, 0 ).
 
 % fluent indicating the number of clarification actions performed
 prim_fluent( clarification_count ).
@@ -82,6 +82,9 @@ initial_val(vp_finished, false).
 prim_fluent(verbphrases).
 initial_val(verbphrases, []).
 
+%prim_fluent(var_action).
+%initial_val(var_action, goto).
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  ACTIONS                                                           %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -98,52 +101,54 @@ initial_val(verbphrases, []).
 
 prim_action(interpret_action(_S)).
 poss(interpret_action(_S), 
-			and([ 	spoken_verb = V,
-				synonym(V,_S),
+			and([ 	
 				not finished_action,
 				not finished_objects,
-				not finished_assignments
+				not finished_assignments,
+				spoken_verb = V,
+				synonym(V,_S)
 				])).
 causes_val(interpret_action(_S), spoken_verb, V, V = nil).	
 causes_val(interpret_action(_S), assumed_action, V, V = _S).
 causes_val(interpret_action(_S), finished_action, V, V = true).
-causes_val(interpret_action(_S), interpretation_count, V, V is interpretation_count+1).
+causes_val(interpret_action(_), finished_objects, V, and([ spoken_objects = _T, lif( length(_T,0) , V = true, V = finished_objects ) ]) ).
+causes_val(interpret_action(_), finished_assignments, V, and([ spoken_objects = _T, lif( length(_T,0) , V = true, V = finished_assignments ) ]) ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%% INTERPRET_OBJECT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 prim_action(interpret_object(_E)).
 poss(interpret_object(_E), 
-			and([ 	spoken_objects = [[_,[_,_O]]|_R],
-				synonym(_O,_E),
+			and([ 	
 				finished_action,
 				not finished_objects,
-				not finished_assignments
+				not finished_assignments,
+				spoken_objects = [[_,[_,_O]]|_R],
+				synonym(_O,_E)
 				])).
 causes_val(interpret_object(_E), assumed_objects, V, and([ [[_P,[_,_]]|_] = spoken_objects, _T = assumed_objects, V = [[_P,_E]|_T]]) ).
 causes_val(interpret_object(_E), spoken_objects, V, spoken_objects = [_|V]).	
 causes_val(interpret_object(_E), finished_objects, V, and([ _T = spoken_objects, lif( length(_T,1), V = true, V = false) ])).
-causes_val(interpret_object(_E), interpretation_count, V, V is interpretation_count+1).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%% ASSIGN_ARGUMENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 prim_action(assign_argument(_P)).
 poss(assign_argument(_P), 
-			and([ 	not member([_P,_], assumed_arguments),
+			and([ 	
+				finished_action,
+				not finished_assignments,
+				not member([_P,_], assumed_arguments),
 				assumed_objects = [[_Prep,_Ent]|_R],
 				entity_attribute(_Ent,Att),
 				assumed_action = Act,
 				parameter(Act,_P,_),
-				parameter_attribute(Act,_P,Att),
-				finished_action,
-				finished_objects,
-				not finished_assignments
+				parameter_attribute(Act,_P,Att)
 				])).
 causes_val(assign_argument(_P), assumed_objects, V, assumed_objects = [_|V] ).
 causes_val(assign_argument(_P), assumed_arguments, V, and([_T = assumed_arguments, assumed_objects = [[_,_E]|_], V = [[_P,_E]|_T]]) ).
-causes_val(assign_argument(_P), finished_assignments, V, and([ _T = assumed_objects, lif( length(_T,1), V = true, V = false) ])).
-causes_val(assign_argument(_P), interpretation_count, V, and([ assumed_action = Act, assumed_objects = [[_Prep,_]|_], lif( preposition(Act,_P,_Prep), V is interpretation_count+2, V is interpretation_count+1) ]) ).
+causes_val(assign_argument(_P), finished_assignments, V, and([ _T = assumed_objects, lif( length(_T,1), V = finished_objects, V = false) ])).
+causes_val(assign_argument(_P), preposition_count, V, and([ assumed_action = Act, assumed_objects = [[_Prep,_]|_], lif( preposition(Act,_P,_Prep), V is preposition_count+1, V is preposition_count) ]) ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % action to initialize the verb phrases to be processed
@@ -163,11 +168,11 @@ causes_val(init_ip(_), vp_finished, V, and([ verbphrases = VP, lif( length(VP,1)
 causes_val(init_ip(_), assumed_action, V, V = nil).
 causes_val(init_ip(_), assumed_objects, V, V = []).
 causes_val(init_ip(_), assumed_arguments, V, V = []).
-causes_val(init_ip(_), interpretation_count, V, V = 0).
+causes_val(init_ip(_), preposition_count, V, V = 0).
 causes_val(init_ip(_), clarification_count, V, V = 0).
 causes_val(init_ip(_), finished_action, V, V = false).
-causes_val(init_ip(_), finished_objects, V, V = false).
-causes_val(init_ip(_), finished_assignments, V, V = false).
+causes_val(init_ip(_), finished_objects, V, V = false ).
+causes_val(init_ip(_), finished_assignments, V, V = false ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%% CLARIFY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -186,7 +191,7 @@ causes_val( reject, assumed_arguments, V, V = []).
 causes_val( reject, finished_action, V, V = true).
 causes_val( reject, finished_objects, V, V = true).
 causes_val( reject, finished_assignments, V, V = true).
-causes_val( reject, interpretation_count, V, V = 0).
+causes_val( reject, preposition_count, V, V = 0).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -206,43 +211,81 @@ causes_val( reject, interpretation_count, V, V = 0).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%% INTERPRETATION PROCEDURE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%% INTERPRETATION PROCEDURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 proc( interpret_utterance( Essence ),
 	[
 		?( split_essence( Essence ) = VPPrime ),
 		init_vp(VPPrime),
-		?( getval( all_actions, AllAct ) ),
-		?( getval( all_entities, AllEnt ) ),
-		?( getval( all_parameters, AllPar ) ),
 		while( neg( vp_finished ), [
 	
 			% INITIALIZE
 			init_ip(verbphrases),
 
 			% INTERPRETATION
-			solve( [ 
-				nondet( AllAct ), 
-				while( neg( finished_objects ), nondet( AllEnt ) ),
-				while( neg( finished_assignments ), nondet( AllPar ) )
-			], 7, reward_interpretation ), % --- the horizon depends on the number of spoken objects (times 2) plus one for the spoken verb
+			interpret_verbphrase,
 
 			% PARAMETER CHECK
 			% have all mandatory arguments been instantiated? TODO: as a separate action?
-%			?( parameter( assumed_action, Para, mandatory ) ),
-%			if( member([Para,_], assumed_arguments), say("yes"), say(Para) ),
+%			?( filter_mandatory_parameters = List ),
+%			if( List = [], cout("Everything's fine\n", [cout("Missing mandatory ")] ),
 
 			% DEBUG			
-%			say( assumed_action ),		
-%			say( assumed_objects ),		
-%			say( assumed_arguments ),			
 %			if( finished_assignments, say('finished'), say('not finished') ),
+%			cout( filter_mandatory_parameters ),
 			cout("Extracted command:\n"),
-			cout( form_command(assumed_action, assumed_arguments) ),
+			if( assumed_action = nil, cout("nil"), cout( form_command(assumed_action, assumed_arguments) ) ),
 			cout("\n")
 		])
 	]).
+
+proc( interpret_verbphrase, 
+	[
+		?( getval( all_actions, AllAct ) ),
+		?( filter_list_by_synonyms( AllAct, spoken_verb ) = AllActPrime ),
+		?( getval( all_entities, AllEnt ) ),
+		?( getval( all_parameters, AllPar ) ),
+                
+                solve( [
+                        pickBest( var_action, AllActPrime, int_action_det( var_action ) ),
+			while( neg( finished_assignments ), [
+				interpret_objectphrase(AllEnt, AllPar)
+			] )
+%                       if( filter_mandatory_parameters = [], cout("Everything's fine\n"), cout("Something's missing!\n"))
+                ], 7, reward_interpretation )
+                %%% --- the horizon depends on the number of spoken objects (times 2) plus one for the spoken verb
+	]).
+
+proc( interpret_objectphrase(AllEnt, AllPar),
+	[
+		%%%%% filter possible entities:
+		?( and([ spoken_objects = [[_,[_,SpokenObject]]|_], filter_list_by_synonyms( AllEnt, SpokenObject ) = AllEntPrime]) ),
+
+                pickBest( var_entity, AllEntPrime, int_object_det( var_entity ) ),
+                
+		% -----
+		
+		%%%%% filter possible parameters:
+		?( and([ assumed_objects = [[_,AssumedObject]|_], filter_list_by_attribute( AllPar, AssumedObject, assumed_action ) = AllParPrime]) ),
+		
+                pickBest( var_parameter, AllParPrime, int_argument_det( var_parameter ) )
+	]).
+
+proc( int_action_det( Skill ), interpret_action( Skill ) ).
+proc_poss( int_action_det( _ ), true ).
+proc_costs( int_action_det( _ ), V, V = 0 ).
+proc_model( int_action_det( Skill ), interpret_action( Skill ) ).
+
+proc( int_object_det( Entity ), interpret_object( Entity ) ).
+proc_poss( int_object_det( _ ), true ).
+proc_costs( int_object_det( _ ), V, V = 0 ).
+proc_model( int_object_det( Entity ), interpret_object( Entity ) ).
+
+proc( int_argument_det( Parameter ), assign_argument( Parameter ) ).
+proc_poss( int_argument_det( _ ), true ).
+proc_costs( int_argument_det( _ ), V, V = 0 ).
+proc_model( int_argument_det( Parameter ), assign_argument( Parameter ) ).
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

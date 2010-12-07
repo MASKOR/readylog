@@ -20,17 +20,23 @@ noun([cup]) --> ["cup"].
 noun([mug]) --> ["mug"].
 
 % skills/actions -> verb
+everb([scram]) --> ["scram"].
+everb([go]) --> ["go"].
+everb([move]) --> ["move"].
+everb([scat]) --> ["scat"].
 everb([move]) --> ["move"].
 everb([bring]) --> ["bring"].
 everb([fetch]) --> ["fetch"].
 everb([collect]) --> ["collect"].
 everb([move]) --> ["move"].
 everb([bring]) --> ["bring"].
+everb([transport]) --> ["transport"].
 everb([go]) --> ["go"].
 everb([move]) --> ["move"].
 everb([navigate]) --> ["navigate"].
 everb([walk]) --> ["walk"].
 everb([drive]) --> ["drive"].
 everb([run]) --> ["run"].
+everb([shake]) --> ["shake"].
 
 :- write(" <-- loading lexicon extension done.\n").

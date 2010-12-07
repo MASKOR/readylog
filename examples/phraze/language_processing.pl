@@ -70,7 +70,7 @@ nominal(E) --> noun(E1), nominal(E2), {append(E1,E2,E)}.
 vp(E) --> vpPrime(E).
 vp([E2,[E1,E3]]) --> vpPrime(E1), conjunction([E2]), vp(E3).%, {append(E1,E3,EPrime)}.
 
-vpPrime([E]) --> verb(E).
+vpPrime(E) --> verb(E).
 vpPrime([E1,[objects,E2]]) --> verb([E1]), obp(E2).
 vpPrime(E) --> courtesy(_), vpPrime(E).%, {append(E1,E2,E)}.
 
