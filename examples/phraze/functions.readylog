@@ -98,7 +98,11 @@ function( f_item_pos_by_id(PosID), V,
               ])
         ).
 
-%%%%%%%%%%%%%%% MANDATORY FUNCTIONS FOR INTERPRETATION:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% MANDATORY FUNCTIONS FOR INTERPRETATION: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% REWARD FUNCTION
 
 function( reward_interpretation, V,
 		and([ 	
@@ -109,9 +113,17 @@ function( reward_interpretation, V,
 		])
 	).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LANGUAGE PROCESSING FUNCTIONS
+
 function( process_utterance(Utterance), Essence,
 		and([
 			process_utterance_external(Utterance,Essence)
+		])
+	).
+
+function( process_answer(Utterance), Essence,
+		and([
+			process_answer_external(Utterance,Essence)
 		])
 	).
 
@@ -121,6 +133,8 @@ function( split_essence(Essence), VerbPhrases,
 		])
 	).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION TO FORM A PROPER SYSTEM CALL
+
 function( form_command(S,O), C,
 		and([
 			skill(S,SPrime),
@@ -128,44 +142,162 @@ function( form_command(S,O), C,
 		])
 	).
 
+substitute_arguments([],String,String).
+substitute_arguments([[_P,_E]|R],InputString,OutputString) :- 
+	atom_string(_P,_PPrime), entity(_E,_EPrime), 
+	subs(InputString,_PPrime,_EPrime,InputStringPrime), 
+	substitute_arguments(R,InputStringPrime,OutputString).
+
+
+subs(A,B,C,D) :- 
+	string_list(A,APrime), string_list(B,BPrime), 
+	string_list(C,CPrime), substring_(APrime,BPrime,CPrime,DPrime), 
+	string_list(D,DPrime).
+
+substring_([],_,_,[]).
+substring_(X, S, T, Y) :- 
+	append(S, Xt, X), !, substring_(Xt, S, T, Yt), append(T, Yt, Y).
+substring_([Xh|Xt], S, T, [Xh|Yt]) :- 
+	substring_(Xt, S, T, Yt).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION TO SPOT MISSING MANDATORY PARAMETERS
+
 function( filter_mandatory_parameters, V,
 		and([
-			flatten_argument_list( assumed_arguments, AssumedArguments ),
-			mandatory_parameters( assumed_action, MandatoryParameters ),
-			subtract(MandatoryParameters, AssumedArguments, V)
+			lif( assumed_action = nil, V = [], fmp( assumed_arguments, assumed_action, V ) )
 		])
 	).
 
-function( filter_list_by_synonyms(List,Word), V, and([ flbs(List,Word,V) ]) ).
-function( filter_list_by_attribute(List,Word,Skill), V, and([ flba(List,Word,Skill,VPrime), remove_dups(VPrime,V) ]) ).
-
-flbs([],_,[]).
-flbs([Elem|Rest],Word,[Elem|RestPrime]) :- synonym(Word,Elem), !, flbs(Rest,Word,RestPrime).
-flbs([_|Rest],Word,RestPrime) :- flbs(Rest,Word,RestPrime).
-
-flba([],_,_,[]).
-flba([Elem|Rest],Word,Skill,[Elem|RestPrime]) :- entity_attribute(Word,Att), parameter_attribute(Skill,Elem,Att), !, flba(Rest,Word,Skill,RestPrime).
-flba([_|Rest],Word,Skill,RestPrime) :- flba(Rest,Word,Skill,RestPrime).
-
-member_count(_,[],0).
-member_count(Elem,[Elem|Rest],N) :- !, member_count(Elem,Rest,M), N is M+1.
-member_count(Elem,[_|Rest],N) :- member_count(Elem,Rest,N).
+fmp( A, B, V ) :- 
+	flatten_argument_list( A, AssumedArguments ), 
+	mandatory_parameters( B, MandatoryParameters ), 
+	subtract(MandatoryParameters, AssumedArguments, V).
 
 flatten_argument_list([],[]).
-flatten_argument_list([[Elem,_]|R1],[Elem|R2]) :- flatten_argument_list(R1,R2).
+flatten_argument_list([[Elem,_]|R1],[Elem|R2]) :- 
+	flatten_argument_list(R1,R2).
 
-substitute_arguments([],String,String).
-substitute_arguments([[_P,_E]|R],InputString,OutputString) :- atom_string(_P,_PPrime), entity(_E,_EPrime), subs(InputString,_PPrime,_EPrime,InputStringPrime), substitute_arguments(R,InputStringPrime,OutputString).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION TO FORMULATE AN EXPLANATION FOR THE REJECTION OF AN UTTERANCE
 
-subs(A,B,C,D) :- string_list(A,APrime), string_list(B,BPrime), string_list(C,CPrime), substring_(APrime,BPrime,CPrime,DPrime), string_list(D,DPrime).
-substring_([],_,_,[]).
-substring_(X, S, T, Y) :- append(S, Xt, X), !, substring_(Xt, S, T, Yt), append(T, Yt, Y).
-substring_([Xh|Xt], S, T, [Xh|Yt]) :- substring_(Xt, S, T, Yt).
+function( formulate_explanation(Reason), V,
+		and([
+			form_expl(Reason, V, spoken_verb, spoken_objects, assumed_objects)
+		])
+	).
+
+form_expl("action", Explanation, Verb, _, _) :- !,
+	atom_string(Verb, Verbstring), 
+	append_strings("I am not able to ", Verbstring, ExplanationPrime),
+	append_strings(ExplanationPrime, ".", Explanation).
+
+form_expl("object", Explanation, _, [[_Preposition,[_Determiner,Object]]|_], _) :- !,
+	atom_string(Object, Objectstring), 
+	append_strings("I do not know what ", Objectstring, ExplanationPrime),
+	append_strings(ExplanationPrime, " means.", Explanation).
+
+form_expl("parameter", "This combination makes no sense for me.", _, _, _) :- !.
+
+form_expl(_,"Unknown Reason", _, _, _).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION TO FORMULATE A QUESTION FOR CLARIFICATION
+
+function( formulate_question(Parameter), V,
+		and([
+			form_quest(Parameter, assumed_action, V)
+		])
+	).
+
+form_quest(Parameter, Action, Question) :-
+	synonym(ActionSynonym, Action), 
+	term_string(ActionSynonym, ActionString),
+	parameter_attributes(Action, Parameter, [ParameterAttribute|PAR]),
+	term_string(ParameterAttribute, ParameterAttributeString),
+	fqtmp( Action, Parameter, PrepositionString),
+	getval( all_entities, AllEnt ),
+	gather_entities(AllEnt, [ParameterAttribute|PAR], Result),
+	elist_to_string(Result, PossibleEntities),
+	writeln(Result),
+	append_strings("you want me to ", ActionString, Q1),
+	append_strings(Q1, ". ", Q2),
+	append_strings(Q2, PrepositionString, Q3),
+	append_strings(Q3, "which ", Q4),
+	append_strings(Q4, ParameterAttributeString, Q5),
+	append_strings(Q5, "? ", Q6),
+	append_strings(Q6, PossibleEntities, Question).
+
+%TODO: offer possible entities
+
+fqtmp(Action, Parameter, PrepositionString) :- preposition(Action, Parameter, Preposition), !, term_string(Preposition, PSPrime), append_strings(PSPrime, " ", PrepositionString).
+fqtmp(_, _, "").
+
+elist_to_string([A,B|[]], String) :- 
+	term_string(A,AS), 
+	term_string(B,BS), 
+	append_strings(AS," or ", S1), 
+	append_strings(S1, BS, S2), 
+	append_strings(S2, "?", String).
+elist_to_string([A|Rest], String) :- 
+	term_string(A,AS), 
+	append_strings(AS,", ", S1),
+	elist_to_string(Rest, StringPrime),
+	append_strings(S1, StringPrime, String).
+
+gather_entities([], _, []).
+gather_entities([Elem|Rest], Attributes, [Elem|RestPrime]) :- 
+	entity_attributes(Elem,EntAtts), 
+	subset_(Attributes, EntAtts), 
+	!, gather_entities(Rest, Attributes, RestPrime).
+gather_entities([_|Rest], Attributes, RestPrime) :- 
+	gather_entities(Rest, Attributes, RestPrime).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTIONS FOR PREFILTERING SKILLS/ENTITIES/PARAMETERS TO SPEED UP PLANNING
+
+function( filter_list_by_synonyms(List,Word), V, lif( List = [], V = [dummy], flbs(List,Word,V) ) ).
+function( filter_list_by_synonyms_and_parameter_count(List,Verb,Objects), V, and([ length(Objects, Count), lif( List = [], V = [dummy], flbsapc(List,Verb,Count,V) ) ]) ).
+function( filter_list_by_attribute(List,Word,Skill), V, lif( List = [], V = [dummy], and([ remove_dups(List,ListPrime), flba(ListPrime,Word,Skill,V) ]) ) ).
+
+
+flbsapc([],_,_,[]).
+flbsapc([Elem|Rest],Verb,Count,[Elem|RestPrime]) :- 
+	synonym(Verb,Elem), mandatory_parameters(Elem,List), length(List,CountPrime), CountPrime >= Count, !, flbsapc(Rest,Verb,Count,RestPrime).
+flbsapc([_|Rest],Verb,Count,RestPrime) :- 
+	flbsapc(Rest,Verb,Count,RestPrime).
+
+flbs([],_,[]).
+flbs([Elem|Rest],Word,[Elem|RestPrime]) :- 
+	synonym(Word,Elem), !, flbs(Rest,Word,RestPrime).
+flbs([_|Rest],Word,RestPrime) :- 
+	flbs(Rest,Word,RestPrime).
+
+
+flba([],_,_,[]).
+flba([Elem|Rest],Word,Skill,[Elem|RestPrime]) :- 
+	entity_attributes(Word,EntAtts), parameter_attributes(Skill,Elem,ParaAtts), subset_(ParaAtts,EntAtts), !, flba(Rest,Word,Skill,RestPrime).
+flba([_|Rest],Word,Skill,RestPrime) :- 
+	flba(Rest,Word,Skill,RestPrime).
+
+subset_([],_).
+subset_([Elem|Rest],List) :- member(Elem,List), subset_(Rest,List).
 
 remove_dups([], []).
-remove_dups([First | Rest], NewRest) :- member(First, Rest), remove_dups(Rest, NewRest).
-remove_dups([First | Rest], [First | NewRest]) :- not(member(First, Rest)), remove_dups(Rest, NewRest).
+remove_dups([First | Rest], NewRest) :- 
+	member(First, Rest), remove_dups(Rest, NewRest).
+remove_dups([First | Rest], [First | NewRest]) :- 
+	not(member(First, Rest)), remove_dups(Rest, NewRest).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% redundant: ?
+member_count(_,[],0).
+member_count(Elem,[Elem|Rest],N) :- 
+	!, member_count(Elem,Rest,M), N is M+1.
+member_count(Elem,[_|Rest],N) :- 
+	member_count(Elem,Rest,N).
 
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- write(" <-- loading functions.readylog done.\n").

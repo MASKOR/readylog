@@ -26,6 +26,7 @@ pue(U,E) :- process_utterance_external(U,E).
 %				AS
 %			]) :- split_string(U," ","",Phrase), writeln(Phrase), parse_utterance(Essence,Phrase,[]), writeln(Essence).
 process_utterance_external(Utterance,Essence) :- split_string(Utterance," ","",Phrase), parse_utterance(Essence,Phrase,[]).
+process_answer_external(Utterance,Essence) :- split_string(Utterance," ","",Phrase), parse_answer(Essence,Phrase,[]).
 
 split_essence_external([_|[Essence]], VerbPhrases) :- splee(Essence,VerbPhrases).
 
@@ -36,6 +37,12 @@ splee(V,[V]).
 
 parse_utterance(E) --> salutation, utterance(E).
 parse_utterance(E) --> utterance(E).
+
+%%% STRUCTURE RULES FOR SHORT ANSWERS DURING CLARIFICATION
+parse_answer(E) --> answer(E).
+answer([[nil,[nil|E]]]) --> nominal(E).
+answer([[nil|E]]) --> np(E).
+answer(E) --> pp(E).
 
 utterance([statement,E]) --> statement(E).
 utterance([imperative,E]) --> imperative(E).

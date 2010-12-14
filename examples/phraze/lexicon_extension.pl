@@ -16,21 +16,24 @@ noun([location]) --> ["location"].
 noun([kitchen]) --> ["kitchen"].
 noun([bath]) --> ["bath"].
 noun([bath_room]) --> ["bath","room"].
-noun([cup]) --> ["cup"].
 noun([mug]) --> ["mug"].
+noun([cup]) --> ["cup"].
+noun([trophy]) --> ["trophy"].
+noun([cup]) --> ["cup"].
 
 % skills/actions -> verb
 everb([scram]) --> ["scram"].
 everb([go]) --> ["go"].
 everb([move]) --> ["move"].
 everb([scat]) --> ["scat"].
-everb([move]) --> ["move"].
-everb([bring]) --> ["bring"].
 everb([fetch]) --> ["fetch"].
+everb([bring]) --> ["bring"].
 everb([collect]) --> ["collect"].
+everb([transport]) --> ["transport"].
+everb([move]) --> ["move"].
+everb([transport]) --> ["transport"].
 everb([move]) --> ["move"].
 everb([bring]) --> ["bring"].
-everb([transport]) --> ["transport"].
 everb([go]) --> ["go"].
 everb([move]) --> ["move"].
 everb([navigate]) --> ["navigate"].

@@ -1,31 +1,43 @@
-attribute(location,"accessible location").
+attribute(location,"location").
 attribute(portable,"portable object").
 constant(shake_head,head,mandatory,head).
 entity(bath,"broom_").
-entity(cup,"cup007").
+entity(coffee_cup,"cup007").
+entity(fifa_trophy,"wm2014").
 entity(kitchen,"kitchen_").
-entity_attribute(bath,location).
-entity_attribute(cup,portable).
-entity_attribute(kitchen,location).
+entity_attributes(bath,[location]).
+entity_attributes(coffee_cup,[portable,vessel]).
+entity_attributes(fifa_trophy,[trophy,portable]).
+entity_attributes(kitchen,[location]).
 mandatory_parameters(fetch,[targetobject]).
 mandatory_parameters(getting_lost,[]).
 mandatory_parameters(goto,[targetlocation]).
 mandatory_parameters(move_object,[targetobject,targetlocation]).
+mandatory_parameters(move_object_from,[sourcelocation,targetobject,targetlocation]).
 mandatory_parameters(shake_head,[head]).
 parameter(fetch,targetobject,mandatory).
 parameter(goto,targetlocation,mandatory).
 parameter(move_object,targetlocation,mandatory).
 parameter(move_object,targetobject,mandatory).
-parameter_attribute(fetch,targetobject,portable).
-parameter_attribute(goto,targetlocation,location).
-parameter_attribute(move_object,targetlocation,location).
-parameter_attribute(move_object,targetobject,portable).
+parameter(move_object_from,sourcelocation,mandatory).
+parameter(move_object_from,targetlocation,mandatory).
+parameter(move_object_from,targetobject,mandatory).
+parameter_attributes(fetch,targetobject,[portable]).
+parameter_attributes(goto,targetlocation,[location]).
+parameter_attributes(move_object,targetlocation,[location]).
+parameter_attributes(move_object,targetobject,[portable]).
+parameter_attributes(move_object_from,sourcelocation,[location]).
+parameter_attributes(move_object_from,targetlocation,[location]).
+parameter_attributes(move_object_from,targetobject,[portable]).
 preposition(goto,targetlocation,to).
 preposition(move_object,targetlocation,to).
+preposition(move_object_from,sourcelocation,from).
+preposition(move_object_from,targetlocation,to).
 skill(fetch,"cup_act{targetobject}").
 skill(getting_lost,"scram{}").
 skill(goto,"ppgoto{place=targetlocation}").
 skill(move_object,"serialexec{ cup_act{targetobject}, ppgoto{place=targetlocation} }").
+skill(move_object_from,"serialexec{ ppgoto{place=sourcelocation}, cup_act{targetobject}, ppgoto{place=targetlocation} }").
 skill(shake_head,"shake_head{}").
 synonym(anything,portable).
 synonym(anywhere,location).
@@ -35,18 +47,19 @@ synonym(bath_room,bath).
 synonym(bring,fetch).
 synonym(bring,move_object).
 synonym(collect,fetch).
-synonym(cup,cup).
+synonym(cup,coffee_cup).
+synonym(cup,fifa_trophy).
 synonym(drive,goto).
 synonym(fetch,fetch).
 synonym(go,getting_lost).
 synonym(go,goto).
 synonym(kitchen,kitchen).
 synonym(location,location).
-synonym(move,fetch).
 synonym(move,getting_lost).
 synonym(move,goto).
 synonym(move,move_object).
-synonym(mug,cup).
+synonym(move,move_object_from).
+synonym(mug,coffee_cup).
 synonym(navigate,goto).
 synonym(object,portable).
 synonym(place,location).
@@ -59,7 +72,9 @@ synonym(somewhere,location).
 synonym(some,portable).
 synonym(thing,portable).
 synonym(transport,move_object).
+synonym(transport,move_object_from).
+synonym(trophy,fifa_trophy).
 synonym(walk,goto).
-:- setval(all_actions, [getting_lost,fetch,move_object,goto,shake_head]).
-:- setval(all_entities, [kitchen,bath,cup]).
-:- setval(all_parameters, [targetobject,targetobject,targetlocation,targetlocation]).
+:- setval(all_actions, [getting_lost,fetch,move_object_from,move_object,goto,shake_head]).
+:- setval(all_entities, [kitchen,bath,coffee_cup,fifa_trophy]).
+:- setval(all_parameters, [targetobject,sourcelocation,targetobject,targetlocation,targetobject,targetlocation,targetlocation]).

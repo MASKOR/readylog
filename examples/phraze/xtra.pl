@@ -142,38 +142,48 @@ xTra(exogf_Update, _H) :- !,
 %% %%%%%%%%%%%%%%%%%%%%% %%
 %% deterministic execution
 
-xTra(processed_utterance,H) :-
+% ---------------------------- INTERPRETATION RELATEC ACTIONS ------------------------
+xTra(processed_utterance,_) :-
 	printColor( black, " xTra: EXEC 'clear last utterance'\n", []),
 	execdelay,
 	process_xtra_events.
 
-xTra(init_ip(_,_),H) :-
+xTra(init_ip(_,_),_) :-
 	process_xtra_events.
 
-xTra(interpret_action(_),H) :-
+xTra(interpret_action(_),_) :-
 	process_xtra_events.
 
-xTra(interpret_object(_),H) :-
+xTra(interpret_object(_),_) :-
 	process_xtra_events.
 
-xTra(assign_argument(_),H) :-
+xTra(assign_argument(_),_) :-
 	process_xtra_events.
 
-xTra(init_vp(_),H) :-
+xTra(init_vp(_),_) :-
 	process_xtra_events.
 
-xTra(init_ip(_),H) :-
+xTra(init_ip(_),_) :-
 	process_xtra_events.
 
-xTra(reject,H) :-
-	printColor( red, " xTra: EXEC 'reject'\n", []),
+xTra(init_cp(_),_) :-
 	process_xtra_events.
 
-xTra(clarify,H) :-
-	printColor( yellow, " xTra: EXEC 'clarify'\n", []),
+xTra(pop_blank_param,_) :-
 	process_xtra_events.
 
-xTra(say(U),H) :-
+xTra(consider_answer(_),_) :-
+	process_xtra_events.
+
+xTra(abort_clarification,_) :-
+	process_xtra_events.
+
+xTra(reject(Explanation),_) :-
+	printColor( red, " xTra: EXEC 'reject' - Reason:\n", []),
+	printColor( red, " %w \n", [Explanation]),
+	process_xtra_events.
+
+xTra(say(U),_) :-
 	printColor( green, " xTra: EXEC 'say':", []),
 	printf(" %w \n", [U]),
 	execdelay,
@@ -181,11 +191,13 @@ xTra(say(U),H) :-
 	setval( real_robot_utter, U ),
 	process_xtra_events.
 	
-xTra(wait,_H) :-
+xTra(wait,__) :-
 	printColor( black, " xTra: EXEC 'wait'\n", []),
 	sleep( 2 ),
 	execdelay,
 	process_xtra_events.
+
+% ---------------------------------------------------------------------------
 
 xTra(go_right,H) :- 
 	printColor( pink, " xTra: EXEC 'go_right'", []), 
