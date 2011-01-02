@@ -279,16 +279,24 @@ proc(visit_nondet_det,
 % speed-up #2 toggle - special skill prefiltering
 :- setval( toggle_speedup_two, true ).
 
+% speed-up #3 toggle - special skill prefiltering
+:- setval( toggle_speedup_three, true ).
+
 proc( dialogTest,
       [
          cout(" === STARTING DIALOG TEST === \n"),
 	 exogf_Update,
-	 waitForUtterance(Utterance),
-	 interpret_utterance(Utterance),
+	 while( true, [ dialog ] ),
          cout(" === FINISHING DIALOG TEST === \n")
       ]
     ).
 
+proc( dialog,
+      [
+	 waitForUtterance(Utterance),
+	 interpret_utterance(Utterance)
+      ]
+    ).
 
 proc( findus,
       [

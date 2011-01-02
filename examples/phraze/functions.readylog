@@ -201,23 +201,23 @@ form_expl(_,"Unknown Reason", _, _, _).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION TO FORMULATE A QUESTION FOR CLARIFICATION
 
-function( formulate_question(Parameter), V,
+function( formulate_question(Parameter, PossEntities), V,
 		and([
-			form_quest(Parameter, assumed_action, V)
+			form_quest(Parameter, assumed_action, V, PossEntities, assumed_arguments)
 		])
 	).
 
-form_quest(Parameter, Action, Question) :-
-	synonym(ActionSynonym, Action), 
+form_quest(Parameter, Action, Question, PossEntities, Arguments) :-
+	synonym(ActionSynonym, Action),
 	term_string(ActionSynonym, ActionString),
-	parameter_attributes(Action, Parameter, [ParameterAttribute|PAR]),
-	term_string(ParameterAttribute, ParameterAttributeString),
+	parameter_attributes(Action, Parameter, [ParameterAttribute|_]),
+	attribute(ParameterAttribute,ParameterAttributeString),
 	fqtmp( Action, Parameter, PrepositionString),
-	getval( all_entities, AllEnt ),
-	gather_entities(AllEnt, [ParameterAttribute|PAR], Result),
-	elist_to_string(Result, PossibleEntities),
-	writeln(Result),
-	append_strings("you want me to ", ActionString, Q1),
+	elist_to_string(PossEntities, PossibleEntities),
+	findall(X, parameter(Action,X,_), ActionParameters),
+	gather_assumed_arguments(Action, ActionParameters, Arguments, ArgumentsString),
+	append_strings("you want me to ", ActionString, Q0),
+	append_strings(Q0, ArgumentsString, Q1),
 	append_strings(Q1, ". ", Q2),
 	append_strings(Q2, PrepositionString, Q3),
 	append_strings(Q3, "which ", Q4),
@@ -225,19 +225,60 @@ form_quest(Parameter, Action, Question) :-
 	append_strings(Q5, "? ", Q6),
 	append_strings(Q6, PossibleEntities, Question).
 
-%TODO: offer possible entities
+function( formulate_info, V,
+		and([
+			form_info(assumed_action, assumed_arguments, V)
+		])
+	).
+
+form_info(_, [], "").
+form_info(Action, Arguments, Feedback) :-
+	synonym(ActionSynonym, Action),
+	term_string(ActionSynonym, ActionString),
+	findall(X, parameter(Action,X,_), ActionParameters),
+	gather_assumed_arguments(Action, ActionParameters, Arguments, ArgumentsString),
+	append_strings("i will now ", ActionString, Q0),
+	append_strings(Q0, ArgumentsString, Q1),
+	append_strings(Q1, ". ", Feedback).
+
+gather_assumed_arguments(_, [], _,"").
+gather_assumed_arguments(Action, [Parameter|Rest], Arguments, String) :-
+	member([Parameter,Entity], Arguments), !,
+	fqtmp(Action, Parameter, PrepositionString),
+	synonym(Synonym,Entity),
+	term_string(Synonym,SynonymString),
+	gather_assumed_arguments(Action, Rest, Arguments,StringPrime),
+	append_strings(" ", PrepositionString, S1),
+	append_strings(S1, "the ", S2),
+	append_strings(S2, SynonymString, S3),
+	append_strings(StringPrime, S3, String).
+gather_assumed_arguments(Action, [Parameter|Rest], Arguments, String) :-
+	parameter_attributes(Action,Parameter,[Attribute|_]),
+	synonym(Synonym,Attribute),
+	term_string(Synonym,SynonymString),
+	gather_assumed_arguments(Action, Rest, Arguments,StringPrime),
+	append_strings(" ", SynonymString, S1),
+	append_strings(StringPrime, S1, String).
+	
 
 fqtmp(Action, Parameter, PrepositionString) :- preposition(Action, Parameter, Preposition), !, term_string(Preposition, PSPrime), append_strings(PSPrime, " ", PrepositionString).
 fqtmp(_, _, "").
 
 elist_to_string([A,B|[]], String) :- 
-	term_string(A,AS), 
-	term_string(B,BS), 
+	!,
+	synonym(APrime,A),
+	synonym(BPrime,B),
+	term_string(APrime,AS), 
+	term_string(BPrime,BS), 
 	append_strings(AS," or ", S1), 
 	append_strings(S1, BS, S2), 
 	append_strings(S2, "?", String).
+elist_to_string([A|[]], String) :- 
+	synonym(APrime,A),
+	term_string(APrime,String). 
 elist_to_string([A|Rest], String) :- 
-	term_string(A,AS), 
+	synonym(APrime,A),
+	term_string(APrime,AS), 
 	append_strings(AS,", ", S1),
 	elist_to_string(Rest, StringPrime),
 	append_strings(S1, StringPrime, String).
@@ -252,14 +293,16 @@ gather_entities([_|Rest], Attributes, RestPrime) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTIONS FOR PREFILTERING SKILLS/ENTITIES/PARAMETERS TO SPEED UP PLANNING
 
-function( filter_list_by_synonyms(List,Word), V, lif( List = [], V = [dummy], flbs(List,Word,V) ) ).
-function( filter_list_by_synonyms_and_parameter_count(List,Verb,Objects), V, and([ length(Objects, Count), lif( List = [], V = [dummy], flbsapc(List,Verb,Count,V) ) ]) ).
+function( filter_list_by_synonyms(List,Word), V, and([ flbs(List,Word,Result), lif( Result = [], V = [dummy], V = Result ) ]) ).
+function( filter_list_by_synonyms_and_parameter_count(List,Verb,Objects), V, and([ length(Objects, Count), flbsapc(List,Verb,Count,Result), lif( Result = [], V = [dummy], V = Result ) ]) ).
 function( filter_list_by_attribute(List,Word,Skill), V, lif( List = [], V = [dummy], and([ remove_dups(List,ListPrime), flba(ListPrime,Word,Skill,V) ]) ) ).
+function( filter_list_by_attribute_and_preposition(List,Word,Skill,Prep), 
+		V, lif( List = [], V = [dummy], and([ remove_dups(List,ListPrime), flbaap(ListPrime,Word,Skill,Prep,V) ]) ) ).
 
 
 flbsapc([],_,_,[]).
 flbsapc([Elem|Rest],Verb,Count,[Elem|RestPrime]) :- 
-	synonym(Verb,Elem), mandatory_parameters(Elem,List), length(List,CountPrime), CountPrime >= Count, !, flbsapc(Rest,Verb,Count,RestPrime).
+	synonym(Verb,Elem), findall(X,parameter(Elem,X,_),List), length(List,CountPrime), CountPrime >= Count, !, flbsapc(Rest,Verb,Count,RestPrime).
 flbsapc([_|Rest],Verb,Count,RestPrime) :- 
 	flbsapc(Rest,Verb,Count,RestPrime).
 
@@ -275,6 +318,13 @@ flba([Elem|Rest],Word,Skill,[Elem|RestPrime]) :-
 	entity_attributes(Word,EntAtts), parameter_attributes(Skill,Elem,ParaAtts), subset_(ParaAtts,EntAtts), !, flba(Rest,Word,Skill,RestPrime).
 flba([_|Rest],Word,Skill,RestPrime) :- 
 	flba(Rest,Word,Skill,RestPrime).
+
+flbaap([],_,_,_,[]).
+flbaap([Elem|Rest],Word,Skill,Prep,[Elem|RestPrime]) :- 
+	entity_attributes(Word,EntAtts), parameter_attributes(Skill,Elem,ParaAtts), subset_(ParaAtts,EntAtts), 
+	( Prep = nil; preposition(Skill,Elem,Prep)), !, flbaap(Rest,Word,Skill,Prep,RestPrime).
+flbaap([_|Rest],Word,Skill,Prep,RestPrime) :- 
+	flbaap(Rest,Word,Skill,Prep,RestPrime).
 
 subset_([],_).
 subset_([Elem|Rest],List) :- member(Elem,List), subset_(Rest,List).

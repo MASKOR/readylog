@@ -172,7 +172,13 @@ xTra(init_cp(_),_) :-
 xTra(pop_blank_param,_) :-
 	process_xtra_events.
 
+xTra(remove_unspecified_objects,_) :-
+	process_xtra_events.
+
 xTra(consider_answer(_),_) :-
+	process_xtra_events.
+
+xTra(consider_assignment(_,_),_) :-
 	process_xtra_events.
 
 xTra(abort_clarification,_) :-

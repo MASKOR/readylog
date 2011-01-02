@@ -7,11 +7,6 @@
 		<name>portable</name>
 		<synonyms>
 			<entry>something</entry>
-			<entry>some</entry>
-			<entry>any</entry>
-			<entry>object</entry>
-			<entry>thing</entry>
-			<entry>anything</entry>
 		</synonyms>
 		<description>portable object</description>
 	</attributedef>
@@ -20,9 +15,7 @@
 		<name>location</name>
 		<synonyms>
 			<entry>somewhere</entry>
-			<entry>anywhere</entry>
-			<entry>place</entry>
-			<entry>location</entry>
+			<entry>someplace</entry>
 		</synonyms>
 		<description>location</description>
 	</attributedef>
@@ -74,7 +67,6 @@
 		</synonyms>	
 		<attributes>
 			<att>trophy</att>
-			<att>portable</att>
 		</attributes>
 		<id>wm2014</id>
 	</entity>
@@ -84,7 +76,7 @@
 <skillset>
 	<skill>
 		<name>getting_lost</name>
-		<command>scram{}</command>
+		<command>scram()</command>
 		<synonyms>
 			<entry>scram</entry>
 			<entry>go</entry>
@@ -94,7 +86,7 @@
 	</skill>
 	<skill>
 		<name>fetch</name>
-		<command>cup_act{TargetObject}</command>
+		<command>cup_act(TargetObject)</command>
 		<synonyms>
 			<entry>fetch</entry>
 			<entry>bring</entry>
@@ -113,25 +105,25 @@
 	</skill>
 	<skill>
 		<name>move_object_from</name>
-		<command>serialexec{ ppgoto{place=SourceLocation}, cup_act{TargetObject}, ppgoto{place=TargetLocation} }</command>
+		<command>[ppgoto(SourceLocation), cup_act(TargetObject), ppgoto(place=TargetLocation)]</command>
 		<synonyms>
 			<entry>transport</entry>
 			<entry>move</entry>
 		</synonyms>
 		<arguments>
 			<parameter>
+				<name>TargetObject</name>
+				<attributes>
+					<att>portable</att>
+				</attributes>
+				<significance>mandatory</significance>
+			</parameter>
+			<parameter>
 				<name>SourceLocation</name>
 				<attributes>
 					<att>location</att>
 				</attributes>
 				<preposition>from</preposition>
-				<significance>mandatory</significance>
-			</parameter>
-			<parameter>
-				<name>TargetObject</name>
-				<attributes>
-					<att>portable</att>
-				</attributes>
 				<significance>mandatory</significance>
 			</parameter>
 			<parameter>
@@ -146,7 +138,7 @@
 	</skill>
 	<skill>
 		<name>move_object</name>
-		<command>serialexec{ cup_act{TargetObject}, ppgoto{place=TargetLocation} }</command>
+		<command>[ cup_act(TargetObject), ppgoto(TargetLocation) ]</command>
 		<synonyms>
 			<entry>transport</entry>
 			<entry>move</entry>
@@ -172,7 +164,7 @@
 	</skill>
 	<skill>
 		<name>goto</name>
-		<command>ppgoto{place=TargetLocation}</command>
+		<command>ppgoto(TargetLocation)</command>
 		<synonyms>
 			<entry>go</entry>
 			<entry>move</entry>
@@ -194,17 +186,10 @@
 	</skill>
 	<skill>
 		<name>shake_head</name>
-		<command>shake_head{}</command>
+		<command>shake_head()</command>
 		<synonyms>
-			<entry>shake</entry>
+			<entry>shake your head</entry>
 		</synonyms>
-		<arguments>
-			<constant>
-				<name>head</name>
-				<significance>mandatory</significance>
-				<string>head</string>
-			</parameter>
-		</arguments>
 	</skill>
 </skillset>
 
