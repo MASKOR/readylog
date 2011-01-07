@@ -18,13 +18,6 @@
 
 pue(U) :- process_utterance_external(U,_).
 pue(U,E) :- process_utterance_external(U,E).
-%process_utterance_external("quit",[say('quitting')"]).
-%process_utterance_external(U,[
-%				processed_utterance,
-%				waitForUtterance(Utterance),
-%				?( process_utterance(Utterance) = AS ),
-%				AS
-%			"]) :- split_string(U," ","",Phrase), writeln(Phrase), parse_utterance(Essence,Phrase,[]), writeln(Essence).
 process_utterance_external(Utterance,Essence) :- split_string(Utterance," ","",Phrase), parse_utterance(Essence,Phrase,[]).
 process_answer_external(Utterance,Essence) :- split_string(Utterance," ","",Phrase), parse_answer(Essence,Phrase,[]).
 
@@ -45,20 +38,28 @@ answer([[nil,[nil|E]]]) --> nominal(E).
 answer([[nil|E]]) --> np(E).
 answer(E) --> pp(E).
 
-utterance([statement,E]) --> statement(E).
+utterance([needstatement,E]) --> needstatement(E).
 utterance([imperative,E]) --> imperative(E).
 utterance([ynquestion,E]) --> ynquestion(E).
 utterance([teaching,E]) --> teaching(E).
-%utterance([whnsquestion,E]) --> whnsquestion(E).
-%utterance([whsquestion,E]) --> whsquestion(E).
 
-statement(E) --> np(_), vp(E).%, {append(E1,E2,E)}.
+needstatement(E) --> np(_), vp(E).
+needstatement(E) --> needphrase, vp(E).
 imperative(E) --> vp(E). 
-ynquestion(E) --> aux(_), np(_), vp(E).%, {append(E1,E2,EPrime), append(EPrime,E3,E)}.
-teaching([learn, [objects, [ [newsyn,[nil|NewSynonym]], [ref,[nil|Reference]] ]]]) --> ["by"], verb(NewSynonym), ["i", "mean"], everb(Reference).
-%whnsquestion(E) --> wh-np(E1), aux(E2), np(E3), vp(E4), 
-%	{append(E1,E2,EPrime), append(E3,E4,EPrimePrime), append(EPrime,EPrimePrime,E)}. % wh-non-subject-question
-%whsquestion(E) --> wh-np(E1), vp(E2), {append(E1,E2,E)}. % wh-subject-question
+ynquestion(E) --> aux(_), np(_), vp(E).
+
+needphrase --> ["i", "need", "you", "to"].
+
+% teaching phrases
+teaching([synonym, [NewSynonym, Reference]]) --> ["by"], verb([NewSynonym]), ["i", "mean"], everb([Reference]).
+teaching([location, [NewLocation]]) --> ["this", "is"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "is", "the"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "place", "is"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "place", "is", "called"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "is", "called"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "position", "is", "called"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["remember", "this", "as"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["remember", "this", "place", "as"], noun([NewLocation]).
 
 % noun phrase
 np(E) --> pronoun(E).
@@ -77,11 +78,11 @@ nominal(E) --> noun(E1), nominal(E2), {append(E1,E2,E)}.
 
 % verb phrase
 vp(E) --> vpPrime(E).
-vp([E2,[E1,E3]]) --> vpPrime(E1), conjunction([E2]), vp(E3).%, {append(E1,E3,EPrime)}.
+vp([E2,[E1,E3]]) --> vpPrime(E1), conjunction([E2]), vp(E3).
 
 vpPrime(E) --> verb(E).
 vpPrime([E1,[objects,E2]]) --> verb([E1]), obp(E2).
-vpPrime(E) --> courtesy(_), vpPrime(E).%, {append(E1,E2,E)}.
+vpPrime(E) --> courtesy(_), vpPrime(E).
 
 % auxiliary verb
 aux([[aux,E]]) --> verb(E).

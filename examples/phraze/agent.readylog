@@ -274,19 +274,20 @@ proc(visit_nondet_det,
 %% ================================================================== %%
 
 % speed-up #1 toggle - synonym prefiltering
-:- setval( toggle_speedup_one, true ).
+:- setval( toggle_speedup_one, false ).
 
 % speed-up #2 toggle - special skill prefiltering
 :- setval( toggle_speedup_two, true ).
 
 % speed-up #3 toggle - special skill prefiltering
-:- setval( toggle_speedup_three, true ).
+:- setval( toggle_speedup_three, false ).
 
 proc( dialogTest,
       [
          cout(" === STARTING DIALOG TEST === \n"),
 	 exogf_Update,
-	 while( true, [ dialog ] ),
+%	 while( true, [ dialog ] ),
+	 dialog,
          cout(" === FINISHING DIALOG TEST === \n")
       ]
     ).

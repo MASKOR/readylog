@@ -101,8 +101,8 @@ poss(interpret_action(_S),
 			and([ 	
 				spoken_verb = V,
 				synonym(V,_S),
-%				not finished_objects,
 				not finished_assignments
+%				not finished_objects,
 				])).
 causes_val(interpret_action(_S), spoken_verb, V, V = nil).	
 causes_val(interpret_action(_S), assumed_action, V, V = _S).
@@ -117,8 +117,8 @@ poss(interpret_object(_E),
 			and([ 	
 				spoken_objects = [[_,[_,_O]]|_R],
 				synonym(_O,_E),
-%				not finished_objects,
 				not finished_assignments
+%				not finished_objects,
 				])).
 causes_val(interpret_object(_E), assumed_objects, V, and([ [[_P,[_,_]]|_] = spoken_objects, _T = assumed_objects, V = [[_P,_E]|_T]]) ).
 causes_val(interpret_object(_E), spoken_objects, V, spoken_objects = [_|V]).	
@@ -130,7 +130,7 @@ causes_val(interpret_object(_E), finished_objects, V, and([ _T = spoken_objects,
 prim_action(assign_argument(_P)).
 poss(assign_argument(_P), 
 			and([ 	
-				assumed_objects = [[_Prep,_Ent]|_R],
+				assumed_objects = [[_Prep,_Ent]|_],
 				entity_attributes(_Ent,EntAtts),
 				assumed_action = Act,
 				parameter(Act,_P,_),
@@ -174,13 +174,8 @@ causes_val(init_ip(_), finished_assignments, V, V = false ).
 % action enabling referencing unspecified things by removing them and thus provoking clarification
 prim_action(remove_unspecified_objects).
 poss(remove_unspecified_objects, true).
-causes_val(remove_unspecified_objects, spoken_objects, V, subtract(spoken_objects,[[_,[_,undefined]]],V)).
+causes_val(remove_unspecified_objects, spoken_objects, V, subtract(spoken_objects,[[nil,[nil,undefined]]],V)).
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%% LEARNING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-proc( learn(NewSynonym, Reference), [ ?( assert(new_synonym(NewSynonym, Reference) ) ) ] ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%% CLARIFICATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -290,6 +285,12 @@ proc_poss( reject_det, true ).
 proc_costs( reject_det, V, V = 0 ).
 proc_model( reject_det, reject(_) ).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% LEARNING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+proc( learnNS(NewSynonym, Reference), [ ?( assert(new_synonym(NewSynonym, Reference) ) ) ] ).
+proc( learnNL(NewLocation), [ say("This is a new location.") ] ).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%% INTERPRETATION PROCEDURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -302,23 +303,34 @@ proc( interpret_utterance( Utterance ),
 		init_vp(VPPrime),
 
 		% DEBUG
-	        %say(Essence),
-	
-		% INTERPRETING EACH VERBPHRASE	
-		while( neg( vp_finished ), [
-	
-			% INITIALIZE
-			init_ip(verbphrases),
+%	        say(Essence),
 
-			% INTERPRETATION
-			interpret_verbphrase,
+		% INTERCEPT LEARNING REQUEST
+		if( Essence = [teaching,R1],
 
-			% DEBUG			
-			cout("Extracted command:\n"),
-			if( assumed_action = nil, cout("nil"), cout( form_command(assumed_action, assumed_arguments) ) ),
-			cout("\n")
-			% TODO: execute command!
-		])
+			if( R1 = [synonym,_],
+				% then
+				[ ?(R1 = [synonym,[NewSynonym,Reference]]), learnNS(NewSynonym, Reference) ],
+				% else
+				[ ?(R1 = [location,[NewLocation]]), learnNL(NewLocation) ]
+			),
+
+			% INTERPRETING EACH VERBPHRASE	
+			while( neg( vp_finished ), [
+	
+				% INITIALIZE
+				init_ip(verbphrases),
+	
+				% INTERPRETATION
+				interpret_verbphrase,
+	
+				% DEBUG			
+				cout("Extracted command:\n"),
+				if( assumed_action = nil, cout("nil"), cout( form_command(assumed_action, assumed_arguments) ) ),
+				cout("\n")
+				% TODO: execute command!
+			])
+		)
 	]).
 
 proc( interpret_verbphrase, 
@@ -332,7 +344,9 @@ proc( interpret_verbphrase,
 			lif( SU2, filter_list_by_synonyms_and_parameter_count( AllAct, spoken_verb, spoken_objects ) = AllActPrimePrime, 
 				AllActPrime = AllActPrimePrime ) ]) ),
               
+		noop,
 		remove_unspecified_objects,
+		noop,
 		% INTERPRETATION BY DT-PLANNING 
 		solve( [
                         nondet([ pickBest( var_action, AllActPrimePrime, int_action_det( var_action ) ), reject_det ]),
@@ -351,11 +365,11 @@ proc( interpret_verbphrase,
 
 		% CLARIFY
 		% if there is more than one best interpretation -> clarify
-		if( BlankParameters \= [], clarify(BlankParameters), cout("Everything's fine.\n") ),
+		if( BlankParameters \= [], clarify(BlankParameters), cout("Everything's fine.\n") )
 
 		% FEEDBACK
-		?( formulate_info = Feedback ),
-		say(Feedback)
+%		?( formulate_info = Feedback )
+%		say(Feedback)
 
 	]).
 
@@ -425,6 +439,9 @@ proc( waitForUtterance( Utterance ),
 
 %prim_action(wait).
 %poss(wait, true).
+
+%prim_action(noop).
+%poss(noop, true).
 
 
 

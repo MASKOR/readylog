@@ -197,11 +197,13 @@ xTra(say(U),_) :-
 	setval( real_robot_utter, U ),
 	process_xtra_events.
 	
-xTra(wait,__) :-
+xTra(wait,_) :-
 	printColor( black, " xTra: EXEC 'wait'\n", []),
 	sleep( 2 ),
 	execdelay,
 	process_xtra_events.
+
+xTra(noop,_).
 
 % ---------------------------------------------------------------------------
 
