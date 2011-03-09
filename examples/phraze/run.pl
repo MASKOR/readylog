@@ -83,9 +83,9 @@ klaus :- vis, icp( dialogTest ).
  */
 vis :-  display,
 	getval(real_start_pos, [StartX, StartY]),
-	draw_start(StartX,StartY),
+%	draw_start(StartX,StartY),
 	getval(real_goal_pos, [GoalX, GoalY]),
-	draw_goal(GoalX,GoalY),
+%	draw_goal(GoalX,GoalY),
 	getval(real_item_pos, [ItemX, ItemY]),
 	draw_item(ItemX,ItemY).
 

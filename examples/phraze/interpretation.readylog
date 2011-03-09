@@ -82,6 +82,10 @@ initial_val(verbphrases, []).
 prim_fluent(blank_parameters).
 initial_val(blank_parameters, goto).
 
+% fluent containing the blank mandatory parameters during the clarification process
+prim_fluent(command_fluent).
+initial_val(command_fluent, []).
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
 %%  ACTIONS                                                           %%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -99,9 +103,15 @@ initial_val(blank_parameters, goto).
 prim_action(interpret_action(_S)).
 poss(interpret_action(_S), 
 			and([ 	
+				
+				not finished_assignments,
 				spoken_verb = V,
-				synonym(V,_S),
-				not finished_assignments
+				synonym(V,_S)
+%%%%%				------------------------------------------ below: rearranged/optimized
+%				spoken_verb = V,
+%				synonym(V,_S),
+%				not finished_assignments
+
 %				not finished_objects,
 				])).
 causes_val(interpret_action(_S), spoken_verb, V, V = nil).	
@@ -115,9 +125,14 @@ causes_val(interpret_action(_), finished_assignments, V, and([ spoken_objects = 
 prim_action(interpret_object(_E)).
 poss(interpret_object(_E), 
 			and([ 	
+				not finished_assignments,
 				spoken_objects = [[_,[_,_O]]|_R],
-				synonym(_O,_E),
-				not finished_assignments
+				synonym(_O,_E)
+%%%%%				------------------------------------------ below: rearranged/optimized
+%				spoken_objects = [[_,[_,_O]]|_R],
+%				synonym(_O,_E),
+%				not finished_assignments
+
 %				not finished_objects,
 				])).
 causes_val(interpret_object(_E), assumed_objects, V, and([ [[_P,[_,_]]|_] = spoken_objects, _T = assumed_objects, V = [[_P,_E]|_T]]) ).
@@ -130,15 +145,26 @@ causes_val(interpret_object(_E), finished_objects, V, and([ _T = spoken_objects,
 prim_action(assign_argument(_P)).
 poss(assign_argument(_P), 
 			and([ 	
-				assumed_objects = [[_Prep,_Ent]|_],
-				entity_attributes(_Ent,EntAtts),
+				not finished_assignments,
+				not member([_P,_], assumed_arguments),
 				assumed_action = Act,
 				parameter(Act,_P,_),
-				parameter_attributes(Act,_P,ParaAtts),
-				subset_(ParaAtts,EntAtts),
+				assumed_objects = [[_Prep,_Ent]|_],
 				( _Prep = nil; preposition(Act,_P,_Prep) ),
-				not member([_P,_], assumed_arguments),
-				not finished_assignments
+				entity_attributes(_Ent,EntAtts),
+				parameter_attributes(Act,_P,ParaAtts),
+				subset_(ParaAtts,EntAtts)
+%%%%%				--------------------------- below: rearranged/optimized
+%				assumed_objects = [[_Prep,_Ent]|_],
+%				entity_attributes(_Ent,EntAtts),
+%				assumed_action = Act,
+%				parameter(Act,_P,_),
+%				parameter_attributes(Act,_P,ParaAtts),
+%				subset_(ParaAtts,EntAtts),
+%				( _Prep = nil; preposition(Act,_P,_Prep) ),
+%				not member([_P,_], assumed_arguments),
+%				not finished_assignments
+
 				])).
 causes_val(assign_argument(_P), assumed_objects, V, assumed_objects = [_|V] ).
 causes_val(assign_argument(_P), assumed_arguments, V, and([_T = assumed_arguments, assumed_objects = [[_,_E]|_], V = [[_P,_E]|_T]]) ).
@@ -152,6 +178,7 @@ poss(init_vp(_), true).
 causes_val(init_vp(VP), verbphrases, V, V = VP ).
 causes_val(init_vp(_), vp_finished, V, V = false).
 causes_val(init_vp(_), new_user_utter, V, V = false).
+causes_val(init_vp(_), command_fluent, V, V = []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % action to initialize the interpretation process for each single verb phrase
@@ -169,6 +196,11 @@ causes_val(init_ip(_), clarification_count, V, V = 0).
 %causes_val(init_ip(_), finished_objects, V, V = false ).
 causes_val(init_ip(_), finished_assignments, V, V = false ).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% action to add an extracted command to the list of commands
+prim_action(add_command(_)).
+poss(add_command(_), true ).
+causes_val(add_command(Command), command_fluent, S, S = [command_fluent|Command] ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % action enabling referencing unspecified things by removing them and thus provoking clarification
@@ -204,7 +236,10 @@ causes_val( consider_assignment(Parameter,Entity), assumed_arguments, V, V = [[P
 prim_action( abort_clarification ).
 poss( abort_clarification, true).
 causes_val( abort_clarification, blank_parameters, V, V = []).
-causes_val( abort_clarification(_), new_user_utter, V, V = false).
+causes_val( abort_clarification, new_user_utter, V, V = false).
+causes_val( abort_clarification, assumed_action, V, V = nil).
+causes_val( abort_clarification, assumed_objects, V, V = []).
+causes_val( abort_clarification, assumed_arguments, V, V = []).
 
 proc( clarify(BlankParameters), [
 	% while BlankParameters is not empty ask how to instantiate each missing mandatory parameter
@@ -295,15 +330,15 @@ proc( learnNL(NewLocation), [ say("This is a new location.") ] ).
 %%%%%%%%%%%%%%%%%%%%%% INTERPRETATION PROCEDURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-proc( interpret_utterance( Utterance ),
+proc( interpret_utterance( Utterance, Command ),
 	[
 		% PREPROCESSING
-		?( process_utterance(Utterance) = Essence ),
-		?( split_essence( Essence ) = VPPrime ),
+		?( and([ process_utterance(Utterance) = Essence, Essence = [_,EP] ]) ),
+		?( split_essence(Essence) = VPPrime ),
 		init_vp(VPPrime),
 
 		% DEBUG
-%	        say(Essence),
+		say(EP),
 
 		% INTERCEPT LEARNING REQUEST
 		if( Essence = [teaching,R1],
@@ -322,15 +357,13 @@ proc( interpret_utterance( Utterance ),
 				init_ip(verbphrases),
 	
 				% INTERPRETATION
-				interpret_verbphrase,
-	
-				% DEBUG			
-				cout("Extracted command:\n"),
-				if( assumed_action = nil, cout("nil"), cout( form_command(assumed_action, assumed_arguments) ) ),
-				cout("\n")
-				% TODO: execute command!
+				interpret_verbphrase	
 			])
-		)
+			
+		),
+		
+		if( command_fluent = [], ?( CS = "nothing" ), ?( and([ Command = command_fluent, term_string(Command,CS) ]) ) )%,
+		%cout(CS) % DEBUG
 	]).
 
 proc( interpret_verbphrase, 
@@ -338,60 +371,59 @@ proc( interpret_verbphrase,
 		% PREPROCESSING
 		?( and([ getval( all_actions, AllAct ), getval( all_entities, AllEnt ), getval( all_parameters, AllPar ) ]) ),
 		% speed up toggle #1
-		?( and([ getval( toggle_speedup_one, SU1 ), lif( SU1, filter_list_by_synonyms( AllAct, spoken_verb ) = AllActPrime, AllAct = AllActPrime ) ]) ),
-		% speed up toggle #2
-		?( and([ getval( toggle_speedup_two, SU2 ),
-			lif( SU2, filter_list_by_synonyms_and_parameter_count( AllAct, spoken_verb, spoken_objects ) = AllActPrimePrime, 
-				AllActPrime = AllActPrimePrime ) ]) ),
+		?( and([ getval( toggle_speedup_two, SU1 ),
+			lif( SU1, filter_list_by_synonyms_and_parameter_count( AllAct, spoken_verb, spoken_objects ) = AllActPrime, 
+				AllAct = AllActPrime ) ]) ),
               
-		noop,
 		remove_unspecified_objects,
-		noop,
 		% INTERPRETATION BY DT-PLANNING 
 		solve( [
-                        nondet([ pickBest( var_action, AllActPrimePrime, int_action_det( var_action ) ), reject_det ]),
+                        nondet([ pickBest( var_action, AllActPrime, int_action_det( var_action ) ), reject_det ]),
 			while( neg( finished_assignments ), [
 				interpret_objectphrase(AllEnt, AllPar)
 			] )
-                ], 7, reward_interpretation ),
+                ], 11, reward_interpretation ),
 
 		% MANDATORY PARAMETER CHECK
                 ?( filter_mandatory_parameters = BlankParameters ),
 		
 		% DEBUG
-		cout("Remaining mandatory parameters: "),
-		cout(BlankParameters),
-		cout("\n"),
+		%cout("Remaining mandatory parameters: "),
+		%cout(BlankParameters),
+		%cout("\n"),
 
 		% CLARIFY
 		% if there is more than one best interpretation -> clarify
-		if( BlankParameters \= [], clarify(BlankParameters), cout("Everything's fine.\n") )
+		if( BlankParameters \= [], clarify(BlankParameters), cout("Everything's fine.\n") ),
 
 		% FEEDBACK
 %		?( formulate_info = Feedback )
 %		say(Feedback)
+		
+		?( and([ CommandPrime = form_command(assumed_action, assumed_arguments), term_string(Command,CommandPrime) ]) ),
+		cout(CommandPrime),
+		add_command(Command)
 
 	]).
 
 proc( interpret_objectphrase(AllEnt, AllPar),
 	[
 		%%%%% filter possible entities:
-%		?( and([ getval( toggle_speedup_one, SU1 ), 
-%			spoken_objects = [[_,[_,SpokenObject]]|_], 
-%			lif( SU1, filter_list_by_synonyms( AllEnt, SpokenObject ) = AllEntPrime, AllEnt = AllEntPrime ) ]) ),
+		?( and([ getval( toggle_speedup_one, SU2 ), 
+			spoken_objects = [[_,[_,SpokenObject]]|_], 
+			lif( SU2, filter_list_by_synonyms( AllEnt, SpokenObject ) = AllEntPrime, AllEnt = AllEntPrime ) ]) ),
 	
 		%%%%% map spoken object to known entity
-                nondet([ pickBest( var_entity, AllEnt, int_object_det( var_entity ) ), reject_det ]),
+                nondet([ pickBest( var_entity, AllEntPrime, int_object_det( var_entity ) ), reject_det ]),
                 
 		% -----
 		
 		%%%%% filter possible parameters:
-%		?( and([ assumed_objects = [[Prep,AssumedObject]|_], getval( toggle_speedup_three, SU3 ),
-%			lif( SU1, filter_list_by_attribute( AllPar, AssumedObject, assumed_action ) = AllParPrime, AllPar = AllParPrime ),
-%			lif( SU3, filter_list_by_attribute_and_preposition( AllPar, AssumedObject, assumed_action, Prep ) = AllParPP, AllParPrime = AllParPP ) ]) ),
+		if( finished_assignments, noop, ?( and([ assumed_objects = [[Prep,AssumedObject]|_], getval( toggle_speedup_three, SU3 ),
+			lif( SU3, filter_list_by_attribute_and_preposition( AllPar, AssumedObject, assumed_action, Prep ) = AllParPrime, AllPar = AllParPrime ) ]) )),
 		
 		%%%%% map entity to parameter
-                nondet([ pickBest( var_parameter, AllPar, int_argument_det( var_parameter ) ), reject_det ])
+                if( finished_assignments, noop, nondet([ pickBest( var_parameter, AllParPrime, int_argument_det( var_parameter ) ), reject_det ]) )
 	]).
 %proc_poss( interpret_objectphrase(_, _), true).
 %proc_costs( interpret_objectphrase(_, _), V, V = 0).

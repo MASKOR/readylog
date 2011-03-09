@@ -273,21 +273,21 @@ proc(visit_nondet_det,
 %%  FIND AND GET ITEM                                                 %%
 %% ================================================================== %%
 
-% speed-up #1 toggle - synonym prefiltering
-:- setval( toggle_speedup_one, false ).
+% speed-up #1 toggle - action prefiltering
+:- setval( toggle_speedup_one, true ).
 
-% speed-up #2 toggle - special skill prefiltering
+% speed-up #2 toggle - entity prefiltering
 :- setval( toggle_speedup_two, true ).
 
-% speed-up #3 toggle - special skill prefiltering
-:- setval( toggle_speedup_three, false ).
+% speed-up #3 toggle - parameter prefiltering
+:- setval( toggle_speedup_three, true ).
 
 proc( dialogTest,
       [
          cout(" === STARTING DIALOG TEST === \n"),
 	 exogf_Update,
-%	 while( true, [ dialog ] ),
-	 dialog,
+	 while( true, [ dialog ] ),
+%	 dialog,
          cout(" === FINISHING DIALOG TEST === \n")
       ]
     ).
@@ -295,7 +295,8 @@ proc( dialogTest,
 proc( dialog,
       [
 	 waitForUtterance(Utterance),
-	 interpret_utterance(Utterance)
+	 interpret_utterance(Utterance, Command),
+	 Command
       ]
     ).
 
@@ -321,6 +322,33 @@ proc( findus,
                goto_item( XIneu, YIneu),
                grab_item ]
            ),
+	 reset_visited,
+         cout(" === FINISHING FINDUS === \n")
+      ]
+    ).
+
+proc( findus2(X,Y),
+      [
+         cout(" === STARTING FINDUS === \n"),
+         exogf_Update,
+         %% save current pos to return item
+         search_item( XI, YI ),
+         cout( green, " *** found item at %w,%w *** \n", [XI,YI] ),
+         goto_item( XI, YI ),
+         grab_item,
+         reset_visited,
+         while( (epf_carry_item, pos \= [X,Y]) ,
+                [carry_item( X, Y ),
+                 exogf_Update]
+              ),
+         if( epf_carry_item, 
+             drop_item,
+             [ reset_visited,
+               search_item(XIneu,YIneu),
+               goto_item( XIneu, YIneu),
+               grab_item ]
+           ),
+	 reset_visited,
          cout(" === FINISHING FINDUS === \n")
       ]
     ).
@@ -355,7 +383,7 @@ proc( search_item( XI, YI ), %ItemPosID ), %XI, YI ),
 proc( goto_item(X,Y) ,
       [
          cout( yellow, " --- goto item --- \n", [] ),
-         solve( goto(X,Y), 5, reward_heuristic(X,Y) )
+         solve( goto(X,Y), 6, reward_heuristic(X,Y) )
       ]
     ).
 

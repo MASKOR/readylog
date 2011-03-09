@@ -105,13 +105,13 @@ function( f_item_pos_by_id(PosID), V,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% REWARD FUNCTION
 
 function( reward_interpretation, V,
-		and([ 	
-			lif(assumed_action=nil, _A = 0, _A = 1),
-			length(assumed_objects,_L1), _B is _L1+_A,
-			_C is _B+preposition_count,
-			length(assumed_arguments,_L3), V is _C+(2*_L3)
+		and([
+			length(assumed_arguments, PCount),
+			lif(assumed_action=nil, V = 0, compute_reward(assumed_action, PCount, V) )
 		])
 	).
+
+compute_reward(Action, Count, Reward) :- findall(Var, parameter(Action, Var, mandatory), List), length(List,N), Reward is 100 - (N - Count).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LANGUAGE PROCESSING FUNCTIONS
 
@@ -127,19 +127,16 @@ function( process_answer(Utterance), Essence,
 		])
 	).
 
-function( split_essence(Essence), VerbPhrases,
-		and([
-			split_essence_external(Essence, VerbPhrases)
-		])
-	).
+function( split_essence(Essence), VerbPhrases, split_essence_external(Essence, VerbPhrases) ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION TO FORM A PROPER SYSTEM CALL
 
 function( form_command(S,O), C,
+		lif( S = nil, and([term_string(wait,PPP), C = PPP]),
 		and([
 			skill(S,SPrime),
 			substitute_arguments(O,SPrime,C)
-		])
+		]))
 	).
 
 substitute_arguments([],String,String).
@@ -182,21 +179,34 @@ flatten_argument_list([[Elem,_]|R1],[Elem|R2]) :-
 
 function( formulate_explanation(Reason), V,
 		and([
-			form_expl(Reason, V, spoken_verb, spoken_objects, assumed_objects)
+			form_expl(Reason, V, spoken_verb, spoken_objects, assumed_action, assumed_objects)
 		])
 	).
 
-form_expl("action", Explanation, Verbstring, _, _) :- !,
+form_expl("action", Explanation, Verbstring, _, _, _) :- !,
 	append_strings("I am not able to ", Verbstring, ExplanationPrime),
 	append_strings(ExplanationPrime, ".", Explanation).
 
-form_expl("object", Explanation, _, [[_Preposition,[_Determiner,Objectstring]]|_], _) :- !,
+form_expl("object", Explanation, _, [[_Preposition,[_Determiner,Objectstring]]|_], _, _) :- !,
 	append_strings("I do not know what ", Objectstring, ExplanationPrime),
 	append_strings(ExplanationPrime, " means.", Explanation).
 
-form_expl("parameter", "This combination makes no sense for me.", _, _, _) :- !.
+form_expl("parameter", Explanation, _, _, Action,[[_Preposition,Entity]|_]) :- !,
+	entity_attributes(Entity, [EntityAttribute|_]),
+	attribute(EntityAttribute, Attributestring),
+	synonym(Actionstring, Action),
+	fetmp(_Preposition, Prepositionstring),
+	append_strings("I cannot ", Actionstring, E5),
+	append_strings(E5, " ", E6),
+	append_strings(E6, Prepositionstring, E7),
+	append_strings(E7, "a ", E8),
+	append_strings(E8, Attributestring, E9),
+	append_strings(E9, ".", Explanation).
 
 form_expl(_,"Unknown Reason", _, _, _).
+
+fetmp(nil,"").
+fetmp(P,S) :- append_strings(P, " ", S).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION TO FORMULATE A QUESTION FOR CLARIFICATION
 
@@ -261,15 +271,19 @@ fqtmp(_, _, "").
 
 elist_to_string([A,B|[]], String) :- 
 	!,
-	synonym(AS,A),
-	synonym(BS,B),
-	append_strings(AS," or ", S1), 
+	synonym(AP,A),
+	synonym(BP,B),
+	split_string(AP, "_", "", T1), join_string(T1, " ", AS),
+	split_string(BP, "_", "", T2), join_string(T2, " ", BS),
+	append_strings(AS,", or ", S1), 
 	append_strings(S1, BS, S2), 
 	append_strings(S2, "?", String).
 elist_to_string([A|[]], String) :- 
-	synonym(String,A).
+	synonym(AP,A),
+	split_string(AP, "_", "", T), join_string(T, " ", String).
 elist_to_string([A|Rest], String) :- 
-	synonym(AS,A),
+	synonym(AP,A),
+	split_string(AP, "_", "", T), join_string(T, " ", AS),
 	append_strings(AS,", ", S1),
 	elist_to_string(Rest, StringPrime),
 	append_strings(S1, StringPrime, String).
@@ -288,7 +302,7 @@ function( filter_list_by_synonyms(List,Word), V, and([ flbs(List,Word,Result), l
 function( filter_list_by_synonyms_and_parameter_count(List,Verb,Objects), V, and([ length(Objects, Count), flbsapc(List,Verb,Count,Result), lif( Result = [], V = [dummy], V = Result ) ]) ).
 function( filter_list_by_attribute(List,Word,Skill), V, lif( List = [], V = [dummy], and([ remove_dups(List,ListPrime), flba(ListPrime,Word,Skill,V) ]) ) ).
 function( filter_list_by_attribute_and_preposition(List,Word,Skill,Prep), 
-		V, lif( List = [], V = [dummy], and([ remove_dups(List,ListPrime), flbaap(ListPrime,Word,Skill,Prep,V) ]) ) ).
+		V, and([ remove_dups(List,ListPrime), flbaap(ListPrime,Word,Skill,Prep,VPrime), lif( VPrime = [], V = List, V = VPrime ) ]) ).
 
 
 flbsapc([],_,_,[]).

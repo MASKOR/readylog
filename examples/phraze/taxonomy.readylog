@@ -1,74 +1,69 @@
 attribute(location,"location").
 attribute(portable,"portable object").
-entity(bath,"broom_").
-entity(coffee_cup,"cup007").
-entity(fifa_trophy,"wm2014").
-entity(kitchen,"kitchen_").
+entity(bath,"4,1").
+entity(bedroom,"1,1").
+entity(gold,"dummy").
+entity(hallway,"2,2").
+entity(kitchen,"1,4").
+entity(livingroom,"4,4").
 entity_attributes(bath,[location]).
-entity_attributes(coffee_cup,[portable,vessel]).
-entity_attributes(fifa_trophy,[trophy]).
+entity_attributes(bedroom,[location]).
+entity_attributes(gold,[portable]).
+entity_attributes(hallway,[location]).
 entity_attributes(kitchen,[location]).
+entity_attributes(livingroom,[location]).
+mandatory_parameters(drop,[]).
 mandatory_parameters(fetch,[targetobject]).
 mandatory_parameters(getting_lost,[]).
 mandatory_parameters(goto,[targetlocation]).
 mandatory_parameters(move_object,[targetobject,targetlocation]).
-mandatory_parameters(move_object_from,[targetobject,sourcelocation,targetlocation]).
-mandatory_parameters(shake_head,[]).
 parameter(fetch,targetobject,mandatory).
 parameter(goto,targetlocation,mandatory).
 parameter(move_object,targetlocation,mandatory).
 parameter(move_object,targetobject,mandatory).
-parameter(move_object_from,sourcelocation,mandatory).
-parameter(move_object_from,targetlocation,mandatory).
-parameter(move_object_from,targetobject,mandatory).
 parameter_attributes(fetch,targetobject,[portable]).
 parameter_attributes(goto,targetlocation,[location]).
 parameter_attributes(move_object,targetlocation,[location]).
 parameter_attributes(move_object,targetobject,[portable]).
-parameter_attributes(move_object_from,sourcelocation,[location]).
-parameter_attributes(move_object_from,targetlocation,[location]).
-parameter_attributes(move_object_from,targetobject,[portable]).
 preposition(goto,targetlocation,"to").
 preposition(move_object,targetlocation,"to").
-preposition(move_object_from,sourcelocation,"from").
-preposition(move_object_from,targetlocation,"to").
-skill(fetch,"cup_act(targetobject)").
-skill(getting_lost,"scram()").
-skill(goto,"ppgoto(targetlocation)").
-skill(move_object,"[ cup_act(targetobject), ppgoto(targetlocation) ]").
-skill(move_object_from,"[ppgoto(sourcelocation), cup_act(targetobject), ppgoto(place=targetlocation)]").
-skill(shake_head,"shake_head()").
+skill(drop,"drop").
+skill(fetch,"findus").
+skill(getting_lost,"goto_item(1,2)").
+skill(goto,"goto_item(targetlocation)").
+skill(move_object,"findus2(targetlocation)").
+synonym("bathroom",bath).
 synonym("bath",bath).
 synonym("bath_room",bath).
+synonym("bedroom",bedroom).
 synonym("bring",fetch).
 synonym("bring",move_object).
 synonym("collect",fetch).
-synonym("cup",coffee_cup).
-synonym("cup",fifa_trophy).
+synonym("corridor",hallway).
 synonym("drive",goto).
+synonym("drop",drop).
 synonym("fetch",fetch).
+synonym("gold",gold).
 synonym("go",getting_lost).
 synonym("go",goto).
+synonym("hallway",hallway).
+synonym("hall",hallway).
 synonym("kitchen",kitchen).
+synonym("living_room",livingroom).
 synonym("move",getting_lost).
 synonym("move",goto).
 synonym("move",move_object).
-synonym("move",move_object_from).
-synonym("mug",coffee_cup).
 synonym("navigate",goto).
 synonym("run",goto).
-synonym("scat",getting_lost).
 synonym("scram",getting_lost).
-synonym("shake_your_head",shake_head).
 synonym("someplace",location).
 synonym("something",portable).
 synonym("somewhere",location).
 synonym("transport",move_object).
-synonym("transport",move_object_from).
-synonym("trophy",fifa_trophy).
+synonym("treasure",gold).
 synonym("walk",goto).
 synonym(Z1,Z2) :- new_synonym(Z1,ZP), synonym(ZP,Z2).
 :- dynamic new_synonym/2.
-:- setval(all_actions, [getting_lost,fetch,move_object_from,move_object,goto,shake_head]).
-:- setval(all_entities, [kitchen,bath,coffee_cup,fifa_trophy]).
-:- setval(all_parameters, [targetobject,targetobject,sourcelocation,targetlocation,targetobject,targetlocation,targetlocation]).
+:- setval(all_actions, [drop,getting_lost,fetch,move_object,goto]).
+:- setval(all_entities, [livingroom,kitchen,hallway,bedroom,bath,gold]).
+:- setval(all_parameters, [targetobject,targetobject,targetlocation,targetlocation]).

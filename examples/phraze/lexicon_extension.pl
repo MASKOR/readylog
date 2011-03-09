@@ -8,24 +8,26 @@ undefined --> ["somewhere"].
 undefined --> ["someplace"].
 
 % objects -> (proper) nouns
+noun(["living_room"]) --> ["living","room"].
 noun(["kitchen"]) --> ["kitchen"].
+noun(["hall"]) --> ["hall"].
+noun(["hallway"]) --> ["hallway"].
+noun(["corridor"]) --> ["corridor"].
+noun(["bedroom"]) --> ["bedroom"].
 noun(["bath"]) --> ["bath"].
+noun(["bathroom"]) --> ["bathroom"].
 noun(["bath_room"]) --> ["bath","room"].
-noun(["mug"]) --> ["mug"].
-noun(["cup"]) --> ["cup"].
-noun(["trophy"]) --> ["trophy"].
-noun(["cup"]) --> ["cup"].
+noun(["gold"]) --> ["gold"].
+noun(["treasure"]) --> ["treasure"].
 
 % skills/actions -> verb
+everb(["drop"]) --> ["drop"].
 everb(["scram"]) --> ["scram"].
 everb(["go"]) --> ["go"].
 everb(["move"]) --> ["move"].
-everb(["scat"]) --> ["scat"].
 everb(["fetch"]) --> ["fetch"].
 everb(["bring"]) --> ["bring"].
 everb(["collect"]) --> ["collect"].
-everb(["transport"]) --> ["transport"].
-everb(["move"]) --> ["move"].
 everb(["transport"]) --> ["transport"].
 everb(["move"]) --> ["move"].
 everb(["bring"]) --> ["bring"].
@@ -35,6 +37,5 @@ everb(["navigate"]) --> ["navigate"].
 everb(["walk"]) --> ["walk"].
 everb(["drive"]) --> ["drive"].
 everb(["run"]) --> ["run"].
-everb(["shake_your_head"]) --> ["shake","your","head"].
 
 :- write(" <-- loading lexicon extension done.\n").

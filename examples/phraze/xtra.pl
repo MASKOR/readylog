@@ -38,7 +38,7 @@ exec_ask4outcome :- true.
 %%  of exogenous fluents hidden for the agent
 
 /* real position of our agent */
-:- setval( real_agent_pos, [1,1] ).
+:- setval( real_agent_pos, [2,2] ).
 
 /* real position of the item */
 :- setval( real_item_pos, [4,4] ).
@@ -47,7 +47,7 @@ exec_ask4outcome :- true.
 :- setval( real_carry_item, false ).
 
 /* starting position */
-:- setval( real_start_pos, [1,1] ).
+:- setval( real_start_pos, [2,2] ).
 
 /* starting position */
 :- setval( real_goal_pos, [5,5] ).
@@ -80,9 +80,9 @@ update :-
 vis_update :-
 	redraw, 
 	getval(real_start_pos, [StartX, StartY]),
-	draw_start(StartX,StartY),
+%	draw_start(StartX,StartY),
 	getval(real_goal_pos, [GoalX, GoalY]),
-	draw_goal(GoalX,GoalY),
+%	draw_goal(GoalX,GoalY),
 	getval(real_agent_pos, [AgentX, AgentY]),
 	draw_agent(AgentX,AgentY),
 	getval(real_item_pos, [ItemX, ItemY]),
@@ -182,6 +182,12 @@ xTra(consider_assignment(_,_),_) :-
 	process_xtra_events.
 
 xTra(abort_clarification,_) :-
+	process_xtra_events.
+
+xTra(add_command(_),_) :-
+	process_xtra_events.
+
+xTra(drop_item,_) :-
 	process_xtra_events.
 
 xTra(reject(Explanation),_) :-

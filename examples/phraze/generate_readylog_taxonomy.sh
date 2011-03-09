@@ -32,7 +32,7 @@ cons==1 && /string/ {split($0,v,"</*string>"); string=v[2]; print "constant("ski
 /\/attributes/ && para==1 {print "parameter_attributes("skill","name",["attributelist"])."} \
 /\/attributes/ && ent==1 {print "entity_attributes("name",["attributelist"])."} \
 END {print ":- dynamic new_synonym/2."; \
-print ":- setval(all_actions, ["actions"])."; \ 
+print ":- setval(all_actions, ["actions"])."; \
 print ":- setval(all_entities, ["entities"])."; \
 print ":- setval(all_parameters, ["parameters"])."}'| sed 's/reject),/reject,/g' | sed 's/#,//g' | sort -V | sed 's/###/synonym(Z1,Z2) :- new_synonym(Z1,ZP), synonym(ZP,Z2)./g'
 

@@ -18,22 +18,24 @@
 
 pue(U) :- process_utterance_external(U,_).
 pue(U,E) :- process_utterance_external(U,E).
-process_utterance_external(Utterance,Essence) :- split_string(Utterance," ","",Phrase), parse_utterance(Essence,Phrase,[]).
-process_answer_external(Utterance,Essence) :- split_string(Utterance," ","",Phrase), parse_answer(Essence,Phrase,[]).
+process_utterance_external(Utterance,Essence) :- split_string(Utterance," ","",Phrase), parse_utterance(Essence,Phrase,[]), !.
+process_utterance_external(Utterance,["imperative", [Utterance]]).
+process_answer_external(Utterance,Essence) :- split_string(Utterance," ","",Phrase), parse_answer(Essence,Phrase,[]), !.
+process_answer_external(Utterance,[abort]).
 
 split_essence_external([_|[Essence]], VerbPhrases) :- splee(Essence,VerbPhrases).
 
-splee([and,[V1,V2]],[V1|V]) :- splee(V2,V).
+splee(["and",[V1,V2]],[V1|V]) :- !, splee(V2,V).
 splee(V,[V]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PHRASE STRUCTURE RULES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-parse_utterance(E) --> salutation, utterance(E).
-parse_utterance(E) --> utterance(E).
+parse_utterance(E) --> salutation, utterance(E), !.
+parse_utterance(E) --> utterance(E), !.
 
 %%% STRUCTURE RULES FOR SHORT ANSWERS DURING CLARIFICATION
-parse_answer(E) --> answer(E).
-answer([abort]) --> abort.
+parse_answer(E) --> answer(E), !.
+%parse_answer([]). % fail safe
 answer([[nil,[nil|E]]]) --> nominal(E).
 answer([[nil|E]]) --> np(E).
 answer(E) --> pp(E).
@@ -48,22 +50,12 @@ needstatement(E) --> needphrase, vp(E).
 imperative(E) --> vp(E). 
 ynquestion(E) --> aux(_), np(_), vp(E).
 
-needphrase --> ["i", "need", "you", "to"].
-
-% teaching phrases
-teaching([synonym, [NewSynonym, Reference]]) --> ["by"], verb([NewSynonym]), ["i", "mean"], everb([Reference]).
-teaching([location, [NewLocation]]) --> ["this", "is"], noun([NewLocation]).
-teaching([location, [NewLocation]]) --> ["this", "is", "the"], noun([NewLocation]).
-teaching([location, [NewLocation]]) --> ["this", "place", "is"], noun([NewLocation]).
-teaching([location, [NewLocation]]) --> ["this", "place", "is", "called"], noun([NewLocation]).
-teaching([location, [NewLocation]]) --> ["this", "is", "called"], noun([NewLocation]).
-teaching([location, [NewLocation]]) --> ["this", "position", "is", "called"], noun([NewLocation]).
-teaching([location, [NewLocation]]) --> ["remember", "this", "as"], noun([NewLocation]).
-teaching([location, [NewLocation]]) --> ["remember", "this", "place", "as"], noun([NewLocation]).
+needphrase --> ["i"], prompt, ["you", "to"].
 
 % noun phrase
-np(E) --> pronoun(E).
-np(E) --> proper-noun(E).
+np([[nil|E]]) --> noun(E).
+np([[nil|E]]) --> pronoun(E).
+np([[nil|E]]) --> proper-noun(E).
 np([[nil,undefined]]) --> undefined.
 np([E]) --> determiner(E1), nominal(E2), {append(E1,E2,E)}.
 np([E]) --> determiner(E1), np(E2), {append(E1,E2,E)}.
@@ -85,7 +77,7 @@ vpPrime([E1,[objects,E2]]) --> verb([E1]), obp(E2).
 vpPrime(E) --> courtesy(_), vpPrime(E).
 
 % auxiliary verb
-aux([[aux,E]]) --> verb(E).
+aux([[aux,E]]) --> averb(E).
 
 % object phrase - selfmade
 obp([[nil|E]]) --> np(E).
@@ -102,6 +94,17 @@ pp([E]) --> prep(E1), np(E2), {append(E1,E2,E)}.
 verb(E) --> averb(E).
 verb(E) --> everb(E).
 
+% teaching phrases
+teaching([synonym, [NewSynonym, Reference]]) --> ["by"], verb([NewSynonym]), ["i", "mean"], everb([Reference]).
+teaching([location, [NewLocation]]) --> ["this", "is"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "is", "the"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "place", "is"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "place", "is", "called"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "is", "called"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["this", "position", "is", "called"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["remember", "this", "as"], noun([NewLocation]).
+teaching([location, [NewLocation]]) --> ["remember", "this", "place", "as"], noun([NewLocation]).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BASIC LEXICON %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SALUTATIONS
 salutation --> [""].
@@ -109,6 +112,14 @@ salutation --> ["caesar", ","].
 salutation --> ["robot", ","].
 salutation --> ["hey", ","].
 salutation --> ["hey", "you", ","].
+
+% PROMPTS FOR NEEDPHRASE
+prompt --> ["need"].
+prompt --> ["want"].
+prompt --> ["wish"].
+prompt --> ["require"].
+prompt --> ["dare"].
+prompt --> ["urge"].
 
 % WH-WORDS
 wh-np([]) --> ["who"].
@@ -235,16 +246,12 @@ abort --> ["nevermind"].
 
 % COURTESY/PLEASE
 courtesy([]) --> ["please"].
+courtesy([]) --> ["do", "me", "a", "favor", "and"].
+courtesy([]) --> ["please", "do", "me", "a", "favor", "and"].
 
 % AUXILIARY VERBS
-% do we need negation for requests?
-%verb(["cannot"]) --> ["can't"].
-%verb(["cannot"]) --> ["cannot"].
-%verb(["cannot"]) --> ["can", "not"].
-%verb(["dont"]) --> ["don't"].
-%verb(["dont"]) --> ["do not"].
-%verb(["neednot"]) --> ["need", "not"].
 averb(["can"]) --> ["can"].
+averb(["can't"]) --> ["can't"].
 averb(["do"]) --> ["do"].
 averb(["need"]) --> ["need"].
 averb(["prefer"]) --> ["prefer"].
