@@ -12,7 +12,6 @@ entity_attributes(gold,[portable]).
 entity_attributes(hallway,[location]).
 entity_attributes(kitchen,[location]).
 entity_attributes(livingroom,[location]).
-mandatory_parameters(drop,[]).
 mandatory_parameters(fetch,[targetobject]).
 mandatory_parameters(getting_lost,[]).
 mandatory_parameters(goto,[targetlocation]).
@@ -27,7 +26,6 @@ parameter_attributes(move_object,targetlocation,[location]).
 parameter_attributes(move_object,targetobject,[portable]).
 preposition(goto,targetlocation,"to").
 preposition(move_object,targetlocation,"to").
-skill(drop,"drop").
 skill(fetch,"findus").
 skill(getting_lost,"goto_item(1,2)").
 skill(goto,"goto_item(targetlocation)").
@@ -41,7 +39,6 @@ synonym("bring",move_object).
 synonym("collect",fetch).
 synonym("corridor",hallway).
 synonym("drive",goto).
-synonym("drop",drop).
 synonym("fetch",fetch).
 synonym("gold",gold).
 synonym("go",getting_lost).
@@ -64,6 +61,6 @@ synonym("treasure",gold).
 synonym("walk",goto).
 synonym(Z1,Z2) :- new_synonym(Z1,ZP), synonym(ZP,Z2).
 :- dynamic new_synonym/2.
-:- setval(all_actions, [drop,getting_lost,fetch,move_object,goto]).
+:- setval(all_actions, [getting_lost,fetch,move_object,goto]).
 :- setval(all_entities, [livingroom,kitchen,hallway,bedroom,bath,gold]).
 :- setval(all_parameters, [targetobject,targetobject,targetlocation,targetlocation]).

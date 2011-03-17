@@ -21,7 +21,6 @@ noun(["gold"]) --> ["gold"].
 noun(["treasure"]) --> ["treasure"].
 
 % skills/actions -> verb
-everb(["drop"]) --> ["drop"].
 everb(["scram"]) --> ["scram"].
 everb(["go"]) --> ["go"].
 everb(["move"]) --> ["move"].
