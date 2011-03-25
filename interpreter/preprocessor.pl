@@ -835,8 +835,9 @@ SenseEffect ) (with exactly these names for the last two
 parameters)
 */
 generate_stoch_proc_outcome( Proc, ModelBody, Stream ) :-
-	generate_stoch_proc_outcome( ModelBody, S, [], [], NewBody ),
-	var(Outcomes), var(SenseEffect),
+ 	var(Outcomes), var(SenseEffect),
+	generate_stoch_proc_outcome( ModelBody, S, [], [], Outcomes,
+                                     SenseEffect, NewBody ),
 	printf(Stream,
 	       "stoch_proc_outcomes(%w, %w, %w, %w) :- %w, !.\n",
 	       [Proc, S, Outcomes, SenseEffect, NewBody] ).
@@ -857,30 +858,30 @@ Body which will be generated on the way back and in which
 variables Outcomes and SenseEffect will be set. These will then
 be mentioned as formal parameters in the prototype. */
 
-generate_stoch_proc_outcome( [], _S, Outs, Sense, Body ) :- !,
-	var(Outcomes), var(SenseEffect),
-	Body = ( Outcomes = Outs, SenseEffect = Sense).
+generate_stoch_proc_outcome( [], _S, Outs, Sense, Outcomes,
+                             SenseEffect, Body ) :- !,
+        Body = ( Outcomes = Outs, SenseEffect = Sense).
 
-generate_stoch_proc_outcome( [?(Cond)|Rest], S, Outcomes, Sense,
-			     Body ) :- !,
+generate_stoch_proc_outcome( [?(Cond)|Rest], S, Outs, Sense, Outcomes,
+                             SenseEffect, Body ) :- !,
  	process_condition( Cond, S, Body_cond),
-	generate_stoch_proc_outcome( Rest, S, Outcomes, Sense,
-				     Body_rest ),
+	generate_stoch_proc_outcome( Rest, S, Outs, Sense, Outcomes,
+                                     SenseEffect, Body_rest ),
 	conjunct( Body_cond, Body_rest, Body).
 
-generate_stoch_proc_outcome( [if(Cond, A, B)|Rest], S, Outcomes,
-			     Sense, Body ) :- !,
+generate_stoch_proc_outcome( [if(Cond, A, B)|Rest], S, Outs, Sense,
+                             Outcomes, SenseEffect, Body ) :- !,
  	process_condition( Cond, S, Body_cond),
 	flatten(A, A_flat), append( A_flat, Rest, A_rest),
 	flatten(B, B_flat), append( B_flat, Rest, B_rest),
-	generate_stoch_proc_outcome( A_rest, S, Outcomes, Sense,
-				     Body_A ),
-	generate_stoch_proc_outcome( B_rest, S, Outcomes, Sense,
-				     Body_B ),
+	generate_stoch_proc_outcome( A_rest, S, Outs, Sense, Outcomes,
+                                     SenseEffect, Body_A ),
+	generate_stoch_proc_outcome( B_rest, S, Outs, Sense, Outcomes,
+                                     SenseEffect, Body_B ),
  	Body = ( (Body_cond) -> Body_A ; Body_B ).
 
-generate_stoch_proc_outcome( [sprob(L, SenseProg)|Rest], S, Outcomes,
-			     Sense, Body ) :- !,
+generate_stoch_proc_outcome( [sprob(L, SenseProg)|Rest], S, Outs,
+                             Sense, Outcomes, SenseEffect, Body ) :- !,
 	/* check that probabilities sum up to 1.0 */
 	(
 	  checkProbabilities(L)
@@ -888,7 +889,7 @@ generate_stoch_proc_outcome( [sprob(L, SenseProg)|Rest], S, Outcomes,
 	  printf("** warning: probabilities in sprob-statement", []),
 	  printf("do not sum up to 1.0 in [ %w]\n", [L])
 	),
-	combineOutcomes( Outcomes, L, Outcomes_new),
+	combineOutcomes( Outs, L, Outs_new),
  	/* sense effect */
  	flatten(Sense, Sense_flat),
  	flatten(SenseProg, SenseProg_flat),
@@ -904,10 +905,10 @@ generate_stoch_proc_outcome( [sprob(L, SenseProg)|Rest], S, Outcomes,
 	  true
 	),
 	/* finalize */
-	generate_stoch_proc_outcome( [], S, Outcomes_new, Sense_new,
-				     Body ).
+	generate_stoch_proc_outcome( [], S, Outs_new, Sense_new,
+                                     Outcomes, SenseEffect, Body ).
 
-generate_stoch_proc_outcome( [A|Rest], S, Outcomes, Sense, Body ) :-
+generate_stoch_proc_outcome( [A|Rest], S, Outs, Sense, Outcomes, SenseEffect, Body ) :-
 	!,
 	(
 	  prim_action( A )
@@ -928,15 +929,15 @@ generate_stoch_proc_outcome( [A|Rest], S, Outcomes, Sense, Body ) :-
 	  process_subf_list( Args, Args_eval, Body_args, S)
 	),
 	A2 =.. [F|Args_eval],
-	combineOutcomes( Outcomes, [([A2], 1.0, true)], Outcomes_new),
-	generate_stoch_proc_outcome( Rest, [A2|S], Outcomes_new,
-				     Sense, Body_rest ),
+	combineOutcomes( Outs, [([A2], 1.0, true)], Outs_new),
+	generate_stoch_proc_outcome( Rest, [A2|S], Outs_new,
+				     Sense, Outcomes, SenseEffect, Body_rest ),
 	conjunct( Body_args, Body_rest, Body).
 
 /* make simple statement a list */
 generate_stoch_proc_outcome( E, S, Outcomes, Sense, Body ) :-
 	E \= [_X|_Y], /* E is not a list */
-	generate_stoch_proc_outcome( [E], S, Outcomes, Sense, Body ).
+	generate_stoch_proc_outcome( [E], S, Outs, Sense, Outcomes, SenseEffect, Body ).
 	
 	
 
@@ -1402,8 +1403,8 @@ runall(N, M) :-
 autorun :-
 	argc(M),
  	(
-	  M > 3 ->
-	  runall(3, M),
+	  M > 4 ->
+	  runall(4, M),
 	  exit(0)
 	;
 	  writeln("******************************"),
