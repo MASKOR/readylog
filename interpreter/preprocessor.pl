@@ -935,7 +935,7 @@ generate_stoch_proc_outcome( [A|Rest], S, Outs, Sense, Outcomes, SenseEffect, Bo
 	conjunct( Body_args, Body_rest, Body).
 
 /* make simple statement a list */
-generate_stoch_proc_outcome( E, S, Outcomes, Sense, Body ) :-
+generate_stoch_proc_outcome( E, S, Outs, Sense, Outcomes, SenseEffect, Body ) :-
 	E \= [_X|_Y], /* E is not a list */
 	generate_stoch_proc_outcome( [E], S, Outs, Sense, Outcomes, SenseEffect, Body ).
 	
@@ -1385,7 +1385,7 @@ runall(N, M) :-
 	N < M, !,
 	printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",[]),
 	argv(N, FileName),
-	Level is N - 3,
+	Level is N - 4,
 	(
 	  N =:= M-1 ->
 	  /* notice when last file is processed: here some
