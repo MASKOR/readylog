@@ -38,7 +38,7 @@ SILENT = @
 ### COMMANDS ##############
 
 ECHO = echo
-ECLIPSE = eclipse
+ECLIPSE = eclipse-clp
 
 ### RULES #################
 
@@ -47,11 +47,11 @@ all: preprocess
 ##
 
 preprocess:
-	$(SILENT) $(ECLIPSE) -b $(PREPROCESSOR) $(PWD)/$(FILENAME)
+	$(SILENT) $(ECLIPSE) -b $(PREPROCESSOR) -- $(PWD)/$(FILENAME)
 
 xml2prolog:
 	$(SILENT) $(ECHO) " -- Parsing " $(CONFIGFILE) " to " $(PARAMFILE)
-	$(SILENT) $(ECLIPSE) -b $(XMLTOPROLOG) $(CONFIGFILE) $(PARAMFILE)
+	$(SILENT) $(ECLIPSE) -b $(XMLTOPROLOG) -- $(CONFIGFILE) $(PARAMFILE)
 	$(SILENT) sed 's%xmlns:xi("http://www.w3.org/2001/xinclude"), %%' <$(PARAMFILE) >$(PARAMFILE).tmp
 	$(SILENT) mv $(PARAMFILE).tmp $(PARAMFILE) 
 

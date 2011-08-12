@@ -68,8 +68,8 @@ t3 :- icp([ if(and([ pos = [X,Y],
 
 /* stefan's test stuff */
 %testf :- icp( and([ epf_sense_item = V ]) ).
-testf :- icp( testf ).
-stf :- vis, icp( findus ).
+%testf :- icp( testf ).
+%stf :- vis, icp( findus ).
 %stf :- vis, icp( search_item(X,Y) ).
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%
@@ -80,13 +80,13 @@ stf :- vis, icp( findus ).
 /** startup visualization 
  *  and draw initial stuff
  */
-vis :-  display,
-	getval(real_start_pos, [StartX, StartY]),
-	draw_start(StartX,StartY),
-	getval(real_goal_pos, [GoalX, GoalY]),
-	draw_goal(GoalX,GoalY),
-	getval(real_item_pos, [ItemX, ItemY]),
-	draw_item(ItemX,ItemY).
+% vis :-  display,
+% 	getval(real_start_pos, [StartX, StartY]),
+% 	draw_start(StartX,StartY),
+% 	getval(real_goal_pos, [GoalX, GoalY]),
+% 	draw_goal(GoalX,GoalY),
+% 	getval(real_item_pos, [ItemX, ItemY]),
+% 	draw_item(ItemX,ItemY).
 
 /* dt-planning on primitive actions 
  * with simple reward function */
