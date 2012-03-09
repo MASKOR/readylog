@@ -1087,8 +1087,10 @@ parameters) ! Note: since this is essentially the same as
 stoch_procs, we can use the same predicate
 (generate_stoch_proc_outcome) to generate the outcomes ! */
 generate_event_outcome( Event, ModelBody, Stream ) :-
-	generate_stoch_proc_outcome( ModelBody, S, [], [], NewBody ),
-	var(Outcomes), var(SenseEffect),
+%% STFIXME
+%	generate_stoch_proc_outcome( ModelBody, S, [], [], NewBody ),
+	generate_stoch_proc_outcome( ModelBody, S, [], [], Outcomes, SenseEffect, NewBody ),
+%	var(Outcomes), var(SenseEffect),
 	printf(Stream, "event_outcomes(%w, %w, %w, %w) :- %w, !.\n",
 	       [Event, S, Outcomes, SenseEffect, NewBody] ).
 
@@ -1402,6 +1404,7 @@ runall(N, M) :-
 
 autorun :-
 	argc(M),
+	printf(" argcount is %w.\n", [M]),
  	(
 	  M > 4 ->
 	  runall(4, M),
