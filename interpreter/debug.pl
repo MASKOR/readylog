@@ -50,7 +50,7 @@ bb_dbg(Level, String, Params) :-
 	bb_dbg(Level, normal, String, Params).
 
 
-/** gologtrace toggles the trace functionality to calls of trans
+/* gologtrace toggles the trace functionality to calls of trans
  * during program execution.
  */
 gologtrace :-
@@ -59,7 +59,7 @@ gologtrace :-
 	;
 	  setval( tracegolog, true), printf("Golog tracing turned ON\n", [])).
 
-/** doTrace takes a program and a history and displays the current trans trace of
+/* doTrace takes a program and a history and displays the current trans trace of
  *  the program via the printProg predicate (defined below).
  */
 doTrace(E,H) :-

@@ -30,7 +30,7 @@
 /* --------------------------------------------------------- */
 % {{{ Final
 
-/** axioms for final configuration. 
+/* axioms for final configuration. 
  * final(P, S) states that program P is finished in situation S.
  * (nothing left to do) 
  */
@@ -71,10 +71,10 @@ final(E,S) :- ipl_proc(E,E1), final(E1,S).
 /* --------------------------------------------------------- */
 % {{{ transPr
 
-/** the old ConGolog trans/4 is a transPr with probability 1 */
+/* the old ConGolog trans/4 is a transPr with probability 1 */
 trans(E,S,E1,S1) :- transPr(E,S,E1,S1,1).
 
-/** Sequence.
+/* Sequence.
  * in a final configuration a transition with the tail of the program
  * is executed, otherwhise a transition with the head is executed
  */
@@ -93,7 +93,7 @@ transPr([E|L],S,R,S1,P) :-
 	  R=[R1|L]
 	).
 
-/** prob; probabilistic execution of program e1 with prob p.
+/* prob; probabilistic execution of program e1 with prob p.
  * note: to distinguish both branches of the program the
  * dummy action tossHead, tossTail is introduced. 
  */
@@ -103,7 +103,7 @@ transPr(prob(P,_E1,E2),S1,E2,[tossTail|S1],Q) :-
 	Pnum is P,
 	Q is 1-Pnum.
 
-/** event-based execution.
+/* event-based execution.
  * online case: the time fluent start is evaluated and
  *   the tform cond is tested (holdsTForm defined in readylog.pl)
  * offline case: the least time point ltp is calculated.
@@ -118,7 +118,7 @@ transPr(waitFor(Cond),S,[],SS,1) :- !,
 	  ltp(Cond,T,S), SS=[setTime(T)|S]
 	).
 
-/** concurrency.
+/* concurrency.
  * the action which can be performed first ist executed.
  * if E1 can perform a transition which does not consume
  * time (simulataneous) we perform this ation.
@@ -154,13 +154,13 @@ transPr(pconc(E1,E2),S,pconc(EE1,EE2),SS,P) :-
 	  transPr(E2,S,EE2,SS,P), EE1=E1
 	).
 
-/** test.
+/* test.
  * if cond holds, we transition towards a final configuration (trans([]...)
  * (holds defined in readylog.pl)
  */
 transPr(?(Cond),S,[],S,1) :- holds(Cond,S), !. 
 
-/** conditional.
+/* conditional.
  * if the condition holds in S we transition towards E1
  * otherwise to E2.
  */
@@ -172,7 +172,7 @@ transPr(if(Cond,E1,E2),S,E,S1,P) :- !,
 	  transPr(E2,S,E,S1,P)
 	).
 
-/** loop.
+/* loop.
  * as long as the condition holds, we perform program E1.
  * the successor configuration is the program after executing
  * the first action in E with the loop appended
@@ -180,7 +180,7 @@ transPr(if(Cond,E1,E2),S,E,S1,P) :- !,
 transPr(while(Cond,E),S,[E1,while(Cond,E)],S1,P) :- !,
 	( holds(Cond,S) -> transPr(E,S,E1,S1,P) ).
 
-/** guarded execution.
+/* guarded execution.
  * as long as the condition F holds, we perform steps
  * in program E. The difference to while is, that
  * the body is performed only once.
@@ -193,7 +193,7 @@ transPr(withCtrl(F,E),S,EE,SS,P) :- !,
 /*  Interrupts                                               */
 /* --------------------------------------------------------- */
 
-/** interrupts.
+/* interrupts.
  * parallel condition-bounded execution
  */
 transPr( interrupt([], ENorm), S, EE, SS, P) :-
@@ -253,7 +253,7 @@ transPr( interrupt(Phi, EInt, ENorm), S, EE, SS, P) :-
 </deprecated> 
 */
 
-/** solve; decision theoretic optimizing.
+/* solve; decision theoretic optimizing.
  * start optimization of a program.
  * the program is handed to bestDoM
  * if the program Prog is optimized the calculated policy
@@ -472,7 +472,7 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 /*  nondeterminism                                           */
 /* --------------------------------------------------------- */
 
-/** non-deterministic choice.
+/* non-deterministic choice.
  * online simply choose randomly (always the first). 
  * Usually this construct should never be hit online. 
  */
@@ -481,7 +481,7 @@ transPr( nondet(L), S, EE, SS, 1) :- !,
 	member_index( EE, I_choice, L),
 	SS = [toss(I_choice)|S].
 
-/** pickBest: online simply choose randomly (always the first).
+/* pickBest: online simply choose randomly (always the first).
  * This construct should never be hit online. 
  */
 transPr( pickBest(F, R, E), S, E_choice, S_choice, 1) :- !,
@@ -516,7 +516,7 @@ transPr( [pickBestBindDomainVariables(E)|Rest], S, EE, SS, 1) :- !,
 /*  applyPolicy                                              */
 /* --------------------------------------------------------- */
 
-/** applyPolicy; case: marker.
+/* applyPolicy; case: marker.
  * if a marker was found as next statement in the policy
  * it's thruth value is evaluated again. If the truth
  * values at planning time are the same as at execution
@@ -551,7 +551,7 @@ transPr( applyPolicy([marker(Cond, TruthValue)|PolTail]), S, applyPolicy(PolR), 
 	  )
 	).	
 
-/** applyPolicy; case: conditional.
+/* applyPolicy; case: conditional.
  * if the condition Cond holds, we proceed with executing the policy
  * [Pol1, PolTail], otherwise we proceed with [Pol2, PolTail]. We need
  * this kind of combination not to leave applyPol transitions
@@ -566,7 +566,7 @@ transPr( applyPolicy([if(Cond, Pol1, Pol2) | PolTail]), S, ProgR, SNew, 1) :- !,
 	),
 	transPr( applyPolicy(PolNew), S, ProgR, SNew, 1).
 
-/** applyPolicy; case: normal program step.
+/* applyPolicy; case: normal program step.
  * we check for final of next action and perform transition to the rest of
  * the program, otherwise we simply make a transtion with PolHead.
  */
@@ -583,7 +583,7 @@ transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 	  ProgR = applyPolicy(PolR)
 	).
 
-/** comment in only for debugging purposes.
+/* comment in only for debugging purposes.
  */
 % transPr( applyPolicy(E), S, E, S, 1) :-
 % 	printf("applyPolicy: DEBUG: no case/trans for \t %w\n", [E]),
@@ -593,7 +593,7 @@ transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 /* --------------------------------------------------------- */
 /*  applyLearnedPolicy                                       */
 /* --------------------------------------------------------- */
-/** applyLearnedPolicy; case: marker.
+/* applyLearnedPolicy; case: marker.
  * if a marker was found as next statement in the policy
  * it's thruth value is evaluated again. If the truth
  * values at planning time are the same as at execution
@@ -668,7 +668,7 @@ transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
 	  )
 	).	
 
-/** applyLearnedPolicy; case: conditional.
+/* applyLearnedPolicy; case: conditional.
  * if the condition Cond holds, we proceed with executing the policy
  * [Pol1, PolTail], otherwise we proceed with [Pol2, PolTail]. We need
  * this kind of combination not to leave applyPol transitions
@@ -685,7 +685,7 @@ transPr( applyLearnedPolicy([if(Cond, Pol1, Pol2) | PolTail],
 	transPr( applyLearnedPolicy(PolNew,
                              solve(Prog, Horizon, RewardFunction), S_solve), S, ProgR, SNew, 1).
 
-/** applyLearnedPolicy; case: normal program step.
+/* applyLearnedPolicy; case: normal program step.
  * we check for final of next action and perform transition to the rest of
  * the program, otherwise we simply make a transtion with PolHead.
  */
@@ -759,7 +759,7 @@ transPr(whenever(Phi,E),S,EE,SS,P) :-
 
 
 
-/** primitive action.
+/* primitive action.
  * if E is a primitive action we look up if it is possible
  * either from preprocessed axioms or standard poss axioms.
  * case 1: If the current action E is a send action (to communicate
@@ -799,7 +799,7 @@ transPr( E, S, [], [E_sub|S], 1) :-
 	  )
 	).
 
-/** procedure calls: these include stochastic procedures. 
+/* procedure calls: these include stochastic procedures. 
  * Recall that stochastic procedures are defined as usual procs, 
  * but have only additionally a model defined 
  */
@@ -832,17 +832,17 @@ transPr( E, S, EE, SS, P) :-
 /* --------------------------------------------------------- */
 % {{{ AUXILIARY
 
-/** used for X in toss(X) */
+/* used for X in toss(X) */
 member_index( X, 0, [X|_L]).
 member_index( X, I, [_Y|L]) :- member_index(X, I2, L), I is I2+1.
 
-/** determine which situation has an earlier starting time */
+/* determine which situation has an earlier starting time */
 earliereq(H1,H2) :-
      has_val(start,T1,H1), has_val(start,T2,H2), !, T1 =< T2.
 earlier(H1,H2) :-
      has_val(start,T1,H1), has_val(start,T2,H2), !, T1 < T2.
 
-/** do H1 and H2 have the same starting time? */
+/* do H1 and H2 have the same starting time? */
 simultaneous(H1,H2) :-
      has_val(start,T,H1), !, has_val(start,T,H2).
 

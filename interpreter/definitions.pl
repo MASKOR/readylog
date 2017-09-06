@@ -30,7 +30,7 @@
 %% but we should be using dynamic anyway!
 %:- lib(ordset).
 % <DP was here>
-/** support for hashing (needed for IPLearning) */
+/* support for hashing (needed for IPLearning) */
 :- lib(hash). 
 % </DP was here>
 

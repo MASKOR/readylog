@@ -922,7 +922,7 @@ write_learning_instance( solve(Prog, Horizon, RewardFunction), Policy,
                 construct_data_file( S, HashKeyString, ContextString,
                                      FluentNames, DecisionString )
         ;
-                /** solve context has been encountered before. */
+                /* solve context has been encountered before. */
                 printf(stdout, "This solve context has been encountered ", []),
                 printf(stdout, "before.\n", []),
 

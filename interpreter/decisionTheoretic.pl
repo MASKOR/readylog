@@ -56,7 +56,7 @@
 :- set_flag(print_depth,500).
 
 
-/** DTDebug: debugging in DT-planning.
+/* DTDebug: debugging in DT-planning.
  * turn on for debug output while decision theoretic planning is in progress
  */
 :- setval(dtdebug, false).
@@ -71,7 +71,7 @@ toggle_dtdebug :- getval(dtdebug, X),
 	  printf("DTDebug turned ON\n", [])
 	).
 
-/** DTRewards: activate original dt-planning (reward in each state.
+/* DTRewards: activate original dt-planning (reward in each state.
  * if turned on, real decision theroetic planning
  * is done, that is, a reward is given in each visited state.
  * If turned off, it works more like a search with cut-off:
@@ -99,7 +99,7 @@ toggle_dtrewards :- getval(dtrewards, X),
 /* --------------------------------------------------------- */
 % {{{ bestDoM
 
-/** former bestDoM/6 is a bestDoM where events are still to be checked */
+/* former bestDoM/6 is a bestDoM where events are still to be checked */
 bestDoM(Program, S, H, Pol, V, Prob) :-
 	bestDoM(Program, S, H, Pol, V, Prob, checkEvents).
 
@@ -113,7 +113,7 @@ bestDoM(Program, S, H, Pol, V, Prob, Events, Tree) :-
 /* --- explicit event models --- */
 % {{{ explicit event models
 
-/** check if any explicit event is defined for this situation */
+/* check if any explicit event is defined for this situation */
 /* get list of all events defined for this situation */
 bestDoM( Program, S, H, Pol, V, Prob, checkEvents, Tree, RewardFunction) :-
 	H >= 0,
@@ -127,14 +127,14 @@ bestDoM( Program, S, H, Pol, V, Prob, checkEvents, Tree, RewardFunction) :-
 	  bestDoM( Program, S, H, Pol, V, Prob, ignoreEvents, Tree, RewardFunction)
 	).
 
-/** execute all possible events in order of definition [chaining] */
+/* execute all possible events in order of definition [chaining] */
 bestDoM_event( Program, [], S, H, Pol, V, Prob, Tree, RewardFunction) :-
 	/* end of chain: do next action */
 	/* these are the leaves of the events-tree */
 	bestDoM( Program, S, H, Pol, V, Prob, ignoreEvents, Tree, RewardFunction).
 
 bestDoM_event( Program, [Event| Rest], S, H, Pol, V, Prob, Tree, RewardFunction) :-
-	/** <state_abstraction> */
+	/* <state_abstraction> */
 %	(
 %	  use_caching ->
 %	  sit2state(S, State)
@@ -142,7 +142,7 @@ bestDoM_event( Program, [Event| Rest], S, H, Pol, V, Prob, Tree, RewardFunction)
 %	;
 %	  State = S
 %	),
-	/** </state_abstraction> */
+	/* </state_abstraction> */
 	
 	(
 	  /* check if event possible */
@@ -170,7 +170,7 @@ bestDoM_event( Program, [Event| Rest], S, H, Pol, V, Prob, Tree, RewardFunction)
 	    subf(RewardFunction, Reward, S),
 	    V is Reward - Costs + V_list
 	  ;
-	    /** give reward only at leaves */
+	    /* give reward only at leaves */
 	    V is V_list - Costs
 	  ),
 	  flatten( SenseEffect, SenseEffect_flat),
@@ -180,7 +180,7 @@ bestDoM_event( Program, [Event| Rest], S, H, Pol, V, Prob, Tree, RewardFunction)
 	  bestDoM_event( Program, Rest, S, H, Pol, V, Prob, Tree, RewardFunction)
 	).
 
-/** execute a certain event: create all outcomes,
+/* execute a certain event: create all outcomes,
 go on with remaining events [branching] */
 bestDoM_event_Aux( Program, RestEvents, [(Prog,Pr,SenseCond)], S,
 		     H, Pol, V, Prob, Tree, RewardFunction) :-
@@ -212,7 +212,7 @@ bestDoM_event_Aux( Program, RestEvents,
 		 event_outcome(Prog, Pr, SenseCond) | Tree_rest], Tree_tree].
 
 % }}}
-/** ----------------------------- */
+/* ----------------------------- */
 
 bestDoM([?(C)| E], S, H, Pol, V, Prob, ignoreEvents, Tree, RewardFunction) :-
 	H >= 0, 
@@ -271,7 +271,7 @@ bestDoM([nondet([E1 | E2]) | E],S,H,Pol,V,Prob, ignoreEvents, Tree, RewardFuncti
 
 % >>>>
 
-/** pickBest picks the 'best' value for F from the domain R and
+/* pickBest picks the 'best' value for F from the domain R and
 perform program E with that. R can be a list of atoms, integers,
 an interval of integers (e.g. [3..9]) or a mixture of both (e.g.
 [3,6,5.6,mayday,7..12,one,two]). It is treated as a set:
@@ -368,7 +368,7 @@ bestDoM([loop(E1) | E],S,H,Pol,V,Prob,Events,Tree, RewardFunction) :-
 /* ------------------------------------ */
 /*  waitFor                             */
 /* ------------------------------------ */
-/** waitfor(Cond) has to be possible (there is a least time point)
+/* waitfor(Cond) has to be possible (there is a least time point)
 and has to be executed online (or course) */
 bestDoM([waitFor(Cond) | E],S,H,Pol,V,Prob,ignoreEvents,Tree, RewardFunction) :-
 	H >= 0,
@@ -401,7 +401,7 @@ bestDoM([pi(X,E1) | E],S,H,Pol,V,Prob,ignoreEvents,Tree,RewardFunction) :-
 % {{{ >>>>>>>> bestDoM stoch_procs <<<<<<<<
 % >>>>
 
-/** stoch_procs are procedures with associated stochastic
+/* stoch_procs are procedures with associated stochastic
 outcomes which are completely independant from the
 procedures body. As such, it is an extension of the
 stochastic actions of DTGolog which remain as a special
@@ -433,7 +433,7 @@ bestDoM([A | E],S,H,Pol,V,Prob,ignoreEvents,Tree,RewardFunction) :-
 	      subf(RewardFunction, R, S),
 	      V is R - Costs + VF
 	    ;
-	      /** give reward only at leaves */
+	      /* give reward only at leaves */
 	      V is VF - Costs
 	    ),
 	    flatten( SenseEffect, SenseEffect_flat),
@@ -455,7 +455,7 @@ bestDoM([A | E],S,H,Pol,V,Prob,ignoreEvents,Tree,RewardFunction) :-
 	  Tree = [not_poss(A_sub), leaf(S, H, V, Prob)]
 	).
 
-/** shouldn't usually occur, but for nonterminating options */
+/* shouldn't usually occur, but for nonterminating options */
 bestDoM_stoch_Aux([],E,S,H,Pol,V,Prob, Tree,RewardFunction) :-
 	H >= 0, bestDoM(E,S,H,Pol,V,Prob,checkEvents, Tree,RewardFunction).
 %	H >= 0, read(X), Pol = [marker(true, false), Pol1], bestDoM(E,S,H,Pol1,V,Prob,checkEvents, Tree,RewardFunction).
@@ -512,7 +512,7 @@ bestDoM_stoch_Aux([(Prog,Pr,SenseCond)| OtherOutcomes],E,S,H,Pol,
 % }}}
 
 
-/** no (logical) constants allowed as formal parameters of procs:
+/* no (logical) constants allowed as formal parameters of procs:
 this saves us from having to evaluate possible fluents as actual
 parameters. These instead just get substituted for the variable
 formal parameters */
@@ -557,7 +557,7 @@ bestDoM([A | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
 	    subf(RewardFunction, R, S),
 	    V is R + VF
 	  ;
-	    /** give reward only at leaves */
+	    /* give reward only at leaves */
 	    V = VF
 	  ),
 	  Pol = [ A | RestPol ],
@@ -596,7 +596,7 @@ bestDoM([E|_E_rest],S,H,Pol,V,Prob,Events, Tree, RewardFunction) :-
 	flatten([E|_E_rest], E_flat),
 	bestDoM(E_flat,S,H,Pol,V,Prob,Events, Tree, RewardFunction).
 
-/** (must be last clause):
+/* (must be last clause):
 horizon is zero and nothing demands to be done: leaf. */
 bestDoM(_E,S,H,[],V,1.0,_Events, Tree, RewardFunction) :-
 	H =:= 0,
@@ -627,7 +627,7 @@ leaf_debug( V, S) :-
 	).
 
 
-/** predicates taken over from DTGolog */
+/* predicates taken over from DTGolog */
 
 lesseq(V1,Prob1,V2,Prob2) :-  Pr1 is float(Prob1), (Pr1 = 0.0) ,
          Pr2 is float(Prob2), 

@@ -411,7 +411,7 @@ expand_alpha_aux( Alpha, Consume, Omega_Prime, Horizon, Program,
 %  Computes horizon consumption for a program. That will be the *minimal*
 %  consumption for deterministic sub-programs, and the *horizon* for
 %  solve sub-programs.
-/** TODO: What about nondeterministic programs inside star? */
+/* TODO: What about nondeterministic programs inside star? */
 :- mode horizon_consumption(++, -).
 horizon_consumption([], Consume) :- !,
         Consume = 0.

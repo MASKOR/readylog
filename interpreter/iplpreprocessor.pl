@@ -2235,7 +2235,7 @@ iplpreprocess( File, _NewFile, _Last, _Level ) :-
 
 :- mode write_header(++).
 write_header(Stream) :-
-	printf(Stream, "/*******************************\n", []),
+	printf(Stream, "/******************************\n", []),
 	printf(Stream, "* file generated from ReadyLog *\n", []),
 	printf(Stream, "*******************************/\n", []),
 	printf(Stream, "\n", []),

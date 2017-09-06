@@ -26,7 +26,7 @@
 /*  PREPROCESSOR                                                      */
 /* ================================================================== */
 
-/** In this file we provide the functionality to preprocess parts
+/* In this file we provide the functionality to preprocess parts
  * of READYLOG program files, generating executable prolog code. The
  * intention behind this is to save time online where possible. Also
  * options and stochastic procedures and events are computed here.
@@ -42,12 +42,12 @@
 ---------------------------------------------------------- */
 % {{{ utilities
 
-/** needed to create fresh variable names (otherwise they clash in
+/* needed to create fresh variable names (otherwise they clash in
 concatenated bodies) */
 :- lib(var_name).
 local_var(L) :- set_var_name(L, "PreVar").
 
-/** conjunct two bodys:
+/* conjunct two bodys:
 intended for beautifying bodies, e.g.: (true, A) -> A */ 
 conjunct( true, B, B).
 conjunct( A, true, A).
@@ -55,7 +55,7 @@ conjunct( false, _B, false).
 conjunct( _A, false, false).
 conjunct( A, B, (A, B)).
 
-/** disjunct two bodys:
+/* disjunct two bodys:
 intended for beautifying bodies, e.g.: (true; A) -> true */ 
 disjunct( true, _B, true).
 disjunct( _A, true, true).
@@ -63,7 +63,7 @@ disjunct( false, B, B).
 disjunct( A, false, A).
 disjunct( A, B, (A; B)).
 
-/** generate implication but rule out yet evaluated cases
+/* generate implication but rule out yet evaluated cases
 if they are impossible (e.g. "false -> and([..])") */
 imply( false, _Body, false).
 imply( _Cond, true, true).
@@ -81,7 +81,7 @@ imply( Cond, Body, ((Cond) -> Body)).
 % {{{ conditions
 % >>>>
 
-/** process_condition( C, S, Body)
+/* process_condition( C, S, Body)
 (cf. holds(C, S) in readylog)
 states, that Body is the Prolog body which holds iff the
 condition C holds in situation S.
@@ -118,7 +118,7 @@ process_condition( some(V,P), S, New ) :-
 process_condition( exists(V,P), S, New) :-  /* synonm for some */
 	subv(V,_,P,P_sub), process_condition(P_sub, S, New).
 
-/** bind a variable to a finite domain:
+/* bind a variable to a finite domain:
 IMPORTANT: lib(fd) must be loaded in first place */
 process_condition( domain(Var, Domain), _S, Body) :-
 	(
@@ -180,7 +180,7 @@ process_condition( lif(Cond, Cond1, Cond2), S, New) :-
 		(Cond2_body)
 	      )).
 
-/** for debugging: we allow printing in conditions */
+/* for debugging: we allow printing in conditions */
 process_condition( writeln(Text), _S, writeln(Text)).
 process_condition( write(Text), _S, write(Text)).
 
@@ -219,7 +219,7 @@ process_condition( P, S, New) :-
 	  )
 	).
 
-/** usual prolog call (calling a predicate) */
+/* usual prolog call (calling a predicate) */
 /* #think: add some test like pred(P) here ? */
 process_condition( P, S, New) :-
 	process_subf( P, P_call, Body_args, _Type, S),
@@ -231,7 +231,7 @@ process_condition( P, S, New) :-
 % {{{ >>> process_condition_not <<<
 % >>>>
 
-/** the not cases: move negation inside (as holds_not/2 does) */
+/* the not cases: move negation inside (as holds_not/2 does) */
 process_condition_not( and(C1,C2), S, Body ) :-
 	process_condition( or(not(C1), not(C2)), S, Body).
 process_condition_not( and(C), S, CNew ) :-
@@ -295,7 +295,7 @@ process_condition_not( P, S, New) :-
 
 % >>>>
 
-/** corresponding to eval_comparison of icpGolog. Note: we take a
+/* corresponding to eval_comparison of icpGolog. Note: we take a
 shift from the semantics in icpGolog as we do never compare
 t_functions syntactically but only by their current value.
 Further we added some simple type-checking mechanism, mainly used
@@ -341,7 +341,7 @@ not_list( [A|B], [not(A)|B2]) :-  not_list(B,B2).
 % {{{ subf
 % >>>>
 
-/** process_subf(A, A_value, Body, Type, S)
+/* process_subf(A, A_value, Body, Type, S)
 (cf. subf(A, V, S) in readylog)
 states, that A has the value A_value in situation S after performing
 Body in prolog and having type Type (var, eval, number, fluent_value,
@@ -354,7 +354,7 @@ process_subf(A, A, true, var, _S) :- var(A), !.
 process_subf(A, A, true, eval, _S) :- number(A), !.
 process_subf(A, A, true, const, _S) :- const(A), !.
 
-/** order of these arithmetic rules are important, as they
+/* order of these arithmetic rules are important, as they
 implicitly define precedence of "*" and "/" before "+" and "-" */
 process_subf(A+B, C, Body, Type, S) :-
 	local_var([ValA,ValB]),
@@ -381,7 +381,7 @@ process_subf(A/B, C, Body, Type, S) :-
 	process_subf_aux( /, ValA, BodyA, TypeA, ValB, BodyB,
 			  TypeB, C, Body, Type). 
 
-/** explicit rule for lists: analogous rule is missing in icpGolog */
+/* explicit rule for lists: analogous rule is missing in icpGolog */
 process_subf([H|L], P_res, Body, list, S) :-
 	process_subf_list( [H|L], P_res, Body, S).
 
@@ -411,7 +411,7 @@ process_subf(P, P_res, Body, fluent_value, S)  :-
 		 )
 	).
 
-/** function call */
+/* function call */
 process_subf(P, P_res, Body, fluent_value, S )  :-
 	/* generate a dummy list of arguments before testing
 	if function: if some args are vars they would get
@@ -445,7 +445,7 @@ process_subf(P, P_res, Body_args, action, S) :-
 	process_subf_list(L, L_sub, Body_args, S),
 	P_res=..[set,Fluentname|L_sub].
 
-/** usual prolog call (calling a predicate) */
+/* usual prolog call (calling a predicate) */
 /* I don't believe this makes sense: predicates
 don't return anything!
 Of course it does: subf is not only used in comparisons:
@@ -470,7 +470,7 @@ process_subf(P, P_res, Body, Type, S) :-
 	  Type = predicate
 	).
 
-/** else: nothing to evaluate (constant, e.g. pm_playon) */
+/* else: nothing to evaluate (constant, e.g. pm_playon) */
 process_subf(P, P, true, predicate, _S).
 
 
@@ -531,7 +531,7 @@ metaType(var, meta_number).
 %metaType(var, meta_arithmetic).
 %metaType(arithmetic_expression, meta_arithmetic).
 
-/** -> better type concept? like e.g. fluent( Name, Type).. ?
+/* -> better type concept? like e.g. fluent( Name, Type).. ?
 already there: prim / cont (only cont can be t_functions)
 maybe add lists, but it's not essential if we can stay without
 componentwise comparison of lists
@@ -551,7 +551,7 @@ generate_dummy_list( N, [_|Rest]) :-
 % {{{ functions
 % >>>>
 
-/** process_function( F, V, Cond, Sream)
+/* process_function( F, V, Cond, Sream)
 preprocesses function F and writes the resulting prolog
 clause (prolog_function(F, Val, S)) to Stream.
 This is reather trivial, since we only have to preprocess
@@ -644,7 +644,7 @@ process_all_poss_aux([(Action, Cond)|List_rest], Stream) :-
 % {{{ generateSSAs
 % >>>>
 
-/** automatically generate successor state axioms (SSAs) from
+/* automatically generate successor state axioms (SSAs) from
 effect axioms (causes_val's). The intentions behind this is that
 SSAs in practice appear much faster, while on the other hand
 causes_val's are more intuitve to implement, are strictly within
@@ -729,7 +729,7 @@ generate_dummy_SSAs_aux_exog([Fluent|Rest], Stream) :-
 		(!, exog_fluent_getValue(Fluent, NewValue, Srest))] ),
 	generate_dummy_SSAs_aux_exog( Rest, Stream).
 
-/** add axiom for set(fluent, NewValue) */
+/* add axiom for set(fluent, NewValue) */
 generate_dummy_SSAs_aux_set([], _Stream).
 generate_dummy_SSAs_aux_set([Fluent|Rest], Stream) :-
 	printf(Stream, "ssa( %w, %w, [set(%w, %w)|_] ) :- !.\n",
@@ -827,7 +827,7 @@ generate_all_stoch_proc_costs_aux( [(ProcName, Value, Cond)|Rest],
 	generate_all_stoch_proc_costs_aux( Rest, Stream).
 
 
-/**
+/*
 generate_stoch_proc_outcome( simProc, S, Body) generates a prolog
 body for modeling the outcomes of program simProc. Use it with a
 prototype like: stoch_proc_outcomes( ProcName, S, Outcomes,
@@ -842,7 +842,7 @@ generate_stoch_proc_outcome( Proc, ModelBody, Stream ) :-
 	       "stoch_proc_outcomes(%w, %w, %w, %w) :- %w, !.\n",
 	       [Proc, S, Outcomes, SenseEffect, NewBody] ).
 
-/**
+/*
 generate_stoch_proc_outcome( simProc, S, OutcomesIn,
 SenseEffectIn, Body)
 
@@ -974,7 +974,7 @@ combineOutcomes( E, [Rest_head|Rest_rest], Outcomes) :-
 	combineOutcomes( E, Rest_rest, Outcomes_list_list ),
 	append( Outcomes_list, Outcomes_list_list, Outcomes).
 
-/** check that probabilities in an outcomes list sum to 1.0.
+/* check that probabilities in an outcomes list sum to 1.0.
 The probabilities can be set dynamically, using variables in
 the list. Then this check cannot be made yet and we have to
 assume the user knows what he is doing. */
@@ -1001,13 +1001,13 @@ checkProbabilities([(_Prog, Pr, _Sense)|L], X) :-
 % {{{ explicit events
 % >>>>
 
-/** explicit events are syntactically the same as stochastic
+/* explicit events are syntactically the same as stochastic
 procedures, but are called 'by nature' whenever possible
 (instead of being called by the user, as stoch_procs are).
 */
 
 
-/** only called once at deepest level to memorize the list of
+/* only called once at deepest level to memorize the list of
 events */
 generate_events_list( Stream) :-
 	findall( Event, event_model(Event, _Model), Events_s),
@@ -1079,7 +1079,7 @@ generate_all_event_costs_aux( [(EventName, Value, Cond)|Rest],
 	generate_all_event_costs_aux( Rest, Stream).
 
 
-/** generate_event_outcome( simProc, S, Body) generates a prolog
+/* generate_event_outcome( simProc, S, Body) generates a prolog
 body for modeling the outcomes of program simProc. Use it with a
 prototype like: event_outcomes( EventName, S, Outcomes,
 SenseEffect ) (with exactly these names for the last two
@@ -1104,7 +1104,7 @@ generate_event_outcome( Event, ModelBody, Stream ) :-
 % {{{ options
 % >>>>
 
-/** see fritzthesis03 and options.pl to understand this. */
+/* see fritzthesis03 and options.pl to understand this. */
 
 /* ----------------------------------------------------------
    prepare option
@@ -1168,7 +1168,7 @@ prepare_option_init( Option, Stream, StreamTmp) :-
 
 
 
-/** (9.10.03) for easy mapping by state variables */
+/* (9.10.03) for easy mapping by state variables */
 options_varlist2state( [Fluent], S, [(Fluent, FValue)],
 		       [set(Fluent, FValue)], Fluent=FValue, Body ) :-
 	process_subf( Fluent, FValue, Body, _Type, S).
@@ -1258,7 +1258,7 @@ process_option( Option, Epsilon, Stream ) :-
 	       "stoch_proc_outcomes( %w, %w, %w, %w ) :- %w.\n",
  	       [Option, S, Outcomes, SenseAction, Body_outcomes] ).
 	
-/** write down the costs (= -expected values/rewards) for each
+/* write down the costs (= -expected values/rewards) for each
 possible description (state) */
 process_option_costs(_Option, [], _Stream).
 process_option_costs(Option, [(D,R)|Values_s], Stream) :-
@@ -1266,7 +1266,7 @@ process_option_costs(Option, [(D,R)|Values_s], Stream) :-
 	printf(Stream, "opt_costs(%w, %w, %w).\n", [Option, D, C]),
 	process_option_costs(Option, Values_s, Stream).
 	
-/** write down the probability list for each
+/* write down the probability list for each
 possible description (state) */
 process_option_probs(_Option, [], _Stream).
 process_option_probs(Option, [(D,PL)|Probs_s], Stream) :-
@@ -1275,7 +1275,7 @@ process_option_probs(Option, [(D,PL)|Probs_s], Stream) :-
 	process_option_probs(Option, Probs_s, Stream).
 	
 
-/**         ----- process all options -----            */
+/*         ----- process all options -----            */
 
 process_all_options(Stream) :-
 	/* find options that were not yet processed */
@@ -1368,7 +1368,7 @@ preprocess( File, NewFile, Last, Level ) :-
 	printf("%w\n\n", [NewFile]), flush(output). 
 
 write_header(Stream) :-
-	printf(Stream, "/*******************************\n", []),
+	printf(Stream, "/******************************\n", []),
 	printf(Stream, "* file generated from ReadyLog *\n", []),
 	printf(Stream, "*******************************/\n", []),
 	printf(Stream, "\n", []),

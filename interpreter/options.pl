@@ -1,4 +1,4 @@
-/************************************************************
+/***********************************************************
     Options
 ************************************************************/
 
@@ -19,7 +19,7 @@
 .................................................................*/
 
 
-/** This file contains all predicates relevant for automatic
+/* This file contains all predicates relevant for automatic
 option creation via local MDPs. */
 
 :- write("  ----> Loading options.pl \t ...\n"). 
@@ -30,7 +30,7 @@ option creation via local MDPs. */
 % {{{ Automatic Option Creation
 % >>>>
 
-/**
+/*
   These predicates are used to solve a local MDP and to compute a
   model for its behavior. This will later be transformed by the
   preprocessor to obtain a new stochastic procedure.
@@ -39,7 +39,7 @@ option creation via local MDPs. */
 /* ----------------------------------------------------------
    The Iteration
 ---------------------------------------------------------- */
-/**
+/*
 Iterate until the value function at all states has converged */
 create_option(Name, Prog, L, Epsilon, H) :-
 	H2 is H + 1,
@@ -83,14 +83,14 @@ create_option_Aux( Name, Prog, [S|L], Epsilon, H, Converged) :-
 /* ----------------------------------------------------------
    bestDoMOpt
 ---------------------------------------------------------- */
-/** Look-up values if possible */
+/* Look-up values if possible */
 bestDoMOpt( Name, _Prog, _Events, S, H, R, PL, 0, _, PseudoV) :-
 	opt_state_tmp( Name, D, S),
 	opt_prob( Name, D, H, PL),
 	opt_exp_reward( Name, D, H, (R, PseudoV)).
 
 
-/** Exit state reached, assert values for all H */
+/* Exit state reached, assert values for all H */
 bestDoMOpt( Name, _Prog, _Events, S, _, R, PL, 0, _, PseudoReward) :-
 	not init_tmp(Name, S) ->
 	(
@@ -114,7 +114,7 @@ bestDoMOpt( Name, _Prog, _Events, S, _, R, PL, 0, _, PseudoReward) :-
 
 % >>>>
 
-/** check if any explicit event is defined for this situation */
+/* check if any explicit event is defined for this situation */
 /* get list of all events defined for this situation */
 bestDoMOpt(Name, Action, checkEvents, S, H, R, PL,
 	   Depth, Pol, PseudoV) :-   H > 0, 
@@ -191,7 +191,7 @@ bestDoMOpt_event_Aux(Name, Action, RestEvents,
 /* ----------------------------------------------------------
    If and nondet
 */
-/** ____ if ____ */
+/* ____ if ____ */
 bestDoMOpt( Name, if(C,E1,E2), ignoreEvents, S, H, R, PL, Depth,
 	    Pol, PseudoV ) :-
 	H >= 0,
@@ -204,7 +204,7 @@ bestDoMOpt( Name, if(C,E1,E2), ignoreEvents, S, H, R, PL, Depth,
 		      Pol, PseudoV)
 	).
 
-/** ____ nondet ____ */
+/* ____ nondet ____ */
 bestDoMOpt( Name, nondet(L), ignoreEvents, S, H, R, PL, Depth,
 	    Pol, PseudoV ) :-
 	H >= 0,
@@ -234,7 +234,7 @@ bestDoMOpt_nondet_Aux( Name, [E1|L_rest], S, H, R, PL, Depth, Pol,
 	).
 
 
-/** ____ primitive action ____ */
+/* ____ primitive action ____ */
 bestDoMOpt( Name, A, ignoreEvents, S, H, R, PL, Depth, Pol, PseudoV) :-
 	H > 0,
 	prim_action(A), !,
@@ -261,7 +261,7 @@ bestDoMOpt( Name, A, ignoreEvents, S, H, R, PL, Depth, Pol, PseudoV) :-
 	opt_update_Optionbase(Depth, Name, S, H, PL, R, PseudoV, Pol).
 
 
-/** ____ stochastic procedure ____ */
+/* ____ stochastic procedure ____ */
 bestDoMOpt(Name, A, ignoreEvents, S, H, R, PL, Depth, Pol, PseudoV) :-
 	H > 0, 
 	stoch_proc(A), !,
@@ -283,7 +283,7 @@ bestDoMOpt(Name, A, ignoreEvents, S, H, R, PL, Depth, Pol, PseudoV) :-
 	),
 	opt_update_Optionbase(Depth, Name, S, H, PL, R, PseudoV, Pol).
 	  
-/** this case usually does not happen: only in case the user
+/* this case usually does not happen: only in case the user
 really defined an empty list of outcomes */
 bestDoMOpt_stoch_Aux(Name, [], S, H, R, PL, PseudoV) :-
 	option(Name, OptionBody, _Gamma ),
@@ -318,7 +318,7 @@ bestDoMOpt_stoch_Aux(Name, [(Prog,Pr,_SenseCond) | OtherOutcomes],
 
 
 
-/** ____ horizon zero ____ 
+/* ____ horizon zero ____ 
 assert zeros and basic reward */
 /* should not be needed in current implementation */
 bestDoMOpt( Name, _, _Events, S, H, R, PL, Depth, _, PseudoV) :-
@@ -338,7 +338,7 @@ bestDoMOpt( Name, _, _Events, S, H, R, PL, Depth, _, PseudoV) :-
 % {{{ Automatic Model Creation
 % >>>>
 
-/** for each state we need a model of how the world will evolve
+/* for each state we need a model of how the world will evolve
 when taking/continuing the option in this state. A model consists
 of the probabilities for leaving the options state-sub-space by a
 certain exit-state and the assigned expected value. This is needed
@@ -348,7 +348,7 @@ for using the option in planning.
 /* ----------------------------------------------------------
    The Iteration
 ---------------------------------------------------------- */
-/**
+/*
 Iterate until the value function at all states has converged */
 create_model(Name, Lstates, Epsilon, H) :-
 	H2 is H + 1,
@@ -434,7 +434,7 @@ bestDoMModel_Aux( Name, [(D,Pr)|IPL_rest], H, EPL) :-
 
 /* -- Probability list (PL) auxiliary methods */
 
-/** multiply a PL by a scalar */
+/* multiply a PL by a scalar */
 %                PLin,        Scalar,   PLout
 opt_PL_multiply( [],          _,        [] ).
 opt_PL_multiply(  L,          1.0,       L ).
@@ -442,7 +442,7 @@ opt_PL_multiply( [(D,PA)|L],  S,        [(D,PNA)|NL] ) :-
 	PNA is PA*S, opt_PL_multiply( L, S, NL).
 
 
-/** add two PLs */
+/* add two PLs */
 %           Ain,    Bin,    Cout
 opt_PL_add( [],     [],     []).
 opt_PL_add( [A|AL], [],     [A|AL]).
@@ -462,14 +462,14 @@ opt_PL_add_simple( (D,PA), [(D,PB)|BL], [(D,PC)|BL]) :-
 opt_PL_add_simple( (DA,PA), [(DB,PB)|BL], [(DB,PB)| ZL]) :-
 	DA \= DB, opt_PL_add_simple( (DA,PA), BL, ZL).
 
-/** calculate the sum of all elements of a probability list */
+/* calculate the sum of all elements of a probability list */
 opt_PL_sum([], 0).
 opt_PL_sum([(_D,P)|L], X) :-
 	opt_PL_sum(L, Xrest), X is P + Xrest.
 
 
 
-/** retract all but the maximal horizon */
+/* retract all but the maximal horizon */
 opt_retract( _, [] ).
 opt_retract( Name, [D|L] ) :-
 	opt_retract_Aux(Name, D),
@@ -516,17 +516,17 @@ opt_retract_model( Name, [D|L] ) :-
 	opt_retract_model( Name, L).
 
 
-/** provide opt_prob to call with S-term */
+/* provide opt_prob to call with S-term */
 opt_prob( Name, PL, S) :-
 	opt_state_tmp( Name, D, S),
 	opt_prob_max( Name, D, PL).
 
-/** provide opt_exp_reward to call with S-term */
+/* provide opt_exp_reward to call with S-term */
 opt_exp_reward( Name, R, S) :-
 	opt_state_tmp( Name, D, S),
 	opt_exp_reward_max( Name, D, R).
 
-/** provide opt_pol to call with S-term */
+/* provide opt_pol to call with S-term */
 opt_pol( Name, Pol, S) :-
 	opt_state_tmp( Name, D, S),
 	opt_pol_max( Name, D, Pol).
@@ -572,7 +572,7 @@ opt_update_Optionbase(Depth, _Name, _S, _H, _PL, _R, _PseudoV, _Pol) :-
 	Depth > 0, !.
 
 
-/** (7.9.03) probability list to outcomes: */
+/* (7.9.03) probability list to outcomes: */
 /* (needed at projection-time) */
 opt_PL_to_Outcomes( _O, [], _S, [] ).
 opt_PL_to_Outcomes( Option, [(D,P)|PL], S, [Out|Outcomes] ) :-

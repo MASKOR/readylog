@@ -21,19 +21,19 @@
  *
  * **************************************************************************/
 
-/** debug flag.
+/* debug flag.
  *  trace calls to Trans.
  *  used in the predicates gologtrace and doTrace (defined below).
  */
 :- setval( tracegolog, false ).
 
-/** progession of database.
+/* progession of database.
  *  this flag enables/disables progression of the database
  *  it means that after each action the database will be progressed
  */
 progression_enabled :- false. %true
 
-/** progression of the database.
+/* progression of the database.
  *  the database is progressed after n actions and regressed before
  *  aftter prgrat action in the action history progression is applied
  *  it turnes out that for the soccer specification a number of 10 is
@@ -43,7 +43,7 @@ progression_enabled :- false. %true
 pe :- true.
 :- setval(prgrat, 10).
 %  <DP was here>
-/** saving the epf-values to be able to regress prim_fluents that
+/* saving the epf-values to be able to regress prim_fluents that
  *  depend on epfs. (Turn off, if you use parameterised epfs!)
  */
 :- setval(save_epf_values, true).
@@ -65,34 +65,34 @@ simple_projection :- true.
 /* Testausgabe bei der Projektion ? */
 projection_debug :- fail.
 
-/** Delta ist die kleinste Einheit, in der ein kontinuierlicher
+/* Delta ist die kleinste Einheit, in der ein kontinuierlicher
  *  Fluent gemessen wird.
  */
 delta(0.000001).
 
 
-/** use qualitative predicates for planning.
+/* use qualitative predicates for planning.
  *  if set all fluent and functions values are abstracted by the
  *  qualitative world model. 
  */
 :- setval(use_qq, false).
 
 
-/** use state abtraction based on qualitative world model.
+/* use state abtraction based on qualitative world model.
  */
 use_state_abstraction :- true.
 
-/** use caching of previously computed plans.
+/* use caching of previously computed plans.
  */
 use_caching :- true.
 
 
-/** print exogenous action queue.
+/* print exogenous action queue.
  */
 :- setval(debug_exoq, true).
 
 % <DP was here>
-/** IPLearn: Inductive policy learning for DT-planning.
+/* IPLearn: Inductive policy learning for DT-planning.
  * turn on for activating the IPLearning component
  */
 :- setval(iplearn, false).
@@ -107,13 +107,13 @@ toggle_iplearn :- getval(iplearn, X),
           printf("IPLearn turned ON\n", [])
        ).
 
-/** Use multivariate IPLearning with custom
+/* Use multivariate IPLearning with custom
  *  multivariate attributes?
  */
 :- setval(multivariate, false).
 multivariate :- getval(multivariate, X), X=true.
 
-/** Adaptive IPL: If turned on, adaptive IPL
+/* Adaptive IPL: If turned on, adaptive IPL
  *  automatically decides for each solve context,
  *  when the decision tree is accurate enough
  *  and then triggers the  consultation phase

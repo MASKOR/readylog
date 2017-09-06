@@ -31,62 +31,62 @@
 /*  INCLUDES                                                          */
 /* ================================================================== */
 
-/** load debugging utils.
+/* load debugging utils.
  *
  */
 :- ensure_loaded('debug.pl').
 
-/** load definition file.
+/* load definition file.
  * it loads the required libs and defines numerous dynamic predicates
  * needed for readylog
  */
 :- ensure_loaded('definitions.pl').
 
-/** load the configuration file.
+/* load the configuration file.
  * several flags and predicates are defined,
  * features can be switched on/off (t)here.
  */
 :- ensure_loaded('config.pl').
 
-/** load the language interpreter.
+/* load the language interpreter.
  * the semantics definitions for Readylog by final and trans.
  */
 :- ensure_loaded('final_trans.pl').
 
-/** load state abstraction methods.
+/* load state abstraction methods.
  * not used right now.
  */
 %:- ensure_loaded('stateabstraction.pl').
 
-/** load decision-theoretic extension.
+/* load decision-theoretic extension.
  * the semantics definitions for dt-programs by bestDoM
  */
 :- ensure_loaded('decisionTheoretic').
 
-/** load inductive policy learning extension.
+/* load inductive policy learning extension.
  *  feature can be turned on/off by toggle_iplearn flag
  */
 :- ensure_loaded('iplearner.pl').
 
-/** load options extension.
+/* load options extension.
  *  this is currently not in use 
  *  because it needs full enumeration of the state space
  */
 :- ensure_loaded('options').
 
-/** load utilities.
+/* load utilities.
  *  utils.pl offers readylog shell functionality 
  *  with auto completion and history
  */
 :- ensure_loaded('../../utils/utils.pl').
 
-/** load icp_shell.
+/* load icp_shell.
  *  icp_shell offers shell functionality 
  *  with auto completion and history
  */
 %:- ensure_loaded("../../utils/icp_shell/icp_shell.pl").
 
-/** some local variables.
+/* some local variables.
  * min is needed to calculate the least time point of continuous fluents
  * zaehler is needed for caching probabilistic traces
  * fd_var is an integer number needed for progressing the database
@@ -99,12 +99,12 @@
 /* ================================================================== */
 /*  PROGRAM EXECUTION                                                 */
 /* ================================================================== */
-/** calling of programs.
+/* calling of programs.
  *   calling of programs is done with icp(E).
  */
 icp(E) :- icpgolog(E), !.
 
-/** initializing knowledge base
+/* initializing knowledge base
  *  and starting program execution by icpgo(E) 
  */
 icpgolog(E) :- 
@@ -257,7 +257,7 @@ incZaehler(H) :- length(H,L), L1 is L-1, getval(zaehler,Zaehler),
 
 
 /* ================================================================== */
-/** (0)- exogf_Update is last (executed) action.
+/* (0)- exogf_Update is last (executed) action.
  * if we want to have a fluent's value from before an exogf_Update
  * we gotta save it's value ... 
  */ 
@@ -288,7 +288,7 @@ process_epf_aux( ExogPrimFList, H, H3 ) :-
 /*   INIT                                                             */
 /* ================================================================== */
 
-/** initialize.
+/* initialize.
  * Initialisierung der Praedikate
  */
 
@@ -741,7 +741,7 @@ poss(setTime(_),true).
 poss(clipAbstraction, true).
 poss(setAbstraction, true).
 
-/** set/2 is a general set action for all fluents (cf) */
+/* set/2 is a general set action for all fluents (cf) */
 prim_action(set(_Fluent,_Value)).
 causes_val(set(Fluent, Value), Fluent, Value, true).
 poss(set(_Fluent,_Value), true).
@@ -753,7 +753,7 @@ prim_action(exogf_Update).
 poss(exogf_Update, true).
 exog_action(exogf_Update).
 
-/** to indicate that exogenous functions should not
+/* to indicate that exogenous functions should not
 be evaluated by now */
 prim_fluent(eval_exog_functions).
 initial_val(eval_exog_functions, true).
@@ -1072,7 +1072,7 @@ holds(is_possible(A), S) :- !,
 	  holds(Cond, S)
 	).
 
-/** (cf) adding new logical construct:
+/* (cf) adding new logical construct:
 lif(Cond, Cond1, Cond2)
 equivalent to or(and(Cond, Cond1), and(not(Cond), Cond2)) */
 holds(lif(Cond, Cond1, Cond2), S) :-
@@ -1285,7 +1285,7 @@ subf(P1,P2,H)  :- fluent(P1), !,
 		    
 % 		    /* if not a register */
 % 				%		    has_val(P3,P2,H),
-% 		    /**<state_abstraction> */		    
+% 		    /*<state_abstraction> */		    
 % 		    bb_dbg(5, green, "Before Fluent QQ \n\n", []),
 % 		    printf("P1: %w, P2: %w, H: %w\n", [P1, P2, H]),
 % 		    read(Y),
@@ -1317,15 +1317,15 @@ subf(P1,P2,H)  :- fluent(P1), !,
 % 		      ),
 % 		    bb_dbg(5, red, "Calling hasval" ,[]),
 % 		    has_val(P4, P2, H)
-% 		    /**</state_abstraction> */
+% 		    /*</state_abstraction> */
 		    has_val(P3, P2, H)
 		    ).
 
-/** cf: here comes restriction for only simple args (nothing like
+/* cf: here comes restriction for only simple args (nothing like
 [X,Y]) */
 subf(P,P2,H)  :-
 	function(P,_,_),!,	
- 	/**<state_abstraction> */
+ 	/*<state_abstraction> */
  	(
  	  %printColor(green, "Before QQ \n", []),
  	  use_state_abstraction, holds(not(online), H) ->
@@ -1344,7 +1344,7 @@ subf(P,P2,H)  :-
  	  )
  	;
 	  P1 = P
-	  ), /**</state_abstraction> */
+	  ), /*</state_abstraction> */
  	  bb_dbg(5, green, "After QQ\n\n", []),	
 	/* evaluating parameters */
 	P1=..[F|L1],
@@ -1370,7 +1370,7 @@ subf(P,P2,H)  :-
 	  )
 	).
 
-/** (26.5.04) for exogenous functions: evaluated externally (kl
+/* (26.5.04) for exogenous functions: evaluated externally (kl
 in our case) */
 subf( F, F_eval, S) :-
 	exog_function( F ), !,
@@ -1396,7 +1396,7 @@ subf(P,P_res,H) :-
 	subfl(L,L_sub,H),
 	P_res =.. [set, Fluentname|L_sub].
 
-/** cf: this is analogous to preprocessor: e.g. allow X=sqrt(4.0) */
+/* cf: this is analogous to preprocessor: e.g. allow X=sqrt(4.0) */
 subf(P1,P_res,H)  :-
 	P1=..[F|L1],
 	subfl(L1,L2,H),
@@ -1470,7 +1470,7 @@ isNumber(pi).
    der Historie H
 ---------------------------------------------------------- */
 
-/** fluent is a so-called exogenous fluent and an 'update
+/* fluent is a so-called exogenous fluent and an 'update
 exogenous fluents action' had happened: look up the value in the
 database for (direct access) exogenous fluent */
 %% STF: commented the following, since the preprocessor already generates
@@ -1481,7 +1481,7 @@ database for (direct access) exogenous fluent */
 %	%printColor( cyan, " has_val [ exogf_Update ] for %w with val %w \n%b", [F, V]).
 
 %  <DP was here>
-/** If IPLearning is active, and there are parameterised exogenous
+/* If IPLearning is active, and there are parameterised exogenous
  *  primitive fluents in the world model, we need to keep book
  *  of all the instantiated has_val calls to those fluents. If the
  *  program has allowed these calls in the past, we know that it is
@@ -1514,7 +1514,7 @@ has_val(F,_V,_S) :- iplearn, param_exog_prim_fluents,
         false.
 %  </DP was here>
 
-/** situation term of length one: look up the fluent value in the
+/* situation term of length one: look up the fluent value in the
 knowledge base created by progression or if the situation is [s0]
 use the initial value (if defined) */
 has_val(F,V,[S]) :- current_val(F,V,S), !.  
@@ -1558,7 +1558,7 @@ sets_val(exogf_Update, F, V, S) :- !,
 	exog_fluent(F),
 	exog_fluent_getValue(F, V, S).
 
-/** general set(fluent, NewValue) action (cf) */
+/* general set(fluent, NewValue) action (cf) */
 set_val(set(Fluent, NewValue), Fluent, NewValue, _) :- !.
 
 /* usual action setting the value */
