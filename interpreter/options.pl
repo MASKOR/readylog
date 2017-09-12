@@ -399,7 +399,7 @@ bestDoMModel( Name, State, Istates, H, EPL) :-
 	bestDoMModel_Aux( Name, IPL_local, H_last, EPL_last),
 	opt_PL_add( EPL_last, EPL_local, EPL),
 	H_last_last is H-2,
-	retract_all( opt_exit_prob( Name, State, H_last_last, _) ),
+	retractall( opt_exit_prob( Name, State, H_last_last, _) ),
 	assert( opt_exit_prob( Name, State, H, EPL) ).
 
 extract_exit_states( [], _, [], []).
@@ -483,13 +483,13 @@ opt_retract_Aux( Name, D ) :-
 opt_retract_Aux_prob(Name, D):-
 	opt_prob( Name, D, H1, Prob), H2 is H1+1,
 	not opt_prob( Name, D, H2, _),
-	retract_all( opt_prob(Name, D, _, _) ),
+	retractall( opt_prob(Name, D, _, _) ),
 	assert( opt_prob_max( Name, D, Prob) ).	
 
 opt_retract_Aux_exp_reward(Name, D):-
 	opt_exp_reward( Name, D, H1, (ER,_)), H2 is H1+1,
 	not opt_exp_reward( Name, D, H2, _),
-	retract_all( opt_exp_reward(Name, D, _, _) ),
+	retractall( opt_exp_reward(Name, D, _, _) ),
 	assert( opt_exp_reward_max( Name, D, ER) ).	
 
 opt_retract_Aux_pol(Name, D):-
@@ -497,7 +497,7 @@ opt_retract_Aux_pol(Name, D):-
 	  opt_pol( Name, D, H1, P),
 	  H2 is H1+1,
 	  not opt_pol( Name, D, H2, _), !,
-	  retract_all( opt_pol(Name, D, _, _) ),
+	  retractall( opt_pol(Name, D, _, _) ),
 	  assert( opt_pol_max( Name, D, P) )
 	;
 	  /* if no policy exists for this state, it must be
@@ -511,7 +511,7 @@ opt_retract_model( _, [] ).
 opt_retract_model( Name, [D|L] ) :-
 	opt_exit_prob( Name, D, H1, Prob), H2 is H1+1,
 	not opt_exit_prob( Name, D, H2, _),
-	retract_all( opt_exit_prob(Name, D, _, _) ),
+	retractall( opt_exit_prob(Name, D, _, _) ),
 	assert( opt_exit_prob_max( Name, D, Prob) ),
 	opt_retract_model( Name, L).
 
@@ -562,11 +562,11 @@ opt_update_Optionbase(Depth, Name, S, H, PL, R, PseudoV, Pol) :-
 	Depth =:= 0, !,
 	opt_state_tmp( Name, D, S),
 	H_last_last is H-2,
-	retract_all( opt_prob( Name, D, H_last_last, _) ),
+	retractall( opt_prob( Name, D, H_last_last, _) ),
 	assert( opt_prob( Name, D, H, PL) ),
-	retract_all( opt_exp_reward( Name, D, H_last_last, _) ),
+	retractall( opt_exp_reward( Name, D, H_last_last, _) ),
 	assert( opt_exp_reward( Name, D, H, (R, PseudoV)) ),
-	retract_all( opt_pol( Name, D, H_last_last, _) ),
+	retractall( opt_pol( Name, D, H_last_last, _) ),
 	assert( opt_pol( Name, D, H, Pol)).	
 opt_update_Optionbase(Depth, _Name, _S, _H, _PL, _R, _PseudoV, _Pol) :-
 	Depth > 0, !.

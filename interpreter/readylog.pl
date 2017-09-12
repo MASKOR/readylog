@@ -296,7 +296,7 @@ process_epf_aux( ExogPrimFList, H, H3 ) :-
 % durch Standardimplementierungen ersetzt werden
 initialize :- 
   % Cache loeschen
-  retract_all(cache(_,_)),
+  retractall(cache(_,_)),
 
   % Zaehler auf 0 setzen
   setval(zaehler,0), !,
@@ -325,13 +325,13 @@ initialize :-
 
   % In current_val wird der aktuellen Zustand der Fluenten
   % gespeichert.
-  retract_all(current_val(_,_,_)), !, 
+  retractall(current_val(_,_,_)), !, 
 
   % alle Werte von initial_val zu current_val uebertragen.
   (initial_val(F,V,H), assert(current_val(F,V,H)), fail ; true),
 
   % clean up exoQueue
-  retract_all(exoQueue(_)), !,
+  retractall(exoQueue(_)), !,
 
   % if user provided an own init predicate, call it:
   (user_init ; true).
@@ -425,14 +425,14 @@ update_action1(Act,H, NEFU) :-
 
 % Wissensbasis (current_val) in temp_val sichern.
 current_to_temp :-  
-	retract_all(temp_val(_,_,_)), !,  
+	retractall(temp_val(_,_,_)), !,  
 	(clause(current_val(F,V,H):-B),
 	    assert(temp_val(F,V,H):-B), fail ; true), !,
-	retract_all(temp_val(pll(_,_,_),_,_)).
+	retractall(temp_val(pll(_,_,_),_,_)).
 
 % Wissensbasis (current_val) von temp_val wiederherstellen.
 temp_to_current :-  
-	retract_all(current_val(_,_,_)), !,  
+	retractall(current_val(_,_,_)), !,  
 	(clause(temp_val(F,V,H):-B),
 	    assert(current_val(F,V,H):-B), fail ; true).
 
@@ -773,7 +773,7 @@ cache(Praed) :-
 	getval(zaehler,Zaehler),
 	(clause(cache(Zaehler1,_),_) -> true ; Zaehler1=Zaehler), !,
         % Cache ist alt => Cache loeschen
-        (Zaehler1 < Zaehler -> retract_all(cache(_,_)) ; true),  
+        (Zaehler1 < Zaehler -> retractall(cache(_,_)) ; true),  
 	(cache(Zaehler,Praed) -> true ;
 				% Ergebnis bereits im Cache ?
 	    Praed,              % sonst: neu berechnen:
@@ -935,27 +935,27 @@ transPrStar2(E,H,EE,HH,Zaehler,Phi,Holds_Phi,P) :-
 
 % Sichern der Wissensbasis an Position Z
 save_current_val(Z) :-  
-     retract_all(temp_val(Z,_,_,_)), !,
+     retractall(temp_val(Z,_,_,_)), !,
      (clause(current_val(F,V,H):-B),
 	 assert(temp_val(Z,F,V,H):-B), fail ; true), !,
-     retract_all(temp_val(Z,pll(_,_,_),_,_)).        
+     retractall(temp_val(Z,pll(_,_,_),_,_)).        
 
 % Wiederherstellen der Wissensbasis von Position Z
 load_current_val(Z) :-  
-     retract_all(current_val(_,_,_)), !,
+     retractall(current_val(_,_,_)), !,
      (clause(temp_val(Z,F,V,H):-B),
 	 assert(current_val(F,V,H):-B), fail ; true), !,
-     retract_all(temp_val(Z,_,_,_)).                        
+     retractall(temp_val(Z,_,_,_)).                        
 
 % Sichern der Wissensbasis
 save_current_val :-  
-     retract_all(temp_val(0,_,_,_)), !,
+     retractall(temp_val(0,_,_,_)), !,
      (clause(current_val(F,V,H):-B),
 	 assert(temp_val(0,F,V,H):-B), fail ; true).
 
 % Wiederherstellen der Wissensbasis
 load_current_val :-  
-     retract_all(current_val(_,_,_)), !,
+     retractall(current_val(_,_,_)), !,
      (clause(temp_val(0,F,V,H):-B),
 	 assert(current_val(F,V,H):-B), fail ; true).
 
