@@ -1561,7 +1561,7 @@ sets_val(exogf_Update, F, V, S) :- !,
 	exog_fluent_getValue(F, V, S).
 
 /* general set(fluent, NewValue) action (cf) */
-set_val(set(Fluent, NewValue), Fluent, NewValue, _) :- !.
+sets_val(set(Fluent, NewValue), Fluent, NewValue, _) :- !.
 
 /* usual action setting the value */
 sets_val(Act,F,V,H) :-                        
