@@ -65,6 +65,7 @@
 	function/3, prolog_function/1, prolog_function/3,
 	exog_function/1, exog_function_getValue/2,
 	t_function/1, t_function/3, register/1, cache/2,
+	exoQueue/1,
 	/* --  options: user provided            */
 	option/3,          /* option-skeleton */
 	option_init/3,     /* initiation condition */
@@ -92,12 +93,9 @@
 	prolog_event_costs/3,
 	/* --  prolog_poss: created by preprocessor   */
 	prolog_poss/2,
-	/* --  decisionTheoretic predicates */
-        bestDoM/9,
-        bestDoMOpt/10,
 	/* --  other */
-        causes_val/3,
-        sets_val/4.
+        causes_val/3
+.
 
 
 

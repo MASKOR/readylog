@@ -24,6 +24,10 @@ option creation via local MDPs. */
 
 :- write("  ----> Loading options.pl \t ...\n").
 
+:- discontiguous([
+	bestDoMOpt/10
+]).
+
 /* ==========================================================
    Automatic Option Creation
 ========================================================== */

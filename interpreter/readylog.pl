@@ -95,6 +95,8 @@
 :- local variable(zaehler).
 :- local variable(fd_var).
 
+:- discontiguous(sets_val/4).
+
 
 /* ================================================================== */
 /*  PROGRAM EXECUTION                                                 */
