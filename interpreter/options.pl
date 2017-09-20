@@ -22,7 +22,7 @@
 /* This file contains all predicates relevant for automatic
 option creation via local MDPs. */
 
-:- write("  ----> Loading options.pl \t ...\n"). 
+:- write("  ----> Loading options.pl \t ...\n").
 
 /* ==========================================================
    Automatic Option Creation

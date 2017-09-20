@@ -1,12 +1,12 @@
 /* ***************************************************************************
- *                                            ####   ####           .-""-.    
- *       # #                             #   #    # #    #         /[] _ _\   
- *       # #                                 #    # #             _|_o_LII|_  
- * ,###, # #  ### ## ## ##   ###  ## ##  #   #    # #       ###  / | ==== | \ 
- * #   # # # #   # ## ## #  #   #  ## #  #   ###### #      #     |_| ==== |_| 
- * #   # # # ####  #  #  #  #   #  #  #  #   #    # #      ####   ||" ||  ||  
- * #   # # # #     #  #  #  #   #  #  #  #   #    # #    #    #   ||'----'||  
- * '###'# # # #### #  #  ##  ### # #  ## ## #      # ####  ###   /__|    |__\ 
+ *                                            ####   ####           .-""-.
+ *       # #                             #   #    # #    #         /[] _ _\
+ *       # #                                 #    # #             _|_o_LII|_
+ * ,###, # #  ### ## ## ##   ###  ## ##  #   #    # #       ###  / | ==== | \
+ * #   # # # #   # ## ## #  #   #  ## #  #   ###### #      #     |_| ==== |_|
+ * #   # # # ####  #  #  #  #   #  #  #  #   #    # #      ####   ||" ||  ||
+ * #   # # # #     #  #  #  #   #  #  #  #   #    # #    #    #   ||'----'||
+ * '###'# # # #### #  #  ##  ### # #  ## ## #      # ####  ###   /__|    |__\
  * ***************************************************************************
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  *
  *           $Id$
  *       @author: Christian Fritz <Christian.Fritz@rwth-aachen.de>
- *   description: TRANS and FINAL of Readylog Interpreter 
+ *   description: TRANS and FINAL of Readylog Interpreter
  * last modified: $Date$
  *            by: $Author$
  *
@@ -30,16 +30,16 @@
 /* --------------------------------------------------------- */
 % {{{ Final
 
-/* axioms for final configuration. 
+/* axioms for final configuration.
  * final(P, S) states that program P is finished in situation S.
- * (nothing left to do) 
+ * (nothing left to do)
  */
-final([],_). 
-final(pconc(E1,E2),S) :-   final(E1,S), !; final(E2,S).  
-final([E|L],S) :- 	   final(E,S), final(L,S). 
+final([],_).
+final(pconc(E1,E2),S) :-   final(E1,S), !; final(E2,S).
+final([E|L],S) :-	   final(E,S), final(L,S).
 final(if(Cond,E1,E2),S) :-
 	holds(Cond,S) -> final(E1,S) ; final(E2,S).
-final(while(Cond,E),S) :-  not holds(Cond,S),! ; final(E,S). 
+final(while(Cond,E),S) :-  not holds(Cond,S),! ; final(E,S).
 final(withCtrl(_F,E),S) :- final(E,S).
 final(applyPolicy(P), S) :-
 	final(P,S),
@@ -53,13 +53,13 @@ final(applyLearnedPolicy(P, _Solve, _S_solve), S) :-
 /* -- Macros -- */
 final(tryAll(E1,E2),S) :-   final(pconc(E1,E2),S).
 final(withPol(_E1,E2),S) :-  final(E2,S).
-final(loop(E),S) :- 	    final(E,S).
-final(if(Cond,E),S) :- 	    final(if(Cond,E,[]),S).
+final(loop(E),S) :-	    final(E,S).
+final(if(Cond,E),S) :-	    final(if(Cond,E,[]),S).
 final(interrupt(E1, E2), S) :- final(E1, S); final(E2, S).
 final(interrupt(E1, E2, E3), S) :- final(E1, S); final(E2, S); final(E3, S).
 /* ------------ */
 
-final(E,S) :- proc(E,E1), final(E1,S). 
+final(E,S) :- proc(E,E1), final(E1,S).
 % <DP was here>
 final(E,S) :- ipl_proc(E,E1), final(E1,S).
 % </DP was here>
@@ -78,9 +78,9 @@ trans(E,S,E1,S1) :- transPr(E,S,E1,S1,1).
  * in a final configuration a transition with the tail of the program
  * is executed, otherwhise a transition with the head is executed
  */
-transPr([E|L],S,R,S1,P) :- 
+transPr([E|L],S,R,S1,P) :-
 	(
-	  final(E,S) -> 
+	  final(E,S) ->
 	  (
 	    length(L,1) ->
 	    L=[E1],
@@ -95,11 +95,11 @@ transPr([E|L],S,R,S1,P) :-
 
 /* prob; probabilistic execution of program e1 with prob p.
  * note: to distinguish both branches of the program the
- * dummy action tossHead, tossTail is introduced. 
+ * dummy action tossHead, tossTail is introduced.
  */
 transPr(prob(P,E1,_E2),S1,E1,[tossHead|S1],Q) :-
 	Q is P.
-transPr(prob(P,_E1,E2),S1,E2,[tossTail|S1],Q) :- 
+transPr(prob(P,_E1,E2),S1,E2,[tossTail|S1],Q) :-
 	Pnum is P,
 	Q is 1-Pnum.
 
@@ -127,7 +127,7 @@ transPr(waitFor(Cond),S,[],SS,1) :- !,
  * (simultaneous defined in final_trans.pl)
  * (earliereq defined in final_trans.pl)
  */
-transPr(pconc(E1,E2),S,pconc(EE1,EE2),SS,P) :- 
+transPr(pconc(E1,E2),S,pconc(EE1,EE2),SS,P) :-
 	not final(E1,S), not final(E2,S), !,
 	(
 	  /* case 1: E1 can perform a step */
@@ -158,7 +158,7 @@ transPr(pconc(E1,E2),S,pconc(EE1,EE2),SS,P) :-
  * if cond holds, we transition towards a final configuration (trans([]...)
  * (holds defined in readylog.pl)
  */
-transPr(?(Cond),S,[],S,1) :- holds(Cond,S), !. 
+transPr(?(Cond),S,[],S,1) :- holds(Cond,S), !.
 
 /* conditional.
  * if the condition holds in S we transition towards E1
@@ -186,7 +186,7 @@ transPr(while(Cond,E),S,[E1,while(Cond,E)],S1,P) :- !,
  * the body is performed only once.
  */
 transPr(withCtrl(F,E),S,EE,SS,P) :- !,
-	holds(F,S), transPr(E,S,E1,SS,P), EE = withCtrl(F,E1). 
+	holds(F,S), transPr(E,S,E1,SS,P), EE = withCtrl(F,E1).
 
 
 /* --------------------------------------------------------- */
@@ -199,7 +199,7 @@ transPr(withCtrl(F,E),S,EE,SS,P) :- !,
 transPr( interrupt([], ENorm), S, EE, SS, P) :-
 	transPr( ENorm, S, EE, SS, P).
 transPr( interrupt([[Phi,EInt]|Rest], ENorm), S, EE, SS, P) :-
-	transPr(interrupt(Phi, EInt, interrupt(Rest, ENorm)), S, EE, SS, P).		 
+	transPr(interrupt(Phi, EInt, interrupt(Rest, ENorm)), S, EE, SS, P).
 
 transPr( interrupt(Phi, EInt, ENorm), S, EE, SS, P) :-
 	(
@@ -218,39 +218,39 @@ transPr( interrupt(Phi, EInt, ENorm), S, EE, SS, P) :-
 
 /*
 <deprecated> has to be tested
-% 	printf(" --------\t solve \t-------------
-% 	      \nHorizon: %w\nProg: %w\nS: %w", [Horizon, Prog, S]),
-% 	flush(output),
-% 	% STF was here:
-% 	cancel_after_event(event_exogUpdate),
-% 	% till here!
-% 	statistics(times, [CPUT, SYST, RealT]), !,
-% 	bestDoM(Prog, [clipOnline|S], Horizon, Policy,
-% 	        Value, TermProb, checkEvents, Tree, reward),
-% 	statistics(times, [CPUT2, SYST2, RealT2]), !,
-% 	% STF next 2 me again
-% 	param_cycletime(CycleTime),
-% 	event_after_every(event_exogUpdate, CycleTime),
-% 	% till here!
-%  	!,
-%  	CPUDiff is CPUT2 - CPUT,
-% 	SYSDiff is SYST2 - SYST,
-% 	RealDiff is RealT2 - RealT,
-% 	printf(" --------\t solve DONE \t-------------\n", []),
-% 	printf("Policy:\n", []),
-% 	printPol(stdout, Policy),
-% 	printf("\n\nTimes: %w\nValue: %w\nTermProb: %w\n",
-% 	       [[CPUDiff, SYSDiff, RealDiff], Value, TermProb]), !,
-% 				% 	transPr(applyPolicy(Policy), S, Policy_r, S_r, _Prob).
-% 	(
-% 	  dtdebug ->
-% 	  printf("Tree: %w\n", [Tree])
-% 	;
-% 	  true
-% 	),
-% 	Policy_r = applyPolicy(Policy),
-% 	S_r = S.
-</deprecated> 
+%	printf(" --------\t solve \t-------------
+%	      \nHorizon: %w\nProg: %w\nS: %w", [Horizon, Prog, S]),
+%	flush(output),
+%	% STF was here:
+%	cancel_after_event(event_exogUpdate),
+%	% till here!
+%	statistics(times, [CPUT, SYST, RealT]), !,
+%	bestDoM(Prog, [clipOnline|S], Horizon, Policy,
+%	        Value, TermProb, checkEvents, Tree, reward),
+%	statistics(times, [CPUT2, SYST2, RealT2]), !,
+%	% STF next 2 me again
+%	param_cycletime(CycleTime),
+%	event_after_every(event_exogUpdate, CycleTime),
+%	% till here!
+%	!,
+%	CPUDiff is CPUT2 - CPUT,
+%	SYSDiff is SYST2 - SYST,
+%	RealDiff is RealT2 - RealT,
+%	printf(" --------\t solve DONE \t-------------\n", []),
+%	printf("Policy:\n", []),
+%	printPol(stdout, Policy),
+%	printf("\n\nTimes: %w\nValue: %w\nTermProb: %w\n",
+%	       [[CPUDiff, SYSDiff, RealDiff], Value, TermProb]), !,
+%				%	transPr(applyPolicy(Policy), S, Policy_r, S_r, _Prob).
+%	(
+%	  dtdebug ->
+%	  printf("Tree: %w\n", [Tree])
+%	;
+%	  true
+%	),
+%	Policy_r = applyPolicy(Policy),
+%	S_r = S.
+</deprecated>
 */
 
 /* solve; decision theoretic optimizing.
@@ -267,8 +267,7 @@ transPr( solve(Prog, Horizon), S, Policy_r, S_r, 1) :- !,
 	transPr( solve( Prog, Horizon, reward), S, Policy_r, S_r, 1).
 
 transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
-	printf(" --------\t solve \t-------------\
-              \n Horizon: %w\n    Prog: %w\n       S: %w\n", [Horizon, Prog, S]),
+	printf(" --------\t solve \t-------------\n Horizon: %w\n    Prog: %w\n       S: %w\n", [Horizon, Prog, S]),
 	flush(output),
 	% STF was here:
 	%cancel_after_event(event_exogUpdate), % this predicate is deprecated!
@@ -291,15 +290,15 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
                  %  Phase = "consult"
                  %  Consult learned decision tree to get policy.
 	         statistics(times, [CPUT_BC, SYST_BC, RealT_BC]),
-                 consult_dtree(Prog, Horizon, RewardFunction, [clipOnline|S], 
+                 consult_dtree(Prog, Horizon, RewardFunction, [clipOnline|S],
                                PolicyConsult, ValueConsult, TermProbConsult,
                                TreeConsult,
                                ConsultSuccess),
-	         
+
                  statistics(times, [CPUT_AC, SYST_AC, RealT_AC]),
                  %  statistics
- 	         CPUDiffC is CPUT_AC - CPUT_BC,
-   	         SYSDiffC is SYST_AC - SYST_BC,
+	         CPUDiffC is CPUT_AC - CPUT_BC,
+	         SYSDiffC is SYST_AC - SYST_BC,
 	         RealDiffC is RealT_AC - RealT_BC,
                  getval(consultation_time_cpu, CTcpu),
                  getval(consultation_time_sys, CTsys),
@@ -371,8 +370,8 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	param_cycletime(CycleTime),
 	event_after_every(event_exogUpdate, CycleTime),
 	% till here!
- 	!,
- 	CPUDiff is CPUT2 - CPUT,
+	!,
+	CPUDiff is CPUT2 - CPUT,
 	SYSDiff is SYST2 - SYST,
 	RealDiff is RealT2 - RealT,
 	printf(" --------\t solve DONE \t-------------\n", []),
@@ -380,7 +379,7 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	printPol(stdout, Policy),
 	printf("\n\nTimes: %w\nValue: %w\nTermProb: %w\n",
 	       [[CPUDiff, SYSDiff, RealDiff], Value, TermProb]), !,
-				% 	transPr(applyPolicy(Policy), S, Policy_r, S_r, _Prob).
+				%	transPr(applyPolicy(Policy), S, Policy_r, S_r, _Prob).
         getval(avg_solve_time, AST),
         ASTTmp is (AST + CPUDiff),
         ASTNew is (ASTTmp/2.0),
@@ -397,7 +396,7 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	),
         % <DP was here>
         (
-          iplearn -> 
+          iplearn ->
              printf("*********** PHASE: %w.\n", [Phase]),
              ( Phase = "pre_train" ->
                 %  Use DT planning.
@@ -473,8 +472,8 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 /* --------------------------------------------------------- */
 
 /* non-deterministic choice.
- * online simply choose randomly (always the first). 
- * Usually this construct should never be hit online. 
+ * online simply choose randomly (always the first).
+ * Usually this construct should never be hit online.
  */
 transPr( nondet(L), S, EE, SS, 1) :- !,
 	L = [_E|_LR], /* L is a list */
@@ -482,21 +481,21 @@ transPr( nondet(L), S, EE, SS, 1) :- !,
 	SS = [toss(I_choice)|S].
 
 /* pickBest: online simply choose randomly (always the first).
- * This construct should never be hit online. 
+ * This construct should never be hit online.
  */
 transPr( pickBest(F, R, E), S, E_choice, S_choice, 1) :- !,
 	flatten(E,E_flat),
 	(
 	  /* F is a (yet unbound) variable: directly work with this */
-	  var(F) ->    
+	  var(F) ->
 	  F::R,
 	  indomain(F), /* bind variable F to a value in the domain */
- 	  E_choice = E,
+	  E_choice = E,
 	  BestValue = F
 	;
 	  /* substitute all occurences of F by a still free variable X */
-	  subvl( F, X, E_flat, E_sub), !,  
-  	  X::R,
+	  subvl( F, X, E_flat, E_sub), !,
+	  X::R,
 	  indomain(X), /* bind variable X to a value in the domain */
 	  E_choice = E_sub,
 	  BestValue = X
@@ -549,7 +548,7 @@ transPr( applyPolicy([marker(Cond, TruthValue)|PolTail]), S, applyPolicy(PolR), 
 	    %printColor(blue, "PolR::%w\n", [PolR]),
 	    PolR = []
 	  )
-	).	
+	).
 
 /* applyPolicy; case: conditional.
  * if the condition Cond holds, we proceed with executing the policy
@@ -578,7 +577,7 @@ transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 	  final(PolHead, S) ->
 	  transPr( applyPolicy(PolTail), S, ProgR, SNew, 1)
 	;
-	  transPr( PolHead, S, PolHeadR, SNew, 1),  
+	  transPr( PolHead, S, PolHeadR, SNew, 1),
 	  append(PolHeadR, PolTail, PolR),
 	  ProgR = applyPolicy(PolR)
 	).
@@ -586,8 +585,8 @@ transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 /* comment in only for debugging purposes.
  */
 % transPr( applyPolicy(E), S, E, S, 1) :-
-% 	printf("applyPolicy: DEBUG: no case/trans for \t %w\n", [E]),
-% 	flush(output), !, fail.
+%	printf("applyPolicy: DEBUG: no case/trans for \t %w\n", [E]),
+%	flush(output), !, fail.
 
 % <DP was here>
 /* --------------------------------------------------------- */
@@ -619,11 +618,11 @@ transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
 	    printColor(red, "BREAKING POLICY (true-case)\n", []),
 	    %printColor(yellow, "CONDITION:%w\n", [Cond]),
 	    printColor(cyan, "SITUATION:%w\n", [S]),
-   	    printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
+	    printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
 	    bestDoM(Prog, [clipOnline|S_solve], Horizon, PolicyReplanned,
 	            _Value, _TermProb, checkEvents, _Tree, RewardFunction),
 	    printf(" --------\t re-planning DONE \t-------------\n", []),
-   	    printf("Policy:\n", []),
+	    printf("Policy:\n", []),
 	    printPol(stdout, PolicyReplanned),
             % use applyPolicy and NOT applyLearnedPolicy
             PolR = applyPolicy(PolicyReplanned)
@@ -649,11 +648,11 @@ transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
 	    printColor(red, "BREAKING POLICY (false-case)\n", []),
 	    %printColor(yellow, "CONDITION:%w\n", [Cond]),
 	    printColor(cyan, "SITUATION:%w\n", [S]),
-   	    printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
+	    printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
 	    bestDoM(Prog, [clipOnline|S_solve], Horizon, PolicyReplanned,
 	            _Value, _TermProb, checkEvents, _Tree, RewardFunction),
 	    printf(" --------\t re-planning DONE \t-------------\n", []),
-   	    printf("Policy:\n", []),
+	    printf("Policy:\n", []),
 	    printPol(stdout, PolicyReplanned),
             % use applyPolicy and NOT applyLearnedPolicy
             PolR = applyPolicy(PolicyReplanned)
@@ -666,7 +665,7 @@ transPr( applyLearnedPolicy([marker(Cond, TruthValue)|PolTail],
 %            printColor(cyan, "SITUATION:%w\n", [S]),
 %            PolR = []
 	  )
-	).	
+	).
 
 /* applyLearnedPolicy; case: conditional.
  * if the condition Cond holds, we proceed with executing the policy
@@ -714,11 +713,11 @@ transPr( applyLearnedPolicy([PolHead | PolTail],
 
 	     printColor(red, "BREAKING POLICY (impossible action)\n", []),
 	     printColor(cyan, "SITUATION:%w\n", [S]),
-   	     printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
+	     printColor(red, "LEARNED POLICY WAS BROKEN -> re-planning with DT planning\n", []),
 	     bestDoM(Prog, [clipOnline|S], Horizon, PolicyReplanned,
 	             _Value, _TermProb, checkEvents, _Tree, RewardFunction),
 	     printf(" --------\t re-planning DONE \t-------------\n", []),
-   	     printf("Policy:\n", []),
+	     printf("Policy:\n", []),
 	     printPol(stdout, PolicyReplanned),
              % use applyPolicy and NOT applyLearnedPolicy
              ProgR = applyPolicy(PolicyReplanned),
@@ -735,24 +734,24 @@ transPr( applyLearnedPolicy([PolHead | PolTail],
 %                              solve(Prog, Horizon, RewardFunction), S_solve)
 	).
 % </DP was here>
-	
+
 
 
 /* --------------------------------------------------------- */
 /*  Macros/Abbreviations                                     */
 /* --------------------------------------------------------- */
 
-transPr(tryAll(E1,E2),S,EE,SS,P) :- 
+transPr(tryAll(E1,E2),S,EE,SS,P) :-
 	transPr(pconc(E1,E2),S,EE,SS,P).
-transPr(withPol(E1,E2),S,EE,SS,P) :- 
+transPr(withPol(E1,E2),S,EE,SS,P) :-
 	transPr(pconc([E1,?(false)],E2),S,EE,SS,P).
-transPr(loop(E),S,EE,SS,P) :- 
+transPr(loop(E),S,EE,SS,P) :-
 	transPr(while(true,E),S,EE,SS,P).
-transPr(if(Phi,E),S,EE,SS,P) :-	
+transPr(if(Phi,E),S,EE,SS,P) :-
 	E2=if(Phi,E,[]), transPr(E2,S,EE,SS,P).
-transPr(prob(P,E),S,EE,SS,Q) :- 
+transPr(prob(P,E),S,EE,SS,Q) :-
 	transPr(prob(P,E,[]),S,EE,SS,Q).
-transPr(whenever(Phi,E),S,EE,SS,P) :- 
+transPr(whenever(Phi,E),S,EE,SS,P) :-
 	transPr(while(true,[waitFor(Phi),E]),S,EE,SS,P).
 
 /* ------------------------------------------------------- */
@@ -776,10 +775,10 @@ transPr(whenever(Phi,E),S,EE,SS,P) :-
  * (fluent eval_registers in defined in readylog.pl)
  * (fluent eval_exog_functions defined in readylog.pl)
  */
-transPr( E, S, [], [E_sub|S], 1) :- 
+transPr( E, S, [], [E_sub|S], 1) :-
 	prim_action(E), !,
 	(
-	  prolog_poss(E) -> prolog_poss(E, S) 
+	  prolog_poss(E) -> prolog_poss(E, S)
 	; poss(E,Cond), holds(Cond,S) ),
 	!,
 	(
@@ -787,29 +786,29 @@ transPr( E, S, [], [E_sub|S], 1) :-
 	  subf(A,A1,[set(eval_registers, false)|S]),
 	  subf(B,B1,[set(eval_exog_functions, false)|S]),
 	  E_sub = send(A1,B1)
-	; 
+	;
 	  (
 	    E = reply(A,B) ->
 	    subf(A,A1,[set(eval_registers, false)|S]),
 	    subf(B,B1,S), E_sub = reply(A1,B1)
-	  ;                
+	  ;
 	    /* substitute current values for all fluents
 	    before appending to situation */
 	    subf(E,E_sub,S)
 	  )
 	).
 
-/* procedure calls: these include stochastic procedures. 
- * Recall that stochastic procedures are defined as usual procs, 
- * but have only additionally a model defined 
+/* procedure calls: these include stochastic procedures.
+ * Recall that stochastic procedures are defined as usual procs,
+ * but have only additionally a model defined
  */
-transPr( E, S, EE, SS, P) :- 
-% 	/* - evaluate parameters: call-by-value - */
-% 	E =.. [ProcName|Args_s],
-% 	subfl( Args_s, Args_eval_s, S),
-% 	E_sub =.. [ProcName|Args_eval_s],
-% 	/* - look up procedure with evaluated actual parameters - */
-% 	proc( E_sub, E_body), !, 
+transPr( E, S, EE, SS, P) :-
+%	/* - evaluate parameters: call-by-value - */
+%	E =.. [ProcName|Args_s],
+%	subfl( Args_s, Args_eval_s, S),
+%	E_sub =.. [ProcName|Args_eval_s],
+%	/* - look up procedure with evaluated actual parameters - */
+%	proc( E_sub, E_body), !,
 % <DP was here>
         ( iplearn ->
            /* use transformed proc with solve contexts in standard form */
@@ -820,7 +819,7 @@ transPr( E, S, EE, SS, P) :-
 	   proc( E, E_body), !, transPr( E_body, S, EE, SS, P)
         ).
 %	/* do not evaluate args */
-%	proc( E, E_body), !, 
+%	proc( E, E_body), !,
 %	transPr( E_body, S, EE, SS, P).
 % </DP was here>
 
