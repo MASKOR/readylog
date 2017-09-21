@@ -21,8 +21,6 @@
  *
  * **************************************************************************/
 
-:- lib(clpr).
-%:- use_module( library(clpr) ).
 :- lib(fd).
 :- lib(lists).
 %:- lib(scattered).       /* to avoid error: non consecutive */
