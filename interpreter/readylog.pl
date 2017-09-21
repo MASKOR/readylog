@@ -66,7 +66,7 @@
 /* load inductive policy learning extension.
  *  feature can be turned on/off by toggle_iplearn flag
  */
-:- ensure_loaded('iplearner.pl').
+:- iplearn -> ensure_loaded('iplearner.pl') ; true.
 
 /* load options extension.
  *  this is currently not in use 
