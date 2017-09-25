@@ -97,7 +97,7 @@
 
 
 
-fluent(F) :- (prim_fluent(F);cont_fluent(F);exog_fluent(F)),!.
+fluent(F) :- (prim_fluent(F);cont_fluent(F);exog_fluent(F)).
 exog_fluent(F) :- (exog_prim_fluent(F) ; exog_cont_fluent(F)), !.
 
 is_prim_fluent(F) :- (prim_fluent(F) ; exog_prim_fluent(F)), !.

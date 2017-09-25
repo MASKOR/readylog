@@ -1266,7 +1266,7 @@ treated by last clause of subf */
 /* somehow this doesn't work, don't know why!?? */
 
 
-subf(P1,P2,H)  :- fluent(P1), !, 
+subf(P1,P2,H)  :- fluent(P1),
                   (% Parameter auswerten
 		    special_fluent(P1) ->
 		    P3=P1 
@@ -1400,6 +1400,7 @@ subf(P,P_res,H) :-
 
 /* cf: this is analogous to preprocessor: e.g. allow X=sqrt(4.0) */
 subf(P1,P_res,H)  :-
+	\+ fluent(P1),
 	P1=..[F|L1],
 	subfl(L1,L2,H),
 	length(L1, ArgC), ArgC_plus is ArgC+1,
