@@ -78,7 +78,7 @@
  *  utils.pl offers readylog shell functionality 
  *  with auto completion and history
  */
-:- ensure_loaded('../../utils/utils.pl').
+:- ensure_loaded('../utils/utils.pl').
 
 /* load icp_shell.
  *  icp_shell offers shell functionality 
