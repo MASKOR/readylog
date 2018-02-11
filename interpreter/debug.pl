@@ -24,7 +24,7 @@
  * **************************************************************************/
 
 /* load auxiliary predicates for colored output */
-:- ensure_loaded('../../utils/utils.pl').
+:- ensure_loaded('../utils/utils.pl').
 
 
 /* BB debugging mimic */

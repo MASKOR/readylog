@@ -35,7 +35,7 @@
 :- write("** loading preprocessor.pl\n"). 
 
 :- ensure_loaded('readylog.pl').
-:- ensure_loaded("../../utils/utils.pl").
+:- ensure_loaded("../utils/utils.pl").
 
 /* ----------------------------------------------------------
    utilities
