@@ -588,7 +588,7 @@ bestDoM([[] | E],S,H,Pol,V,Prob,Events, Tree, RewardFunction) :-
 /* make simple terms a list */
 bestDoM(E,S,H,Pol,V,Prob,Events, Tree, RewardFunction) :-
 	H >= 0,
-	E \= [_E|_L],
+	\+ length(E,_),
 	bestDoM([E],S,H,Pol,V,Prob,Events, Tree, RewardFunction).
 
 /* make list in list a simple list */
