@@ -308,7 +308,7 @@ bestDoM_pickBest_Aux(F,E,E_rest,S,H,Pol,V,Prob, Tree, RewardFunction) :-
 	  set_textcolor( green ),
 	  printf("BEST F: %w\n%w\t%w\t%w\t%w\n",
 		 [Tree, F, V, Prob, Pol_rest]),
-          printColor(red, "BESTDOF SIT: %w",[S]),
+          printColor(red, "BESTDOF SIT: %w\n",[S]),
 	  set_textcolor( normal )
 	;
 	  true
@@ -622,7 +622,7 @@ leaf_debug( V, S) :-
 	  dtdebug ->
 	  set_textcolor( blue ),
 	  printf("LEAF: V: %w\tS: %w\n", [V, S]),
-      printColor(red, "LEAF DEBUG SIT: %w",[S]),
+      printColor(red, "LEAF DEBUG SIT: %w\n",[S]),
 	  set_textcolor( normal )
 	;
 	  true
