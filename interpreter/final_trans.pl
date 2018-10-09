@@ -71,8 +71,25 @@ final(E,S) :- ipl_proc(E,E1), final(E1,S).
 /* --------------------------------------------------------- */
 % {{{ transPr
 
-/* the old ConGolog trans/4 is a transPr with probability 1 */
-trans(E,S,E1,S1) :- transPr(E,S,E1,S1,1).
+%trans(E,S,E1,S1) :- transPr(E,S,E1,S1,1).
+
+/* the old ConGolog trans/4 is a transPr with probability 1
+ * Make sure that after trans/4 completes, the history actually contains a new action.
+ */
+trans(E, S, E_trans, S_trans) :-
+	transPr(E, S, E1, S1, 1), !,
+	(
+		(S = S1, \+ final(E1, S1)) ->
+			trans(E1, S1, E_trans, S_trans)
+		; (
+			E_trans = E1,
+			S_trans = S1
+		)
+	)
+.
+
+% Unwrap list-in-list
+transPr([[E]],S,R,S1,P) :- transPr([E],S,R,S1,P).
 
 /* Sequence.
  * in a final configuration a transition with the tail of the program
