@@ -459,6 +459,9 @@ process_subf(P, P_res, Body, Type, S) :-
 	process_subf_list(L1, L2, Body_args, S),
 	length(L1, ArgC), ArgC_plus is ArgC + 1,
 	(
+	  string(F),
+	  P_res =.. [F|L2]
+	;
 	  is_predicate(F/ArgC_plus),
 	  is_built_in(F/ArgC_plus) -> /* arithmetic predicate call */
 	  P_tmp=..[F|L2],
