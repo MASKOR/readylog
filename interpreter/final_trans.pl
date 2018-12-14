@@ -121,7 +121,7 @@ transPr(prob(P,_E1,E2),S1,E2,[tossTail|S1],Q) :-
 	Q is 1-Pnum.
 
 /* event-based execution.
- * online case: the time fluent start is evaluated and
+ * online case: the time fluent sit_start_time is evaluated and
  *   the tform cond is tested (holdsTForm defined in readylog.pl)
  * offline case: the least time point ltp is calculated.
  *   (ltp is defined in readylog.pl) and time is advanced to
@@ -130,7 +130,7 @@ transPr(prob(P,_E1,E2),S1,E2,[tossTail|S1],Q) :-
 transPr(waitFor(Cond),S,[],SS,1) :- !,
 	(
 	  holds(online=true,S) ->
-	  has_val(start,T,S), holdsTForm(Cond,T,S), SS = S
+	  has_val(sit_start_time,T,S), holdsTForm(Cond,T,S), SS = S
 	;
 	  ltp(Cond,T,S), SS=[setTime(T)|S]
 	).
@@ -854,12 +854,12 @@ member_index( X, I, [_Y|L]) :- member_index(X, I2, L), I is I2+1.
 
 /* determine which situation has an earlier starting time */
 earliereq(H1,H2) :-
-     has_val(start,T1,H1), has_val(start,T2,H2), !, T1 =< T2.
+     has_val(sit_start_time,T1,H1), has_val(sit_start_time,T2,H2), !, T1 =< T2.
 earlier(H1,H2) :-
-     has_val(start,T1,H1), has_val(start,T2,H2), !, T1 < T2.
+     has_val(sit_start_time,T1,H1), has_val(sit_start_time,T2,H2), !, T1 < T2.
 
 /* do H1 and H2 have the same starting time? */
 simultaneous(H1,H2) :-
-     has_val(start,T,H1), !, has_val(start,T,H2).
+     has_val(sit_start_time,T,H1), !, has_val(sit_start_time,T,H2).
 
 % }}}

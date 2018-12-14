@@ -20,7 +20,7 @@ ssa( pos, PreVar63, [goto(PreVar64)|Srest] ) :- !, PreVar63 = PreVar64.
 ssa( located, PreVar67, [goto(_6605)|Srest] ) :- !, PreVar67=nil.
 ssa( holding, PreVar71, [pickup(PreVar72)|Srest] ) :- !, PreVar71 = PreVar72.
 ssa( coffee_prepared, PreVar79, [pickup(PreVar75)|Srest] ) :- !, PreVar75=coffee, PreVar79=false.
-ssa( start, NewValue, [setTime(NewValue)|Srest] ) :- !, true.
+ssa( sit_start_time, NewValue, [setTime(NewValue)|Srest] ) :- !, true.
 ssa( holding, PreVar83, [set_holding(PreVar84)|Srest] ) :- !, PreVar83 = PreVar84.
 ssa( task, PreVar87, [set_task(PreVar88)|Srest] ) :- !, PreVar87 = PreVar88.
 ssa( going_to, true, [start_goto(R)|Srest] ) :- !, true.
@@ -40,7 +40,7 @@ ssa( requests, NewValue, [stop_take_order(P)|Srest] ) :- !, has_val(requests, Pr
 ssa( task, PreVar134, [take_order(_6698)|Srest] ) :- !, has_val(requests, PreVar129, Srest), PreVar129=[PreVar134|_T].
 ssa( requests, NewValue, [take_order(_6722)|Srest] ) :- !, has_val(requests, PreVar137, Srest), PreVar137=[PreVar142|NewValue].
 ssa( pos, NewValue, [teleport(NewValue)|Srest] ) :- !, true.
-ssa( start, NewValue, [ccUpdate(_6409, NewValue)|Srest] ) :- !, true.
+ssa( sit_start_time, NewValue, [ccUpdate(_6409, NewValue)|Srest] ) :- !, true.
 ssa( holding, PreVar143, [drop(_X, _R)|Srest] ) :- !, PreVar143=nil.
 ssa( task, PreVar158, [drop(PreVar154, PreVar148)|Srest] ) :- !, (has_val(task, PreVar149, Srest), PreVar149 = PreVar148), PreVar154=coffee, PreVar158=nil.
 ssa( located, PreVar162, [locate(PreVar163, _6627)|Srest] ) :- !, PreVar162 = PreVar163.
@@ -70,7 +70,7 @@ ssa( moving_arm, NewValue, [set(moving_arm, NewValue)|_] ) :- !.
 ssa( online, NewValue, [set(online, NewValue)|_] ) :- !.
 ssa( picking_up, NewValue, [set(picking_up, NewValue)|_] ) :- !.
 ssa( placing_order, NewValue, [set(placing_order, NewValue)|_] ) :- !.
-ssa( start, NewValue, [set(start, NewValue)|_] ) :- !.
+ssa( sit_start_time, NewValue, [set(sit_start_time, NewValue)|_] ) :- !.
 ssa( taking_order, NewValue, [set(taking_order, NewValue)|_] ) :- !.
 ssa( task, NewValue, [set(task, NewValue)|_] ) :- !.
 ssa( useAbstraction, NewValue, [set(useAbstraction, NewValue)|_] ) :- !.
@@ -100,7 +100,7 @@ ssa( moving_arm, NewValue, [_UnknownAction|Srest] ) :- !, has_val(moving_arm, Ne
 ssa( online, NewValue, [_UnknownAction|Srest] ) :- !, has_val(online, NewValue, Srest).
 ssa( picking_up, NewValue, [_UnknownAction|Srest] ) :- !, has_val(picking_up, NewValue, Srest).
 ssa( placing_order, NewValue, [_UnknownAction|Srest] ) :- !, has_val(placing_order, NewValue, Srest).
-ssa( start, NewValue, [_UnknownAction|Srest] ) :- !, has_val(start, NewValue, Srest).
+ssa( sit_start_time, NewValue, [_UnknownAction|Srest] ) :- !, has_val(sit_start_time, NewValue, Srest).
 ssa( taking_order, NewValue, [_UnknownAction|Srest] ) :- !, has_val(taking_order, NewValue, Srest).
 ssa( task, NewValue, [_UnknownAction|Srest] ) :- !, has_val(task, NewValue, Srest).
 ssa( useAbstraction, NewValue, [_UnknownAction|Srest] ) :- !, has_val(useAbstraction, NewValue, Srest).

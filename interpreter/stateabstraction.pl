@@ -8,7 +8,7 @@ get_all_fluents(Result) :-
         % get all registers (which are also fluents)
         findall(Reg, register(Reg), RegL),
         % define all built-in fluents
-        BuiltInTemp=[online, start, pll(_, _, _, _), pproj(_, _),
+        BuiltInTemp=[online, sit_start_time, pll(_, _, _, _), pproj(_, _),
                  lookahead(_, _, _, _), bel(_), ltp(_)],
 	ignore_fluents(IFL), 
 	append(BuiltInTemp, IFL, BuiltIn),

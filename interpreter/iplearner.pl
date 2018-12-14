@@ -178,7 +178,7 @@ get_all_fluent_names(Result) :-
         %  Get all registers (which are fluents, too).
         findall(Reg, register(Reg), RegL),
         %  Define all built-in fluents.
-        BuiltInTemp=[online, start, pll(_, _, _, _), pproj(_, _), 
+        BuiltInTemp=[online, sit_start_time, pll(_, _, _, _), pproj(_, _), 
                      lookahead(_, _, _, _), bel(_), ltp(_)],
 %        ignore_fluents(IFL), 
 %        append(BuiltInTemp, IFL, BuiltIn),

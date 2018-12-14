@@ -533,7 +533,7 @@ transStar(E,H,EE,HH) :-
 ltp(P,T,H) :- setval(min, unendlich), !, ltp_min(P,T,H).
 
 ltp_min(P,T,H) :-
-	holdsTForm(P,T,H), has_val(start,T0,H),
+	holdsTForm(P,T,H), has_val(sit_start_time,T0,H),
 	{T >= T0}, minimize(T), 
 	getval(min,Akt_Min), 
 	(
@@ -680,7 +680,7 @@ initial_Sit([s0]).
 prim_fluent(R) :- register(R).
 prim_fluent(online).
 prim_fluent(eval_registers).
-prim_fluent(start).
+prim_fluent(sit_start_time).
 
 prim_fluent(pll(_,_,_,_)).
 prim_fluent(pproj(_,_)).
@@ -703,7 +703,7 @@ special_fluent(ltp(_)).
 initial_val(R,nil) :- register(R).
 initial_val(online,true).
 initial_val(eval_registers,true).
-initial_val(start,0).
+initial_val(sit_start_time,0).
 initial_val(pll([H1],LL1,P), true)  :-
 	initial_P(H1,Q), P is Q, initial_LL(H1,LL1).
 
@@ -727,8 +727,8 @@ causes_val(send(R,V),R,V,true) :- register(R).
 causes_val(reply(R,V),R,V,true) :- register(R).
 causes_val(setOnline,online,true,true).
 causes_val(clipOnline,online,false,true).
-causes_val(setTime(T),    start, T, true).
-causes_val(ccUpdate(_,T), start, T, true).
+causes_val(setTime(T),    sit_start_time, T, true).
+causes_val(ccUpdate(_,T), sit_start_time, T, true).
 
 causes_val(clipAbstraction, useAbstraction, false).
 causes_val(setAbstraction, useAbstraction, true).
@@ -859,7 +859,7 @@ schreibe(L):- L=[L1|L2], print(L1), nl, schreibe(L2).
 transPrTo(L,H,LL,HH,T,P) :-
 	findall([L1,H1,P1],
 		( transPr(L,H,L1,H1,P1), not (H1 = [reply(_,_)|H]),
-		    has_val(start,TH1,H1), TH1 =< T),
+		    has_val(sit_start_time,TH1,H1), TH1 =< T),
 		Lsucc ),
 	(
 	  Lsucc=[] -> LL=L,HH=H,P=1
@@ -1012,7 +1012,7 @@ probabilistische Anweisungen (prob). */
 limitedDo(E,H,_T,H) :- final(E,H).
 
 limitedDo(E,H,T,HH) :- 
-     trans(E,H,E1,H1), has_val(start,T1,H1),
+     trans(E,H,E1,H1), has_val(sit_start_time,T1,H1),
      (T1 > T, H1 = H;
      T1 =< T, limitedDo(E1,H1,T,HH)).
 
@@ -1181,13 +1181,13 @@ eval_comparison(Not,Op,A,B,Expr,H) :-
        (
 	 (
 	   \+var(A1),t_function(A1) ->
-	   (has_val(start,T1,H), t_function(A1,A2,T1))
+	   (has_val(sit_start_time,T1,H), t_function(A1,A2,T1))
 	 ;
 	   A2 = A1
 	 ),  
 	 (
 	   \+var(B1),t_function(B1) ->
-	   (has_val(start,T2,H), t_function(B1,B2,T2))
+	   (has_val(sit_start_time,T2,H), t_function(B1,B2,T2))
 	 ;
 	   B2 = B1
 	 )
@@ -1427,13 +1427,13 @@ subf_arithm(P,C,H) :-
 	/* evaluate t-function at current time */ 
 	(
 	  \+var(A1),t_function(A1) ->
-	  (has_val(start,T1,H), t_function(A1,A2,T1))
+	  (has_val(sit_start_time,T1,H), t_function(A1,A2,T1))
 	;
 	  A2 = A1
 	),  
 	(
 	  \+var(B1),t_function(B1) ->
-	  (has_val(start,T2,H), t_function(B1,B2,T2))
+	  (has_val(sit_start_time,T2,H), t_function(B1,B2,T2))
 	;
 	  B2 = B1
 	),
@@ -1531,7 +1531,7 @@ has_val(bel(Phi),V,H) :- !,
 	cache(bel(Phi,Prob,H)), (free(V) -> V = Prob; V =:= Prob).
 has_val(ltp(P),V,H) :- !, ltp(P,V,H). 
 has_val(pll(H1,LL1,P), true, [E|H]) :- !,
-	has_val(pll(H11,LL11,P1),true,H), has_val(start,T,[E|H]),
+	has_val(pll(H11,LL11,P1),true,H), has_val(sit_start_time,T,[E|H]),
         transPrTo(LL11,H11,L1,HH1,T,P11), H1=[E|HH1],
 	(E \= reply(_,_), LL1=L1, P is P1 * P11;
 	 E = reply(_,_), transPr(L1,HH1,LL1,H1,1), P is P1 * P11).

@@ -404,7 +404,7 @@ process_subf(P, P_res, Body, fluent_value, S)  :-
 	  Body = ( Tmp1,
 		     (
 		       t_function(P3) ->
-		       has_val(start,T1,S), t_function(P3,P_res,T1)
+		       has_val(sit_start_time,T1,S), t_function(P3,P_res,T1)
 		     ;
 		       P_res=P3
 		     )		     
