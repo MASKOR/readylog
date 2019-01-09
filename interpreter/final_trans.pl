@@ -85,7 +85,8 @@ trans(E, S, E_trans, S_trans) :-
 			E_trans = E1,
 			S_trans = S1
 		)
-	)
+	),
+	( final(E_trans, S_trans) ; S \= S_trans )
 .
 
 % Unwrap list-in-list
