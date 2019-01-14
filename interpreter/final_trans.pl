@@ -77,16 +77,7 @@ final(E,S) :- ipl_proc(E,E1), final(E1,S).
  * Make sure that after trans/4 completes, the history actually contains a new action.
  */
 trans(E, S, E_trans, S_trans) :-
-	transPr(E, S, E1, S1, 1), !,
-	(
-		(S = S1, \+ final(E1, S1)) ->
-			trans(E1, S1, E_trans, S_trans)
-		; (
-			E_trans = E1,
-			S_trans = S1
-		)
-	),
-	( final(E_trans, S_trans) ; S \= S_trans )
+	transPr(E, S, E_trans, S_trans, 1)
 .
 
 % Unwrap list-in-list
