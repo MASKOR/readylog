@@ -656,26 +656,28 @@ progressing the knowledge base.
 The applied conversion from effect axioms to SSAs is as described
 in Reiter's solution to the frame problem.
 */
+
+all_causes(L) :-
+	setof(
+		(Action, Fluent, NewValue, Condition)
+		, (
+			causes_val(Action, Fluent, NewValue, Condition)
+			, not ssa(Fluent, _, [Action|_])
+		)
+		, L
+	)
+	; L = []
+.
+
+
 generateSSAs(Stream) :-
- 	(
- 	  setof( (Action, Fluent, NewValue, Condition),
- 		 ( causes_val(Action, Fluent, NewValue, Condition),
- 		     not ssa(Fluent, _, [Action|_])), CausesVal_s )
- 	;
- 	  CausesVal_s = []
- 	),
+	all_causes(CausesVal_s),
 	generateSSAs_aux( CausesVal_s, Stream ),
 	printf(Stream, "\n/* \t___ dummy SSAs ___ */\n",[]),
 	generate_dummy_SSAs(Stream).
 	
 generateSSAs(File, FileMode) :-
- 	(
- 	  setof( (Action, Fluent, NewValue, Condition),
- 		 ( causes_val(Action, Fluent, NewValue, Condition),
- 		     not ssa(Fluent, _, [Action|_])), CausesVal_s )
- 	;
- 	  CausesVal_s = []
- 	),
+	all_causes(CausesVal_s),
 	open( File, FileMode, Stream),
 	generateSSAs_aux( CausesVal_s, Stream ),
 	generate_dummy_SSAs(Stream),
@@ -690,6 +692,30 @@ generateSSAs_aux( [(Action, Fluent, NewValue, Condition)| Rest_s],
 	printf(Stream, "ssa( %w, %w, %w ) :- !, %w.\n",
 	       [Fluent, EvalVal, [Action|Srest], NewBody] ),
 	generateSSAs_aux( Rest_s, Stream ).
+
+
+compile_SSAs :-
+	writeln(">>> Compiling SSAs...")
+	, all_causes(L)
+	, compile_SSAs(L)
+	, writeln("<<< Done compiling SSAs.")
+.
+
+compile_SSAs( [] ).
+compile_SSAs( [(Action, Fluent, NewValue, Condition) | Rest_s] ) :-
+	process_condition(Condition, Srest, Body_cond)
+	, process_subf(NewValue, EvalVal, Body_subf, _Type, Srest)
+	, conjunct( Body_cond, Body_subf, NewBody)
+	, SSA =.. [
+		:-
+		, ssa(Fluent, EvalVal, [Action|Srest])
+		, NewBody
+	]
+	, writeln(SSA)
+	, compile_term(SSA)
+	, compile_SSAs(Rest_s)
+.
+
 
 /* finally: for all fluents write dummy ssa and
 for all exog_fluent corresponding lookup rule */
