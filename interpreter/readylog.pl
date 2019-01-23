@@ -1473,15 +1473,10 @@ isNumber(pi).
    der Historie H
 ---------------------------------------------------------- */
 
-/* fluent is a so-called exogenous fluent and an 'update
-exogenous fluents action' had happened: look up the value in the
-database for (direct access) exogenous fluent */
-%% STF: commented the following, since the preprocessor already generates
-%%      SSAs for exog_fluents hence this predicate has never been called
-%has_val(F,V,[exogf_Update|_Srest]) :-
-%	exog_fluent(F), !,
-%	exog_fluent_getValue(F, V, []).%,
-%	%printColor( cyan, " has_val [ exogf_Update ] for %w with val %w \n%b", [F, V]).
+has_val(F, V, _H) :-
+	exog_fluent(F), !,
+	exog_fluent_getValue(F, V, [])
+.
 
 %  <DP was here>
 /* If IPLearning is active, and there are parameterised exogenous
