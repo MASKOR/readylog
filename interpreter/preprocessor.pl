@@ -495,15 +495,11 @@ process_subf_aux(Op, ValA, BodyA, TypeA, ValB, BodyB, TypeB,
 	  uninstantiated and put evaluation into Body */
 	  (
 	    metaType(TypeA, meta_number), TypeB = eval ->
-	    concat_string(["(",ValB,")"], StringB),
-	    /* ^ needed e.g. for X is Y*(-10) instead of
-	    X is Y*-10 (which wouldn't compile) */
-	    Expression2 =.. [Op, ValA, StringB],
+	    Expression2 =.. [Op, ValA, ValB],
 	    conjunct( BodyA, (ValC is Expression2), BodyC)
 	  ;
 	    TypeA = eval, metaType(TypeB, meta_number) ->
-	    concat_string(["(",ValA,")"], StringA),
-	    Expression2 =.. [Op, StringA, ValB],
+	    Expression2 =.. [Op, ValA, ValB],
 	    conjunct( BodyB, (ValC is Expression2), BodyC)
 	  ;
 	    metaType( TypeA, meta_number),
