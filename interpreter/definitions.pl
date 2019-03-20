@@ -101,6 +101,13 @@ exog_fluent(F) :- (exog_prim_fluent(F) ; exog_cont_fluent(F)), !.
 is_prim_fluent(F) :- (prim_fluent(F) ; exog_prim_fluent(F)), !.
 is_cont_fluent(F) :- (cont_fluent(F) ; exog_cont_fluent(F)), !.
 
+free_args(Term, Var_term) :-
+	Term =.. [Functor|Args]
+	, length(Args, Arity)
+	, length(Vars, Arity)
+	, Var_term =.. [Functor|Vars]
+.
+
 
 /* T2 is T1 with X1 substituted by X2 */
 subv(_X1,_X2,T1,T2) :- (var(T1);number(T1)), !, T2 = T1. 

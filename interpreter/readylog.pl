@@ -1275,13 +1275,19 @@ treated by last clause of subf */
 /* somehow this doesn't work, don't know why!?? */
 
 
-subf(P1,P2,H)  :- fluent(P1),
+subf(P1,P2,H)  :- free_args(P1, P1_free),
+		  % Check whether a term is a fluent with unbound arguments
+		  % since some of its arguments may be functional symbols that
+		  % need to be subf'ed first.
+		  fluent(P1_free),
                   (% Parameter auswerten
 		    special_fluent(P1) ->
 		    P3=P1 
 		  ; P1=..[F|L1],
 		    subfl(L1,L2,H),
-		    P3=..[F|L2]
+		    P3=..[F|L2],
+		    % Now bind only the remaining free variables in P3
+		    fluent(P3)
 		  ),
 		  (
 		    register(P1) ->
