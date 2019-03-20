@@ -144,7 +144,12 @@ icpgolog(E) :-
             nl
         ),
         % </DP was here>
-        icpgo(E, [s0]).
+	statistics(hr_time, T0_main),
+        icpgo(E, [s0]),
+	statistics(hr_time, T1_main),
+	T_main is T1_main - T0_main,
+	printf("Mainloop time: %.9f\n", T_main)
+.
 
 /* (1)- exogenous action occured */ 
 icpgo(E,H) :-
@@ -165,7 +170,11 @@ icpgo(E,H) :-
 icpgo(E,H) :-
 	% printf("(2) icpgo( .., %w)\n", [H]), flush(output),
 	doTrace(E,H), /* print debug info if gologtrace is on */
+	statistics(hr_time, T0_trans),
 	trans(E,H,E1,H1),
+	statistics(hr_time, T1_trans),
+	T_trans is T1_trans - T0_trans,
+	printf("Transition time: %.9f\n", T_trans),
 	icpxeq(H,H1,H2),
         !, icpgo(E1,H2). 
 
