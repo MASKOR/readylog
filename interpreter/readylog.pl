@@ -1407,11 +1407,14 @@ subf( F, F_eval, S) :-
 
 
 /* cf: special rule for set(fluentname, Value)-action:
-the fluentname must not be subf-ed */
+the outer (!) fluentname must not be subf-ed */
 subf(P,P_res,H) :-
-	P =..[set,Fluentname|L], !,
-	subfl(L,L_sub,H),
-	P_res =.. [set, Fluentname|L_sub].
+	P =..[set,Fluent|Value], !,
+	subfl(Value,Value_sub,H),
+	Fluent =.. [Fn|Fn_args],
+	subf(Fn_args, Fn_args_sub, H),
+	Fluent_sub =.. [Fn|Fn_args_sub],
+	P_res =.. [set, Fluent_sub|Value_sub].
 
 /* cf: this is analogous to preprocessor: e.g. allow X=sqrt(4.0) */
 subf(P1,P_res,H)  :-
