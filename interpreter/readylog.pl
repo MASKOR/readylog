@@ -1341,7 +1341,8 @@ subf(P1,P2,H)  :- free_args(P1, P1_free),
 /* cf: here comes restriction for only simple args (nothing like
 [X,Y]) */
 subf(P,P2,H)  :-
-	function(P,_,_),!,	
+	free_args(P, P_free),
+	function(P_free,_,_),!,	
  	/*<state_abstraction> */
  	(
  	  %printColor(green, "Before QQ \n", []),
@@ -1390,7 +1391,8 @@ subf(P,P2,H)  :-
 /* (26.5.04) for exogenous functions: evaluated externally (kl
 in our case) */
 subf( F, F_eval, S) :-
-	exog_function( F ), !,
+	free_args(F, F_free),
+	exog_function( F_free ), !,
 	F =.. [Name|Args],
 	subfl(Args, Args_sub, S),
 	F_sub =.. [Name|Args_sub],
