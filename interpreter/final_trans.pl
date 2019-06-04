@@ -35,7 +35,7 @@
  * (nothing left to do)
  */
 final([],_).
-final([E],_) :- final(E,_).
+final([E],S) :- final(E,S).
 final(pconc(E1,E2),S) :-   final(E1,S), !; final(E2,S).
 final([E|L],S) :-	   final(E,S), final(L,S).
 final(if(Cond,E1,E2),S) :-
