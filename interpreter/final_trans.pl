@@ -485,10 +485,12 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
  * online simply choose randomly (always the first).
  * Usually this construct should never be hit online.
  */
-transPr( nondet(L), S, EE, SS, 1) :- !,
+transPr( nondet(L), S, E1, S1, 1) :- !,
 	L = [_E|_LR], /* L is a list */
 	member_index( EE, I_choice, L),
-	SS = [toss(I_choice)|S].
+	SS = [toss(I_choice)|S],
+	transPr(EE, SS, E1, S1, 1)
+.
 
 /* pickBest: online simply choose randomly (always the first).
  * This construct should never be hit online.
