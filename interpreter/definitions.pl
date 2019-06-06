@@ -108,6 +108,30 @@ free_args(Term, Var_term) :-
 	, Var_term =.. [Functor|Vars]
 .
 
+is_fluent_term(T) :- once((
+	free_args(T, T_free)
+	, fluent(T_free)
+)).
+
+is_function_term(T) :- once((
+	free_args(T, T_free)
+	, function(T_free, _, _)
+)).
+
+is_exog_function_term(T) :- once((
+	free_args(T, T_free)
+	, exog_function(T_free)
+)).
+
+is_proc_term(T) :- once((
+	free_args(T, T_free)
+	, proc(T_free, _)
+)).
+
+is_ipl_proc_term(T) :- once((
+	free_args(T, T_free)
+	, ipl_proc(T_free, _)
+)).
 
 /* T2 is T1 with X1 substituted by X2 */
 subv(_X1,_X2,T1,T2) :- (var(T1);number(T1)), !, T2 = T1. 

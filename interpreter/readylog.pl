@@ -1105,19 +1105,19 @@ holds(P,H) :-
 	!, eval_comparison(false,Op,A,B,Expr,H),
 	(Expr=and(_) -> holds(Expr,H) ; call(Expr)). 
 
-holds(P,H) :- proc(P,_), !, subf(P,P1,H), % call-by-value 
+holds(P,H) :- is_proc_term(P), !, subf(P,P1,H), % call-by-value
               proc(P1,P2), holds(P2,H).
 
 % <DP was here>
-holds(P,H) :- iplearn, ipl_proc(P,_), !, subf(P,P1,H), % call-by-value 
+holds(P,H) :- iplearn, is_ipl_proc_term(P), !, subf(P,P1,H), % call-by-value
               ipl_proc(P1,P2), holds(P2,H).
 % </DP was here>
 
 /* allow conditions returned by functions */
-holds(P,H) :- function(P,_,_), !, subf(P,P1,H),
+holds(P,H) :- is_function_term(P), !, subf(P,P1,H),
               holds(P1,H).  
 
-holds(P,H) :- exog_function(P), !, subf(P,P1,H),
+holds(P,H) :- is_exog_function_term(P), !, subf(P,P1,H),
               holds(P1,H).  
 
 holds(P,H) :- subf(P,P1,H), call(P1).
@@ -1169,11 +1169,11 @@ holds_not(P,H) :-
 	!, eval_comparison(not,Op,A,B,Expr,H),
   	(Expr=not(and(_)) -> holds(Expr,H) ; call(Expr)). 
 
-holds_not(P,H) :- fluent(P), !, subf(P,P1,H), call(not(P1)).
-holds_not(P,H) :- proc(P,_), !, subf(P,P1,H),  % call-by-value
+holds_not(P,H) :- is_fluent_term(P), !, subf(P,P1,H), call(not(P1)).
+holds_not(P,H) :- is_proc_term(P), !, subf(P,P1,H),  % call-by-value
 	          proc(P1,P2), holds(not(P2),H). 
 % <DP was here>
-holds_not(P,H) :- iplearn, ipl_proc(P,_), !, subf(P,P1,H),  % call-by-value
+holds_not(P,H) :- iplearn, is_ipl_proc_term(P), !, subf(P,P1,H),  % call-by-value
 	          ipl_proc(P1,P2), holds(not(P2),H). 
 % </DP was here>
 holds_not(P,H) :- !, not holds(P,H).  % Negation by failure
@@ -1275,11 +1275,10 @@ treated by last clause of subf */
 /* somehow this doesn't work, don't know why!?? */
 
 
-subf(P1,P2,H)  :- free_args(P1, P1_free),
-		  % Check whether a term is a fluent with unbound arguments
+subf(P1,P2,H)  :- % Check whether a term is a fluent with unbound arguments
 		  % since some of its arguments may be functional symbols that
 		  % need to be subf'ed first.
-		  fluent(P1_free),
+		  is_fluent_term(P1),
                   (% Parameter auswerten
 		    special_fluent(P1) ->
 		    P3=P1 
@@ -1341,8 +1340,7 @@ subf(P1,P2,H)  :- free_args(P1, P1_free),
 /* cf: here comes restriction for only simple args (nothing like
 [X,Y]) */
 subf(P,P2,H)  :-
-	free_args(P, P_free),
-	function(P_free,_,_),!,	
+	is_function_term(P),!,
  	/*<state_abstraction> */
  	(
  	  %printColor(green, "Before QQ \n", []),
@@ -1391,8 +1389,7 @@ subf(P,P2,H)  :-
 /* (26.5.04) for exogenous functions: evaluated externally (kl
 in our case) */
 subf( F, F_eval, S) :-
-	free_args(F, F_free),
-	exog_function( F_free ), !,
+	is_exog_function_term(F), !,
 	F =.. [Name|Args],
 	subfl(Args, Args_sub, S),
 	F_sub =.. [Name|Args_sub],
@@ -1420,7 +1417,7 @@ subf(P,P_res,H) :-
 
 /* cf: this is analogous to preprocessor: e.g. allow X=sqrt(4.0) */
 subf(P1,P_res,H)  :-
-	\+ fluent(P1),
+	\+ is_fluent_term(P1),
 	P1=..[F|L1],
 	subfl(L1,L2,H),
 	length(L1, ArgC), ArgC_plus is ArgC+1,
