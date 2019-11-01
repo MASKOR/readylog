@@ -1051,6 +1051,7 @@ holds(and([P|R]),H)  :- !, holds(P,H), holds(and(R),H).
 holds(or(P1,P2),H)   :- !, (holds(P1,H) ; holds(P2,H)). 
 holds(or([P]),H)     :- !, holds(P,H).
 holds(or([P|R]),H)   :- !, (holds(P,H) ; holds(or(R),H)).
+holds(lif(C,P),H)    :- !, holds(lif(C,P,true),H).
 holds(some(V,P),H)   :- !, subv(V,_,P,P1), holds(P1,H).
 holds(exists(V,P),H) :- !, subv(V,_,P,P1), holds(P1,H).
 holds(false,_H)      :- !, fail.
@@ -1163,6 +1164,7 @@ holds_not(lif(Cond, Cond1, Cond2), S) :-
 	;
 	  holds(not(Cond2), S)
 	).
+holds_not(lif(Cond, P), S) :- holds_not(lif(Cond, P, true), S).
 
 holds_not(P,H) :- 
   	P=..[Op,A,B], (Op=(=); Op=(<); (Op=(>); (Op=(=<); Op=(>=)))),
