@@ -497,7 +497,7 @@ restrict_domains2(DomList1,DomList2,DomList3,Bisher) :-
 
 
 domains_parameter(F,Dom) :-
-	F=..[_|Param], integers(Param),
+	F=..[_|Param],
 	domains_parameter2(Param,Dom).
 domains_parameter2([],[]). 
 domains_parameter2(Param,Dom) :-
@@ -1581,11 +1581,6 @@ sets_val(set(Fluent, NewValue), Fluent, NewValue, _) :- !.
 /* usual action setting the value */
 sets_val(Act,F,V,H) :-                        
 	causes_val(Act,F,V1,P),
-	(
-	  (progression_enabled ; pe) ->
-	  /* Fluentenparameter an endliche Integer-Domaene binden */
-	  F=..[_|Param], integers(Param) 
-	; true),  
 	holds(P,H), subf(V1,V,H).  
 
 
