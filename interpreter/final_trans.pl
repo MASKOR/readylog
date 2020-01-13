@@ -583,7 +583,8 @@ transPr( applyPolicy([if(Cond, Pol1, Pol2) | PolTail]), S, ProgR, SNew, 1) :- !,
  */
 transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 	printColor(yellow, "applyPolicy: general case \tPolHead = %w\n", [PolHead]),
-	printf("PolTail = %w\n", [PolTail]),
+	length(PolTail, NRemaining),
+	printf("Remaining policy elements: %w\n", [NRemaining]),
 	flush(output),
 	(
 	  final(PolHead, S) ->
