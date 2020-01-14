@@ -788,7 +788,8 @@ transPr(whenever(Phi,E),S,EE,SS,P) :-
  * (fluent eval_registers in defined in readylog.pl)
  * (fluent eval_exog_functions defined in readylog.pl)
  */
-transPr( E, S, [], [E_sub|S], 1) :-
+transPr( E_unsub, S, [], [E_sub|S], 1) :-
+	subf(E_unsub, E, S),
 	prim_action(E), !,
 	(
 	  prolog_poss(E) -> prolog_poss(E, S)

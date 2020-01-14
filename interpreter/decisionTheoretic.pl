@@ -543,8 +543,9 @@ bestDoM([Proc | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
 % </DP was here>
 
 
-bestDoM([A | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
+bestDoM([A_unsub | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
 	H > 0, 
+	subf(A_unsub, A, S),
 	prim_action(A), !,
 	(
 	  (
