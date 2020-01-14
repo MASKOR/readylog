@@ -49,6 +49,8 @@
 %  needed by "get_all_fluent_names"
 :- lib(ordset).
 
+:- lib(hash).
+
 % }}}
 
 

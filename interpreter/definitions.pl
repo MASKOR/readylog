@@ -27,10 +27,6 @@
 %% the above is deprecated (since v5.6) in favor of discontinguous/1
 %% but we should be using dynamic anyway!
 %:- lib(ordset).
-% <DP was here>
-/* support for hashing (needed for IPLearning) */
-:- lib(hash). 
-% </DP was here>
 
 :- dynamic
 	progression_enabled/0, pe/0, simple_progrssion/0, progression_debug/0,
