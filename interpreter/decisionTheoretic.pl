@@ -593,10 +593,10 @@ bestDoM(E,S,H,Pol,V,Prob,Events, Tree, RewardFunction) :-
 	bestDoM([E],S,H,Pol,V,Prob,Events, Tree, RewardFunction).
 
 /* make list in list a simple list */
-bestDoM([E|_E_rest],S,H,Pol,V,Prob,Events, Tree, RewardFunction) :-
+bestDoM([E|E_rest],S,H,Pol,V,Prob,Events, Tree, RewardFunction) :-
 	H >= 0,
 	E = [_E|_L],
-	flatten([E|_E_rest], E_flat),
+	flatten([E|E_rest], E_flat),
 	bestDoM(E_flat,S,H,Pol,V,Prob,Events, Tree, RewardFunction).
 
 /* (must be last clause):
