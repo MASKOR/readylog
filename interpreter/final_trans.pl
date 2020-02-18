@@ -789,6 +789,7 @@ transPr(whenever(Phi,E),S,EE,SS,P) :-
  * (fluent eval_exog_functions defined in readylog.pl)
  */
 transPr( E_unsub, S, [], [E_sub|S], 1) :-
+	is_prim_action_term(E_unsub),
 	subf(E_unsub, E, S),
 	prim_action(E), !,
 	(

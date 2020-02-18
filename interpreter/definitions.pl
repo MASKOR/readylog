@@ -124,6 +124,11 @@ is_proc_term(T) :- once((
 	, proc(T_free, _)
 )).
 
+is_prim_action_term(T) :- once((
+	free_args(T, T_free)
+	, prim_action(T_free)
+)).
+
 is_ipl_proc_term(T) :- once((
 	free_args(T, T_free)
 	, ipl_proc(T_free, _)
