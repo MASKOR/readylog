@@ -90,8 +90,8 @@ conditions.
 */
 
 
-% {{{ >>> process_condition <<<
-% >>>>
+% Allow variables as conditions (simply pass through)
+process_condition(Var, _S, Var) :- var(Var).
 
 process_condition( and(C1,C2), S, Body ) :-
 	process_condition( C1, S, C1New),
@@ -230,6 +230,9 @@ process_condition( P, S, New) :-
 
 % {{{ >>> process_condition_not <<<
 % >>>>
+
+% Allow variables as conditions (simply pass through)
+process_condition_not(Var, _S, not(Var)) :- var(Var).
 
 /* the not cases: move negation inside (as holds_not/2 does) */
 process_condition_not( and(C1,C2), S, Body ) :-
