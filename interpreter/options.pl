@@ -31,8 +31,6 @@ option creation via local MDPs. */
 /* ==========================================================
    Automatic Option Creation
 ========================================================== */
-% {{{ Automatic Option Creation
-% >>>>
 
 /*
   These predicates are used to solve a local MDP and to compute a
@@ -432,9 +430,6 @@ bestDoMModel_Aux( Name, [(D,Pr)|IPL_rest], H, EPL) :-
 /* ==========================================================
    Auxiliary
 ========================================================== */
-% {{{ Auxiliary
-% >>>>
-
 
 /* -- Probability list (PL) auxiliary methods */
 

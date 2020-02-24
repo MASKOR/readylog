@@ -23,10 +23,6 @@
 
 :- lib(fd).
 :- lib(lists).
-%:- lib(scattered).       /* to avoid error: non consecutive */
-%% the above is deprecated (since v5.6) in favor of discontinguous/1
-%% but we should be using dynamic anyway!
-%:- lib(ordset).
 
 :- dynamic
 	progression_enabled/0, pe/0, simple_progrssion/0, progression_debug/0,
@@ -38,10 +34,8 @@
 	initial_P/2, initial_LL/1, initial_LL/2, 
 	current_val/3, temp_val/3, temp_val/4, causes_val/4, ssa/3, 
 	proc/2, proc_model/2, proc_poss/2, proc_costs/3,
-% <DP was here>
         /* --  IPL transformed procs             */
         ipl_proc/2,
-% </DP was here>        
 	/* --  stoch_procs                       */
 	stoch_proc/1,
 	stoch_proc_poss/2,

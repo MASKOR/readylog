@@ -42,7 +42,6 @@ progression_enabled :- false. %true
 %pe :- false.
 pe :- true.
 :- setval(prgrat, 10).
-%  <DP was here>
 /* saving the epf-values to be able to regress prim_fluents that
  *  depend on epfs. (Turn off, if you use parameterised epfs!)
  */
@@ -91,7 +90,6 @@ use_caching :- true.
  */
 :- setval(debug_exoq, true).
 
-% <DP was here>
 /* IPLearn: Inductive policy learning for DT-planning.
  * turn on for activating the IPLearning component
  */
@@ -147,5 +145,3 @@ toggle_adaptive_ipl :- getval(adaptive_ipl, X),
 %  For logging of solve times.
 :- setval(avg_solve_time, 0.0).
  
-% </DP was here>
-

@@ -40,7 +40,6 @@
 /* ----------------------------------------------------------
    utilities
 ---------------------------------------------------------- */
-% {{{ utilities
 
 /* needed to create fresh variable names (otherwise they clash in
 concatenated bodies) */
@@ -71,15 +70,9 @@ imply( _Cond, false, false).
 imply( Cond, Body, ((Cond) -> Body)).
 
 
-% }}}
-
-
-
 /* ----------------------------------------------------------
    conditions
 ---------------------------------------------------------- */
-% {{{ conditions
-% >>>>
 
 /* process_condition( C, S, Body)
 (cf. holds(C, S) in readylog)
@@ -226,11 +219,6 @@ process_condition( P, S, New) :-
 	conjunct( Body_args, P_call, New).
 
 
-% }}}
-
-% {{{ >>> process_condition_not <<<
-% >>>>
-
 % Allow variables as conditions (simply pass through)
 process_condition_not(Var, _S, not(Var)) :- var(Var).
 
@@ -292,11 +280,6 @@ process_condition_not( P, S, New) :-
 	process_condition( P, S, Body_positive),
 	New = not(Body_positive).
 
-% }}}
-
-% {{{ >>> process_comparison <<<
-
-% >>>>
 
 /* corresponding to eval_comparison of icpGolog. Note: we take a
 shift from the semantics in icpGolog as we do never compare
@@ -330,19 +313,15 @@ process_comparison( Not_flag, Op, A, B, New, S) :-
 	  conjunct(Tmp1, Expression, New) /* maybe cut in between */
 	).
 
-% }}}
 
 /* negate all elements in a list */
 not_list( [], []).
 not_list( [A|B], [not(A)|B2]) :-  not_list(B,B2).
 
-% }}}
 
 /* ----------------------------------------------------------
    subf (expression evaluation)
 ---------------------------------------------------------- */
-% {{{ subf
-% >>>>
 
 /* process_subf(A, A_value, Body, Type, S)
 (cf. subf(A, V, S) in readylog)
@@ -544,14 +523,9 @@ generate_dummy_list( N, [_|Rest]) :-
 	N>0, N2 is N-1, generate_dummy_list( N2, Rest).
 
 
-% }}}
-
-
 /* ----------------------------------------------------------
    functions
 ---------------------------------------------------------- */
-% {{{ functions
-% >>>>
 
 /* process_function( F, V, Cond, Sream)
 preprocesses function F and writes the resulting prolog
@@ -594,13 +568,9 @@ process_all_functions_aux([(FunctionName, Value, Cond)|List_rest],
 	process_all_functions_aux(List_rest, Stream).	
 
 
-% }}}
-
 /* ----------------------------------------------------------
    action preconditions
 ---------------------------------------------------------- */
-% {{{ action preconditions
-% >>>>
 
 /* process_poss( A, C, Stream)
 preprocesses the precondition of action A and writes
@@ -638,13 +608,9 @@ process_all_poss_aux([(Action, Cond)|List_rest], Stream) :-
 	process_all_poss_aux(List_rest, Stream).	
 
 
-% }}}
-
 /* ----------------------------------------------------------
    generateSSAs
 ---------------------------------------------------------- */
-% {{{ generateSSAs
-% >>>>
 
 /* automatically generate successor state axioms (SSAs) from
 effect axioms (causes_val's). The intentions behind this is that
@@ -765,16 +731,10 @@ generate_dummy_SSAs_aux_set([Fluent|Rest], Stream) :-
 	generate_dummy_SSAs_aux_set( Rest, Stream).
 
 
-% }}}
-
-
-
 
 /* ----------------------------------------------------------
    stochastic procedures
 ---------------------------------------------------------- */
-% {{{ stochastic procedures
-% >>>>
 
 generate_all_stoch_proc_outcomes( Stream ) :-
 	findall( (ProcName, ModelBody),
@@ -1021,13 +981,10 @@ checkProbabilities([(_Prog, Pr, _Sense)|L], X) :-
 	X2 is X + Pr,
 	checkProbabilities(L, X2).
 
-% }}}
 
 /* ----------------------------------------------------------
    explicit events
 ---------------------------------------------------------- */
-% {{{ explicit events
-% >>>>
 
 /* explicit events are syntactically the same as stochastic
 procedures, but are called 'by nature' whenever possible
@@ -1115,22 +1072,17 @@ parameters) ! Note: since this is essentially the same as
 stoch_procs, we can use the same predicate
 (generate_stoch_proc_outcome) to generate the outcomes ! */
 generate_event_outcome( Event, ModelBody, Stream ) :-
-%% STFIXME
 %	generate_stoch_proc_outcome( ModelBody, S, [], [], NewBody ),
 	generate_stoch_proc_outcome( ModelBody, S, [], [], Outcomes, SenseEffect, NewBody ),
 %	var(Outcomes), var(SenseEffect),
 	printf(Stream, "event_outcomes(%w, %w, %w, %w) :- %w, !.\n",
 	       [Event, S, Outcomes, SenseEffect, NewBody] ).
 
-% }}}
-
 
 
 /* ----------------------------------------------------------
    options
 ---------------------------------------------------------- */
-% {{{ options
-% >>>>
 
 /* see fritzthesis03 and options.pl to understand this. */
 
@@ -1340,15 +1292,10 @@ process_all_options_aux(Epsilon, [Option | List_rest], Stream) :-
 	process_option( Option, Epsilon, Stream), !,
 	process_all_options_aux(Epsilon, List_rest, Stream).	
 
-% }}}
-
-
 
 /* ==========================================================
    MAIN
 ========================================================== */
-% {{{ MAIN
-% >>>>
 
 preprocess( File ) :- preprocess( File, _NewFile, true, 0).
 preprocess( File, NewFile, Last, Level ) :-
@@ -1443,7 +1390,6 @@ autorun :-
 	  writeln("******************************")
 	).
 
-% }}}
 
 :- writeln("** loading preprocessor.pl\t\t DONE").
 

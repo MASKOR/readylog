@@ -127,7 +127,6 @@ icpgolog(E) :-
 	    writeln("ADVANCED PROGRESSION DISABLED."),
 	    nl
 	),
-        % <DP was here>
         (iplearn ->
             writeln("INDUCTIVE POLICY LEARNING ENABLED."),
             nl,
@@ -143,7 +142,6 @@ icpgolog(E) :-
             writeln("INDUCTIVE POLICY LEARNING DISABLED."),
             nl
         ),
-        % </DP was here>
 	statistics(hr_time, T0_main),
         icpgo(E, [s0]),
 	statistics(hr_time, T1_main),
@@ -217,12 +215,10 @@ number of actions */
 icpxeq(H,[Act|H],H1) :- not senses(Act,_),
 	execute(Act,_,H),
 	%printColor( red, " ***** (2) icpxeq(%w,%w \n%b", [H,Act] ),
-%  <DP was here>
 %  Saving the epf-values doesn't work for parameterised epfs as intended,
 %  because process_epf(_aux) doesn't evaluate each fluent with every possible
 %  parameter value. [Thus, this method doesn't work with the ReadyBots yet.]
         ( save_epf_values ->
-	   %% STF: fix exogf_Update-value-gehassel
 	   ( Act = exogf_Update -> %, HRest \= [s0]
 	       %% we want to save epf-values to be able to regress
 	       %% prim_fluents that depend on epfs ...
@@ -233,7 +229,6 @@ icpxeq(H,[Act|H],H1) :- not senses(Act,_),
         ;
            Hneu = [Act|H]
         ),
-%  </DP was here>
 	length(Hneu, HL), getval(prgrat, PL),
 	(pe, HL >= PL ->
 	    incZaehler(Hneu),
@@ -241,13 +236,6 @@ icpxeq(H,[Act|H],H1) :- not senses(Act,_),
 	    ;
 	    H1=Hneu
 	). %, printColor( red, " ***** icpxeq(2) done! \n%b", [] ).	
-%% STF: Old version 
-%	length(H, HL), getval(prgrat, PL),
-%	(pe, HL >= PL ->
-%	    incZaehler([Act|H]),
-%	    update_current_val([Act|H],H1)
-%	    ;
-%	    H1=[Act|H]).	
 
 /* (3) - The action is a sensing one for fluent F:
 execute sensing action*/ 
@@ -356,7 +344,7 @@ initialize :-
 % Die Wissensbasis wird gemaess der Aktionen in H1 aktualisiert, 
 % HH ist die verkuerzte History mit Laenge 1
 
-% CF&AF: the worlds worst ever hack: ignore exogf_update progression
+% ignore exogf_update progression
 update_current_val(H1,HH) :-
 	%% since we insert set(epf) into the history (in process epf)
 	%% we should ensure that exogf_Update has been executed ...
@@ -366,7 +354,6 @@ update_current_val(H1,HH) :-
 	  NEFU > 0 ->
 	  Act = exogf_Update, 
 	  %HH = [Act|H2]
-%  <DP was here>
 %  Saving epf-values currently doesn't work with parameterised
 %  epfs. (To get a value for them one would need to evaluate
 %  for all possible parameters).
@@ -379,15 +366,13 @@ update_current_val(H1,HH) :-
              HH = [Act|H2]
           )
           %,printColor( pink, " *** PROGRESSION FALL EINS \n H_alt: %w \n HG: %w \n H_neu: %w \n%b", [H1,HG,HH] )
-%  </DP was here>
 	;
 	  HH = H2
 	  %,printColor( pink, " *** PROGRESSION FALL ZWEI \n H_alt: %w \n H_neu: %w \n%b", [H1,HH] )
 	).
 
 
-/* AF: here, we extended the old claueses to counting
-the number of exogf_actions */
+/* Here, we extended the old clauses to counting the number of exogf_actions */
 update_current_val1([S],[S], N, N). 
 update_current_val1(H1,HH, NEFU, NEFU2) :- 
 	H1=[Act|H],
@@ -407,18 +392,18 @@ update_current_val1(H1,HH, NEFU, NEFU2) :-
 	  update_action1(Act,HH, NEFU1)
 	).
 
-/* AF : old update_action clause. Replaced with update_action1() */
+/* Old update_action clause. Replaced with update_action1() */
 % Die Wissensbasis wird gemaess der Aktion "Act" aktualisiert.
 update_action(Act,H) :- 
-	current_to_temp, !,	% current_val in temp_val sichern
+	current_to_temp, !,
 	(sets_val(Act,F,V,H), update_fluent_val(F,V,H), fail ; true),
 	!,
 	(has_val(pll(A,B,C),true,[Act|H]), lastElement(A,A1), H=[S],
 	    asserta(temp_val(pll([A1],B,C),true,S)), fail ; true), !,
-	temp_to_current.      % temp_val in current_val speichern
+	temp_to_current.
 
 
-/* AF: We do not look further than the first exog_update (case 1)
+/* We do not look further than the first exog_update (case 1)
  * alternatively, we can ignore only the exog_update actions */
 update_action1(Act,H, NEFU) :-
 	(
@@ -426,7 +411,7 @@ update_action1(Act,H, NEFU) :-
 	  Act = exogf_Update ->
 	  true
 	;
-	  current_to_temp, !,	% current_val in temp_val sichern
+	  current_to_temp, !,
 	  (sets_val(Act,F,V,H), update_fluent_val(F,V,H), fail ; true),
 	  !,
 	  (has_val(pll(A,B,C),true,[Act|H]), lastElement(A,A1), H=[S], 	
@@ -517,13 +502,11 @@ assert_domains2(Param,DomList) :-
 lastElement(A,A1) :- A=[A1].
 lastElement(A,A1) :- A=[_|A3], lastElement(A3,A1).
 
-% 
 
 
 /* ==========================================================
    Transition Semantics
 ========================================================== */
-
 
 transStar(E,H,E,H)   :- final(E,H), !.
 transStar(E,H,EE,HH) :-
@@ -534,8 +517,6 @@ transStar(E,H,EE,HH) :-
 /* ==========================================================
    Continuous Change
 ========================================================== */
-%  Continuous Change
-% >>>>
 
 % ltp(P,T,H) (least time point). 
 % T ist der früheste Zeitpunkt, in dem TForm P erfuellt ist. 
@@ -669,14 +650,11 @@ neg_op(Not,>=,P) :- (Not=not -> P=(<)  ; P=(>=)).
 
 liste(L) :- not var(L), (L=[]; L=[_|_]),!.
 
-% 
 
 
 /* ==========================================================
-   defined fluents and actions of icpGolog
+   predefined fluents and actions of icpGolog
 ========================================================== */
-%  defined fluents and actions of icpGolog
-% >>>>
 
 const(true).
 const(false).
@@ -774,8 +752,6 @@ initial_val(eval_exog_functions, true).
 /* ==========================================================
    Cache
 ========================================================== */
-%  Cache
-% >>>>
 
 /* Aufrufe der Projektionen und des "Beliefs" werden gecached, da
 sie bei der Ausfuehrung eines Programmes mehrfach durchgefuehrt
@@ -804,8 +780,6 @@ cache(Praed) :-
 /* ==========================================================
    Believe
 ========================================================== */
-%  Believe
-% >>>>
 
 /* bel(Phi,Res,H) sagt aus, dass die Formel Phi mit
 Wahrscheinlichkeit Res in der Historie H fuer moeglich gehalten
@@ -857,13 +831,10 @@ normBel([[_,P1]|L],S) :- normBel(L,S1), S is S1+P1.
 schreibe([]) :- nl.
 schreibe(L):- L=[L1|L2], print(L1), nl, schreibe(L2). 
 
-% 
 
 /* ==========================================================
    Knowledge Update
 ========================================================== */
-%  Knowledge Update
-% >>>>
 
 transPrTo(L,H,LL,HH,T,P) :-
 	findall([L1,H1,P1],
@@ -878,23 +849,19 @@ transPrTo(L,H,LL,HH,T,P) :-
 	  P is P1*P2
 	).
 
-% 
 
 /* ==========================================================
    Probabilistic Projection
-========================================================== */
-%  Probabilistic Projection
-% >>>>
+   (with or without progression)
+   ========================================================== */
 
-/* Probabilistische Projektion (mit oder ohne Progression der
-Wissensbasis) */
 proj(Phi,E,Prob,H) :- 
      write("Prob. Proj. Test "),
      findall([H1,LL1,P1],has_val(pll(H1,LL1,P1),true,H),L),
      length(L,N1), write("(# of initial configs: "),
      write(N1), write(",  "),
      (
-       simple_projection ->  % 1. keine Progression der Wissensbasis:
+       simple_projection ->  % No progression
        (
 	 getAllTraces(L,E,Traces), 
 	 sort(Traces,TracesS),
@@ -907,7 +874,7 @@ proj(Phi,E,Prob,H) :-
 	 normProj(L,Norm)
        )
      ; 
-	% 2. Projektion mit Progression der Wissensbasis:
+	% Projection with progression
        (
 	 save_current_val,         
 	 getAllTraces2(L,E,Phi,Traces),
@@ -1012,9 +979,7 @@ calcPhiProb(Phi,[[H1,P1]|T],P) :-
 
 /* ==========================================================
    Limited Projection Tests
-========================================================== */
-%  Limited Projection Tests
-% >>>>
+   ========================================================== */
 
 /* zeitlich begrenzte Projektion eines Programmes ohne
 probabilistische Anweisungen (prob). */
@@ -1041,8 +1006,6 @@ limitedProjTest(Phi,T,E,LL,Erg,H) :- % Projektions-Test
 /* ==========================================================
    Evaluating Condition
 ========================================================== */
-%  Evaluating Condition
-% >>>>
 
 % Auswertung von Bedingungen bezueglich der Historie H
 holds(and(P1,P2),H)  :- !, holds(P1,H), holds(P2,H). 
@@ -1109,10 +1072,8 @@ holds(P,H) :-
 holds(P,H) :- is_proc_term(P), !, subf(P,P1,H), % call-by-value
               proc(P1,P2), holds(P2,H).
 
-% <DP was here>
 holds(P,H) :- iplearn, is_ipl_proc_term(P), !, subf(P,P1,H), % call-by-value
               ipl_proc(P1,P2), holds(P2,H).
-% </DP was here>
 
 /* allow conditions returned by functions */
 holds(P,H) :- is_function_term(P), !, subf(P,P1,H),
@@ -1174,10 +1135,8 @@ holds_not(P,H) :-
 holds_not(P,H) :- is_fluent_term(P), !, subf(P,P1,H), call(not(P1)).
 holds_not(P,H) :- is_proc_term(P), !, subf(P,P1,H),  % call-by-value
 	          proc(P1,P2), holds(not(P2),H). 
-% <DP was here>
 holds_not(P,H) :- iplearn, is_ipl_proc_term(P), !, subf(P,P1,H),  % call-by-value
 	          ipl_proc(P1,P2), holds(not(P2),H). 
-% </DP was here>
 holds_not(P,H) :- !, not holds(P,H).  % Negation by failure
 
 
@@ -1300,44 +1259,8 @@ subf(P1,P2,H)  :- % Check whether a term is a fluent with unbound arguments
 		      not(Eval) -> P2 = P3
 		    )
 		  ;
-		    
-% 		    /* if not a register */
-% 				%		    has_val(P3,P2,H),
-% 		    /*<state_abstraction> */		    
-% 		    bb_dbg(5, green, "Before Fluent QQ \n\n", []),
-% 		    printf("P1: %w, P2: %w, H: %w\n", [P1, P2, H]),
-% 		    read(Y),
-% 		    (
-% 		      (use_state_abstraction,
-% 			  has_val(online, V, H), V = false) ->
-% 		      bb_dbg(5, green, "\n\n\nUsing QQ\n\n", []),
-% 		      read(X1),
-% 		      P3 =.. [Function|Args],
-% 		      term_string(Function, FunctionString),
-% % 		      (
-% % 			substring(FunctionString, "qq_", 1)->
-% % 			PNew =.. [Function|Args]
-% % 		      ;
-% % 			append_strings("qq_", FunctionString, FunctionStringNew),
-% % 			term_string(FunctionNew, FunctionStringNew),
-% % 			PNew =..[FunctionNew|Args]
-% % 			),
-% 		      (
-% 			fluent(PNew) ->
-% 			  P4 = PNew
-% 		      ;
-% 			bb_dbg(5,red, "QQ-Fluent %w does not exist\n", [PNew]),
-% 			P4 = P3
-% 		      )
-% 		    ;
-% 		      P4 = P3,
-% 		      bb_dbg(5, red, "Calling hasval %w" ,[]),
-% 		      ),
-% 		    bb_dbg(5, red, "Calling hasval" ,[]),
-% 		    has_val(P4, P2, H)
-% 		    /*</state_abstraction> */
 		    has_val(P3, P2, H)
-		    ).
+		  ).
 
 /* cf: here comes restriction for only simple args (nothing like
 [X,Y]) */
@@ -1362,8 +1285,8 @@ subf(P,P2,H)  :-
  	  )
  	;
 	  P1 = P
-	  ), /*</state_abstraction> */
- 	  bb_dbg(5, green, "After QQ\n\n", []),	
+	), /*</state_abstraction> */
+	bb_dbg(5, green, "After QQ\n\n", []),
 	/* evaluating parameters */
 	P1=..[F|L1],
 	/* special function id returns the argument as a string
@@ -1478,14 +1401,10 @@ isNumber(X) :- number(X), !.
 isNumber(pi).
 
 
-% 
-
 
 /* ==========================================================
    Regression
 ========================================================== */
-%  Regression
-% >>>>
 
 /* ----------------------------------------------------------
    has_val(F,V,H): berechnet den aktuellen Wert des Fluenten F in
@@ -1497,7 +1416,6 @@ has_val(F, V, _H) :-
 	exog_fluent_getValue(F, V, [])
 .
 
-%  <DP was here>
 /* If IPLearning is active, and there are parameterised exogenous
  *  primitive fluents in the world model, we need to keep book
  *  of all the instantiated has_val calls to those fluents. If the
@@ -1529,7 +1447,6 @@ has_val(F,_V,_S) :- iplearn, param_exog_prim_fluents,
         setval(param_exog_prim_fluent_calls, NewCallList),
         %  Force matching of the other clauses.
         false.
-%  </DP was here>
 
 /* situation term of length one: look up the fluent value in the
 knowledge base created by progression or if the situation is [s0]
@@ -1570,12 +1487,12 @@ Aktion mit Nachfolgeraxiom oder eine exogene Aktion e(F,V) sein.
 /* sensor action setting the value */
 sets_val(e(F,V1),F,V,H) :- !, subf(V1,V,H).
 
-%cf: action did the update of all exogenous fluents
+% action did the update of all exogenous fluents
 sets_val(exogf_Update, F, V, S) :- !,
 	exog_fluent(F),
 	exog_fluent_getValue(F, V, S).
 
-/* general set(fluent, NewValue) action (cf) */
+/* general set(fluent, NewValue) action */
 sets_val(set(Fluent, NewValue), Fluent, NewValue, _) :- !.
 
 /* usual action setting the value */
@@ -1584,7 +1501,6 @@ sets_val(Act,F,V,H) :-
 	holds(P,H), subf(V1,V,H).  
 
 
-%  <DP was here>
 /* ----------------------------------------------------------
 is_param_exog_prim_fluent(F):
 Tests if fluent F is an exogenous primitive fluent that has
@@ -1626,7 +1542,6 @@ contains_param_exog_prim_fluent(List, Result) :-
 contains_param_exog_prim_fluent(List, Result) :-
         List = [_F | Rest],
         contains_param_exog_prim_fluent(Rest, Result).
-%  <DP was here>
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

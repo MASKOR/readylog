@@ -28,7 +28,6 @@
 /* --------------------------------------------------------- */
 /*  Final                                                    */
 /* --------------------------------------------------------- */
-% {{{ Final
 
 /* axioms for final configuration.
  * final(P, S) states that program P is finished in situation S.
@@ -45,11 +44,9 @@ final(withCtrl(_F,E),S) :- final(E,S).
 final(applyPolicy(P), S) :-
 	final(P,S),
 	printColor(yellow, "** POLICY COMPLETED **\n", []).
-% <DP was here>
 final(applyLearnedPolicy(P, _Solve, _S_solve), S) :-
 	final(P,S),
 	printColor(yellow, "** POLICY COMPLETED **\n", []).
-% </DP was here>
 
 /* -- Macros -- */
 final(tryAll(E1,E2),S) :-   final(pconc(E1,E2),S).
@@ -61,18 +58,11 @@ final(interrupt(E1, E2, E3), S) :- final(E1, S); final(E2, S); final(E3, S).
 /* ------------ */
 
 final(E,S) :- proc(E,E1), final(E1,S).
-% <DP was here>
 final(E,S) :- ipl_proc(E,E1), final(E1,S).
-% </DP was here>
-
-% }}}
 
 /* --------------------------------------------------------- */
 /*  transPr                                                  */
 /* --------------------------------------------------------- */
-% {{{ transPr
-
-%trans(E,S,E1,S1) :- transPr(E,S,E1,S1,1).
 
 /* the old ConGolog trans/4 is a transPr with probability 1
  * Make sure that after trans/4 completes, the history actually contains a new action.
@@ -200,11 +190,8 @@ transPr(withCtrl(F,E),S,EE,SS,P) :- !,
 
 /* --------------------------------------------------------- */
 /*  Interrupts                                               */
+/*  parallel condition-bounded execution
 /* --------------------------------------------------------- */
-
-/* interrupts.
- * parallel condition-bounded execution
- */
 transPr( interrupt([], ENorm), S, EE, SS, P) :-
 	transPr( ENorm, S, EE, SS, P).
 transPr( interrupt([[Phi,EInt]|Rest], ENorm), S, EE, SS, P) :-
@@ -225,43 +212,6 @@ transPr( interrupt(Phi, EInt, ENorm), S, EE, SS, P) :-
 /*  decision-theoretic planning                              */
 /* --------------------------------------------------------- */
 
-/*
-<deprecated> has to be tested
-%	printf(" --------\t solve \t-------------
-%	      \nHorizon: %w\nProg: %w\nS: %w", [Horizon, Prog, S]),
-%	flush(output),
-%	% STF was here:
-%	cancel_after_event(event_exogUpdate),
-%	% till here!
-%	statistics(times, [CPUT, SYST, RealT]), !,
-%	bestDoM(Prog, [clipOnline|S], Horizon, Policy,
-%	        Value, TermProb, checkEvents, Tree, reward),
-%	statistics(times, [CPUT2, SYST2, RealT2]), !,
-%	% STF next 2 me again
-%	param_cycletime(CycleTime),
-%	event_after_every(event_exogUpdate, CycleTime),
-%	% till here!
-%	!,
-%	CPUDiff is CPUT2 - CPUT,
-%	SYSDiff is SYST2 - SYST,
-%	RealDiff is RealT2 - RealT,
-%	printf(" --------\t solve DONE \t-------------\n", []),
-%	printf("Policy:\n", []),
-%	printPol(stdout, Policy),
-%	printf("\n\nTimes: %w\nValue: %w\nTermProb: %w\n",
-%	       [[CPUDiff, SYSDiff, RealDiff], Value, TermProb]), !,
-%				%	transPr(applyPolicy(Policy), S, Policy_r, S_r, _Prob).
-%	(
-%	  dtdebug ->
-%	  printf("Tree: %w\n", [Tree])
-%	;
-%	  true
-%	),
-%	Policy_r = applyPolicy(Policy),
-%	S_r = S.
-</deprecated>
-*/
-
 /* solve; decision theoretic optimizing.
  * start optimization of a program.
  * the program is handed to bestDoM
@@ -278,13 +228,9 @@ transPr( solve(Prog, Horizon), S, Policy_r, S_r, 1) :- !,
 transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	printf(" --------\t solve \t-------------\n Horizon: %w\n    Prog: %w\n       S: %w\n", [Horizon, Prog, S]),
 	flush(output),
-	% STF was here:
-	%cancel_after_event(event_exogUpdate), % this predicate is deprecated!
 	cancel_after_event(event_exogUpdate, CancelledEvent),
 	printf(" CnclEvt: %w\n", [CancelledEvent]),
-	% till here!
 	statistics(times, [CPUT, SYST, RealT]), !,
-        % <DP was here>
         ( iplearn ->
             %  Determine, whether we are still preparing for the training phase,
             %  or, for this solve, we are in the training phase or in the
@@ -373,12 +319,9 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	    bestDoM(Prog, [clipOnline|S], Horizon, Policy,
 		    Value, TermProb, checkEvents, Tree, RewardFunction)
         ),
-        % </DP was here>
 	statistics(times, [CPUT2, SYST2, RealT2]), !,
-	% STF next 2 me again
 	param_cycletime(CycleTime),
 	event_after_every(event_exogUpdate, CycleTime),
-	% till here!
 	!,
 	CPUDiff is CPUT2 - CPUT,
 	SYSDiff is SYST2 - SYST,
@@ -403,7 +346,6 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	;
 	  true
 	),
-        % <DP was here>
         (
           iplearn ->
              printf("*********** PHASE: %w.\n", [Phase]),
@@ -472,7 +414,6 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
             %  Inductive policy learning is turned off.
             Policy_r = applyPolicy(Policy)
         ),
-        % </DP was here>
 	S_r = S.
 
 
@@ -513,14 +454,11 @@ transPr( pickBest(F, R, E), S, E_choice, S_choice, 1) :- !,
 	),
 	S_choice = [toss(BestValue)|S].
 
-%  <DP was here>
 transPr( [pickBestBindDomainVariables(E)|Rest], S, EE, SS, 1) :- !,
         %  Execute pre-solve code that has been prepared
         %  by rho-operator in the iplpreprocessor.
         E,
         transPr( Rest, S, EE, SS, 1).
-%  </DP was here>
-
 
 /* --------------------------------------------------------- */
 /*  applyPolicy                                              */
@@ -600,7 +538,6 @@ transPr( applyPolicy([PolHead | PolTail]), S, ProgR, SNew, 1) :-
 %	printf("applyPolicy: DEBUG: no case/trans for \t %w\n", [E]),
 %	flush(output), !, fail.
 
-% <DP was here>
 /* --------------------------------------------------------- */
 /*  applyLearnedPolicy                                       */
 /* --------------------------------------------------------- */
@@ -745,7 +682,6 @@ transPr( applyLearnedPolicy([PolHead | PolTail],
 %          ProgR = applyLearnedPolicy(PolR,
 %                              solve(Prog, Horizon, RewardFunction), S_solve)
 	).
-% </DP was here>
 
 
 
@@ -823,7 +759,6 @@ transPr( E, S, EE, SS, P) :-
 %	E_sub =.. [ProcName|Args_eval_s],
 %	/* - look up procedure with evaluated actual parameters - */
 %	proc( E_sub, E_body), !,
-% <DP was here>
         ( iplearn ->
            /* use transformed proc with solve contexts in standard form */
            /* do not evaluate args */
@@ -832,18 +767,12 @@ transPr( E, S, EE, SS, P) :-
 	   /* do not evaluate args */
 	   proc( E, E_body), !, transPr( E_body, S, EE, SS, P)
         ).
-%	/* do not evaluate args */
-%	proc( E, E_body), !,
-%	transPr( E_body, S, EE, SS, P).
-% </DP was here>
 
-% }}}
 
 
 /* --------------------------------------------------------- */
 /*  AUXILIARY                                                */
 /* --------------------------------------------------------- */
-% {{{ AUXILIARY
 
 /* used for X in toss(X) */
 member_index( X, 0, [X|_L]).
@@ -859,4 +788,3 @@ earlier(H1,H2) :-
 simultaneous(H1,H2) :-
      has_val(sit_start_time,T,H1), !, has_val(sit_start_time,T,H2).
 
-% }}}

@@ -46,15 +46,6 @@
 
    ---------------------------------------------------------- */
 
-/* --------------------------------------------------------- */
-/*  Header + Flags                                           */
-/* --------------------------------------------------------- */
-% {{{ header + flags
-
-%:- lib(scattered).       /* to avoid error: non consecutive */
-%% the above is deprecated (since v5.6) in favor of discontinguous/1
-%% but we are using dynamic (for BestDoM and BestDoMOpt) now instead!
-
 :- set_flag(print_depth,500).
 
 
@@ -93,13 +84,10 @@ toggle_dtrewards :- getval(dtrewards, X),
 	  printf("DTRewards turned ON\n(now giving rewards in each state)", [])
 	).
 
-% }}}
-
 
 /* --------------------------------------------------------- */
 /*  bestDoM                                                  */
 /* --------------------------------------------------------- */
-% {{{ bestDoM
 
 /* former bestDoM/6 is a bestDoM where events are still to be checked */
 bestDoM(Program, S, H, Pol, V, Prob) :-
@@ -113,7 +101,6 @@ bestDoM(Program, S, H, Pol, V, Prob, Events, Tree) :-
 
 	 
 /* --- explicit event models --- */
-% {{{ explicit event models
 
 /* check if any explicit event is defined for this situation */
 /* get list of all events defined for this situation */
@@ -213,7 +200,6 @@ bestDoM_event_Aux( Program, RestEvents,
 	Tree = [[info(V_rest, Prob_rest),
 		 event_outcome(Prog, Pr, SenseCond) | Tree_rest], Tree_tree].
 
-% }}}
 /* ----------------------------- */
 
 bestDoM([?(C)| E], S, H, Pol, V, Prob, ignoreEvents, Tree, RewardFunction) :-
@@ -269,9 +255,6 @@ bestDoM([nondet([E1 | E2]) | E],S,H,Pol,V,Prob, ignoreEvents, Tree, RewardFuncti
 /* ------------------------------------ */
 /*  pickBest                            */
 /* ------------------------------------ */
-% {{{ >>>>>>>> bestDoM pickBest <<<<<<<<
-
-% >>>>
 
 /* pickBest picks the 'best' value for F from the domain R and
 perform program E with that. R can be a list of atoms, integers,
@@ -332,8 +315,6 @@ bestDoM_pickBest_getBest([(Pol_local, V_local, Prob_local, Tree_local)|Rest],
 			    policy([info(V_rest, Prob_rest) | Tree_rest]) )]
  	).
 
-% }}}
-	
 /* ------------------------------------ */
 /*  if/while                            */
 /* ------------------------------------ */
@@ -400,9 +381,6 @@ bestDoM([pi(X,E1) | E],S,H,Pol,V,Prob,ignoreEvents,Tree,RewardFunction) :-
 /* ------------------------------------ */
 /*  stochProcs                          */
 /* ------------------------------------ */
-% {{{ >>>>>>>> bestDoM stoch_procs <<<<<<<<
-% >>>>
-
 /* stoch_procs are procedures with associated stochastic
 outcomes which are completely independant from the
 procedures body. As such, it is an extension of the
@@ -511,8 +489,6 @@ bestDoM_stoch_Aux([(Prog,Pr,SenseCond)| OtherOutcomes],E,S,H,Pol,
 	  Tree = [[not_poss(stoch_proc_outcome(Prog)), leaf(S, 0, H, 0.0)], TreeT]	  
 	).
 
-% }}}
-
 
 /* no (logical) constants allowed as formal parameters of procs:
 this saves us from having to evaluate possible fluents as actual
@@ -523,24 +499,19 @@ bestDoM([Proc | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
 	Proc =.. [ProcName|Args_s],
 	subfl(Args_s, Args_eval_s, S),
 	Proc_sub =.. [ProcName|Args_eval_s],
-% <DP was here>
         ( iplearn ->
                 ipl_proc(Proc_sub,Body)
         ;
                 proc(Proc_sub,Body)
         ),
-% </DP was here>
 	not(stoch_proc(ProcName)),
 	!,
 	bestDoM([Body | E],S,H,Pol,V,Prob,ignoreEvents, Tree_rest,RewardFunction),
-% <DP was here>
         ( iplearn ->
                 Tree = [ipl_proc( Proc_sub)|Tree_rest]
         ; 
                 Tree = [proc( Proc_sub)|Tree_rest]
         ).
-%	Tree = [proc( Proc_sub)|Tree_rest].
-% </DP was here>
 
 
 bestDoM([A_unsub | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
@@ -573,7 +544,6 @@ bestDoM([A_unsub | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
 	).
 
 % {{{ >>>>>>>> bestDoM finals <<<<<<<<
-% >>>>
 
 bestDoM([],S,H,Pol,V,Prob,_Events, Tree,RewardFunction) :-
 	Pol=[],
@@ -607,23 +577,17 @@ bestDoM(_E,S,H,[],V,1.0,_Events, Tree, RewardFunction) :-
 	leaf_debug(V, S),
 	Tree = [leaf(S, V, H, 1.0)].
 
-% }}}
-
-
-% }}}
-
 
 /* --------------------------------------------------------- */
 /*  AUXILIARY                                                */
 /* --------------------------------------------------------- */
-% {{{ DTGolog Auxiliary
 
 leaf_debug( V, S) :-
 	(
 	  dtdebug ->
 	  set_textcolor( blue ),
 	  printf("LEAF: V: %w\tS: %w\n", [V, S]),
-      printColor(red, "LEAF DEBUG SIT: %w\n",[S]),
+	  printColor(red, "LEAF DEBUG SIT: %w\n",[S]),
 	  set_textcolor( normal )
 	;
 	  true
@@ -645,8 +609,6 @@ greatereq(_,Prob1,_,Prob2) :-   (Prob1 \= 0.0) , (Prob2 = 0.0) .
 
 greatereq(V1,Prob1,V2,Prob2) :-
             (Prob1 \= 0.0) , (Prob2 \= 0.0) , V2 =< V1.
-
-% }}}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
