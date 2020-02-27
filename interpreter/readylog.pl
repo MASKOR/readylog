@@ -53,11 +53,6 @@
  */
 :- ensure_loaded('final_trans.pl').
 
-/* load state abstraction methods.
- * not used right now.
- */
-%:- ensure_loaded('stateabstraction.pl').
-
 /* load decision-theoretic extension.
  * the semantics definitions for dt-programs by bestDoM
  */
