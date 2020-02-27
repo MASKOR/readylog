@@ -507,7 +507,8 @@ bestDoM([Proc | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
 
 
 bestDoM([A_unsub | E],S,H,Pol,V,Prob,ignoreEvents, Tree,RewardFunction) :-
-	H > 0, 
+	H > 0,
+	is_prim_action_term(A_unsub),
 	subf(A_unsub, A, S),
 	prim_action(A), !,
 	(
