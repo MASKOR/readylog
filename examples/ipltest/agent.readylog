@@ -1,4 +1,0 @@
-proc(testproc,
-    [testtoken, anothertesttoken,
-     if( true, [solve([do1, deterministicAction, nondet([doA, doB])], 3, rewardf)]), dwajdo, blablubb
-    ]).

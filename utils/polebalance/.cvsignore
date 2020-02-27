@@ -1,8 +1,0 @@
-*~
-*.bak
-*.o
-*.out
-*.tmp
-.deps*
-.objs*
-tags

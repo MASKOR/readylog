@@ -1,1 +1,0 @@
-solve([testing123, nondet(p_1,p_2,p_3), blablubb], 8, rewardfunction).

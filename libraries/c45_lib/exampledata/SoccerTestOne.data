@@ -1,7 +1,0 @@
-60, 1, GoToGoal
-50, ?, GoToGoal
-20, 8, GoToGoal
-26, 20, TurnToGoal
-5, 0, NewGoal
-7, 45, NewGoal
-38, 13, TurnToGoal
