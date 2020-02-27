@@ -58,7 +58,6 @@ final(interrupt(E1, E2, E3), S) :- final(E1, S); final(E2, S); final(E3, S).
 /* ------------ */
 
 final(E,S) :- proc(E,E1), final(E1,S).
-final(E,S) :- ipl_proc(E,E1), final(E1,S).
 
 /* --------------------------------------------------------- */
 /*  transPr                                                  */
@@ -231,94 +230,8 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	cancel_after_event(event_exogUpdate, CancelledEvent),
 	printf(" CnclEvt: %w\n", [CancelledEvent]),
 	statistics(times, [CPUT, SYST, RealT]), !,
-        ( iplearn ->
-            %  Determine, whether we are still preparing for the training phase,
-            %  or, for this solve, we are in the training phase or in the
-            %  consultation phase.
-            create_hash_key( solve(Prog, Horizon, RewardFunction), HashKey ),
-            determine_ipl_phase( HashKey, S, Phase),
-            ( (Phase = "pre_train" ; Phase = "train") ->
-                 %  Compute policy through DT planning.
-	         bestDoM(Prog, [clipOnline|S], Horizon, Policy,
-	         Value, TermProb, checkEvents, Tree, RewardFunction)
-            ;
-                 %  Phase = "consult"
-                 %  Consult learned decision tree to get policy.
-	         statistics(times, [CPUT_BC, SYST_BC, RealT_BC]),
-                 consult_dtree(Prog, Horizon, RewardFunction, [clipOnline|S],
-                               PolicyConsult, ValueConsult, TermProbConsult,
-                               TreeConsult,
-                               ConsultSuccess),
-
-                 statistics(times, [CPUT_AC, SYST_AC, RealT_AC]),
-                 %  statistics
-	         CPUDiffC is CPUT_AC - CPUT_BC,
-	         SYSDiffC is SYST_AC - SYST_BC,
-	         RealDiffC is RealT_AC - RealT_BC,
-                 getval(consultation_time_cpu, CTcpu),
-                 getval(consultation_time_sys, CTsys),
-                 getval(consultation_time_real, CTreal),
-                 CTcpuNew is (CTcpu + CPUDiffC),
-                 CTsysNew is (CTsys + SYSDiffC),
-                 CTrealNew is (CTreal + RealDiffC),
-                 setval(consultation_time_cpu, CTcpuNew),
-                 setval(consultation_time_sys, CTsysNew),
-                 setval(consultation_time_real, CTrealNew),
-                      getval(learned_policy_consultations_total, LPCTtimesOld),
-                      LPCTtimes is (LPCTtimesOld + 1),
-                 ( exists('consult_times.log') ->
-                    open('consult_times.log', append, TimesLog),
-                    printf(TimesLog, "--------------- CONSULTATION TIMES --------------\n", []),
-                    printf(TimesLog, "[# of consultations, CPU, SYS, REAL]\n", []),
-                    printf(TimesLog, "%w %w %w %w.\n", [LPCTtimes, CTcpuNew, CTsysNew, CTrealNew]),
-                    printf(TimesLog, "-------------------------------------------------\n\n", []),
-                    close(TimesLog)
-                 ;
-                    open('consult_times.log', write, TimesLog),
-                    printf(TimesLog, "--------------- CONSULTATION TIMES --------------\n", []),
-                    printf(TimesLog, "[# of consultations, CPU, SYS, REAL]\n", []),
-                    printf(TimesLog, "%w %w %w %w.\n", [LPCTtimes, CTcpuNew, CTsysNew, CTrealNew]),
-                    printf(TimesLog, "-------------------------------------------------\n\n", []),
-                    close(TimesLog)
-                 ),
-
-                 ( ConsultSuccess ->
-                      %  If the decision tree returned a valid policy, use it.
-                      Policy = PolicyConsult,
-                      Value = ValueConsult,
-                      TermProb = TermProbConsult,
-                      Tree = TreeConsult,
-
-                      %  statistics
-                      getval(learned_policy_consultations_successful, LPCS),
-                      LPCS_new is (LPCS + 1),
-                      setval(learned_policy_consultations_successful, LPCS_new),
-                      getval(learned_policy_consultations_total, LPCT),
-                      LPCT_new is (LPCT + 1),
-                      setval(learned_policy_consultations_total, LPCT_new)
-                 ;
-                      %  Otherwise, stick to DT planning.
-	              bestDoM(Prog, [clipOnline|S], Horizon, PolicyConv,
-		              ValueConv, TermProbConv, checkEvents, TreeConv,
-                              RewardFunction),
-                      Policy = PolicyConv,
-                      Value = ValueConv,
-                      TermProb = TermProbConv,
-                      Tree = TreeConv,
-
-                      %  statistics
-                      getval(learned_policy_consultations_total, LPCT),
-                      LPCT_new is (LPCT + 1),
-                      setval(learned_policy_consultations_total, LPCT_new)
-                 )
-
-            )
-        ;
-            %  Inductive policy learning is turned off. ->
-            %  Compute policy through DT planning.
-	    bestDoM(Prog, [clipOnline|S], Horizon, Policy,
-		    Value, TermProb, checkEvents, Tree, RewardFunction)
-        ),
+	bestDoM(Prog, [clipOnline|S], Horizon, Policy,
+	    Value, TermProb, checkEvents, Tree, RewardFunction),
 	statistics(times, [CPUT2, SYST2, RealT2]), !,
 	param_cycletime(CycleTime),
 	event_after_every(event_exogUpdate, CycleTime),
@@ -346,74 +259,7 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	;
 	  true
 	),
-        (
-          iplearn ->
-             printf("*********** PHASE: %w.\n", [Phase]),
-             ( Phase = "pre_train" ->
-                %  Use DT planning.
-                Policy_r = applyPolicy(Policy)
-             ;
-               ( Phase = "train" ->
-                  write_learning_instance(solve(Prog, Horizon, RewardFunction),
-                                          Policy, Value, TermProb, Tree,
-                                          [clipOnline|S]),
-                  printf("Learning instance written successfully.\n", []),
-                  Policy_r = applyPolicy(Policy)
-               ;
-                  %  Phase = "consult"
-                  Policy_r = applyLearnedPolicy(Policy, solve(Prog, Horizon,
-                                                RewardFunction), S),
-                  %  Print and write out statistics in log file
-                  getval(learned_policy_consultations_total, LPCTcurr),
-                  getval(learned_policy_consultations_successful, LPCScurr),
-                  setval(learned_policy_applications_total, LPCScurr),
-                  LPATcurr = LPCScurr,
-                  LPCFcurr is (LPCTcurr - LPCScurr),
-                  LPCratio is (LPCScurr / LPCTcurr),
-
-                  getval(learned_policy_applications_failed, LPAFcurr),
-                  LPAScurr is (LPCScurr - LPAFcurr),
-                  LPAratio is (LPAScurr / LPCScurr),
-
-                  ( exists('learned_policy.log') ->
-                     open('learned_policy.log', append, StreamLog),
-                     printf(StreamLog, "--------------- CONSULTATION --------------\n", []),
-                     printf(StreamLog, "%w total consultations of learned policies.\n", [LPCTcurr]),
-                     printf(StreamLog, "%w successful consultations of learned policies.\n", [LPCScurr]),
-                     printf(StreamLog, "%w failed consultations of learned policies.\n", [LPCFcurr]),
-                     printf(StreamLog, "%w ratio of consultation success to total consultations.\n", [LPCratio]),
-                     printf(StreamLog, "%w %w << consultations vs. ratio.\n", [LPCTcurr, LPCratio]),
-                     printf(StreamLog, "--------------- APPLICATION ---------------\n", []),
-                     printf(StreamLog, "%w total applications of learned policies.\n", [LPATcurr]),
-                     printf(StreamLog, "%w successful (complete) applications of learned policies.\n", [LPAScurr]),
-                     printf(StreamLog, "%w failed (complete) applications of learned policies.\n", [LPAFcurr]),
-                     printf(StreamLog, "%w ratio of application success to total applications.\n", [LPAratio]),
-                     printf(StreamLog, "%w %w << applications vs. ratio.\n", [LPATcurr, LPAratio]),
-                     printf(StreamLog, "-------------------------------------------\n\n", []),
-                     close(StreamLog)
-                  ;
-                     open('learned_policy.log', write, StreamLog),
-                     printf(StreamLog, "--------------- CONSULTATION --------------\n", []),
-                     printf(StreamLog, "%w total consultations of learned policies.\n", [LPCTcurr]),
-                     printf(StreamLog, "%w successful consultations of learned policies.\n", [LPCScurr]),
-                     printf(StreamLog, "%w failed consultations of learned policies.\n", [LPCFcurr]),
-                     printf(StreamLog, "%w ratio of consultation success to total consultations.\n", [LPCratio]),
-                     printf(StreamLog, "%w %w << consultations vs. ratio.\n", [LPCTcurr, LPCratio]),
-                     printf(StreamLog, "--------------- APPLICATION ---------------\n", []),
-                     printf(StreamLog, "%w total applications of learned policies.\n", [LPATcurr]),
-                     printf(StreamLog, "%w successful (complete) applications of learned policies.\n", [LPAScurr]),
-                     printf(StreamLog, "%w failed (complete) applications of learned policies.\n", [LPAFcurr]),
-                     printf(StreamLog, "%w ratio of application success to total applications.\n", [LPAratio]),
-                     printf(StreamLog, "%w %w << applications vs. ratio.\n", [LPATcurr, LPAratio]),
-                     printf(StreamLog, "-------------------------------------------\n\n", []),
-                     close(StreamLog)
-                  )
-               )
-             )
-        ;
-            %  Inductive policy learning is turned off.
-            Policy_r = applyPolicy(Policy)
-        ),
+	Policy_r = applyPolicy(Policy),
 	S_r = S.
 
 
@@ -453,12 +299,6 @@ transPr( pickBest(F, R, E), S, E_choice, S_choice, 1) :- !,
 	  BestValue = X
 	),
 	S_choice = [toss(BestValue)|S].
-
-transPr( [pickBestBindDomainVariables(E)|Rest], S, EE, SS, 1) :- !,
-        %  Execute pre-solve code that has been prepared
-        %  by rho-operator in the iplpreprocessor.
-        E,
-        transPr( Rest, S, EE, SS, 1).
 
 /* --------------------------------------------------------- */
 /*  applyPolicy                                              */
@@ -759,14 +599,9 @@ transPr( E, S, EE, SS, P) :-
 %	E_sub =.. [ProcName|Args_eval_s],
 %	/* - look up procedure with evaluated actual parameters - */
 %	proc( E_sub, E_body), !,
-        ( iplearn ->
-           /* use transformed proc with solve contexts in standard form */
-           /* do not evaluate args */
-           ipl_proc( E, E_body), !, transPr( E_body, S, EE, SS, P)
-        ;
-	   /* do not evaluate args */
-	   proc( E, E_body), !, transPr( E_body, S, EE, SS, P)
-        ).
+	/* do not evaluate args */
+	proc( E, E_body), !, transPr( E_body, S, EE, SS, P)
+        .
 
 
 

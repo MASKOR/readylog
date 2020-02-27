@@ -34,8 +34,6 @@
 	initial_P/2, initial_LL/1, initial_LL/2, 
 	current_val/3, temp_val/3, temp_val/4, causes_val/4, ssa/3, 
 	proc/2, proc_model/2, proc_poss/2, proc_costs/3,
-        /* --  IPL transformed procs             */
-        ipl_proc/2,
 	/* --  stoch_procs                       */
 	stoch_proc/1,
 	stoch_proc_poss/2,
@@ -121,11 +119,6 @@ is_proc_term(T) :- once((
 is_prim_action_term(T) :- once((
 	free_args(T, T_free)
 	, prim_action(T_free)
-)).
-
-is_ipl_proc_term(T) :- once((
-	free_args(T, T_free)
-	, ipl_proc(T_free, _)
 )).
 
 /* T2 is T1 with X1 substituted by X2 */

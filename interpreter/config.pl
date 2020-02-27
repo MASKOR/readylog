@@ -85,57 +85,9 @@ use_state_abstraction :- true.
  */
 use_caching :- true.
 
-
 /* print exogenous action queue.
  */
 :- setval(debug_exoq, true).
-
-/* IPLearn: Inductive policy learning for DT-planning.
- * turn on for activating the IPLearning component
- */
-:- setval(iplearn, false).
-iplearn :- getval(iplearn, X), X=true.
-toggle_iplearn :- getval(iplearn, X),
-       (
-          X ->
-          setval(iplearn, false),
-          printf("IPLearn turned OFF\n", [])
-       ;
-          setval(iplearn, true),
-          printf("IPLearn turned ON\n", [])
-       ).
-
-/* Use multivariate IPLearning with custom
- *  multivariate attributes?
- */
-:- setval(multivariate, false).
-multivariate :- getval(multivariate, X), X=true.
-
-/* Adaptive IPL: If turned on, adaptive IPL
- *  automatically decides for each solve context,
- *  when the decision tree is accurate enough
- *  and then triggers the  consultation phase
- *  (for that solve context). */
-:- setval(adaptive_ipl, false).
-adaptive_ipl :- getval(adaptive_ipl, X), X=true.
-toggle_adaptive_ipl :- getval(adaptive_ipl, X),
-       (
-          X ->
-          setval(adaptive_ipl, false),
-          printf("Adaptive IPL turned OFF\n", [])
-       ;
-          setval(adaptive_ipl, true),
-          printf("Adaptive IPL turned ON\n", [])
-       ).
-
-%  Constant defining the maximum domain size for a pickBest.
-:- setval( pick_best_domain_size_max, 10 ).
-
-%  For logging of learned policy consultations/applications.
-:- setval(learned_policy_consultations_total, 0.0).
-:- setval(learned_policy_consultations_successful, 0.0).
-:- setval(learned_policy_applications_total, 0.0).
-:- setval(learned_policy_applications_failed, 0.0).
 
 %  For logging of consultation times.
 :- setval(consultation_time_cpu, 0.0).

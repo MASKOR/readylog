@@ -63,11 +63,6 @@
  */
 :- ensure_loaded('decisionTheoretic').
 
-/* load inductive policy learning extension.
- *  feature can be turned on/off by toggle_iplearn flag
- */
-:- iplearn -> ensure_loaded('iplearner.pl') ; true.
-
 /* load options extension.
  *  this is currently not in use 
  *  because it needs full enumeration of the state space
@@ -127,21 +122,6 @@ icpgolog(E) :-
 	    writeln("ADVANCED PROGRESSION DISABLED."),
 	    nl
 	),
-        (iplearn ->
-            writeln("INDUCTIVE POLICY LEARNING ENABLED."),
-            nl,
-%            initialise_iplearner,
-            (getval(param_exog_prim_fluents, true) ->
-                writeln("WORLD MODEL CONTAINS PARAMETERISED EXOG. FLUENTS."),
-                nl
-            ;
-                writeln("WORLD MODEL CONTAINS NO PARAMETERISED EXOG. FLUENTS."),
-                nl
-            )
-        ;
-            writeln("INDUCTIVE POLICY LEARNING DISABLED."),
-            nl
-        ),
 	statistics(hr_time, T0_main),
         icpgo(E, [s0]),
 	statistics(hr_time, T1_main),
@@ -1072,9 +1052,6 @@ holds(P,H) :-
 holds(P,H) :- is_proc_term(P), !, subf(P,P1,H), % call-by-value
               proc(P1,P2), holds(P2,H).
 
-holds(P,H) :- iplearn, is_ipl_proc_term(P), !, subf(P,P1,H), % call-by-value
-              ipl_proc(P1,P2), holds(P2,H).
-
 /* allow conditions returned by functions */
 holds(P,H) :- is_function_term(P), !, subf(P,P1,H),
               holds(P1,H).  
@@ -1135,8 +1112,6 @@ holds_not(P,H) :-
 holds_not(P,H) :- is_fluent_term(P), !, subf(P,P1,H), call(not(P1)).
 holds_not(P,H) :- is_proc_term(P), !, subf(P,P1,H),  % call-by-value
 	          proc(P1,P2), holds(not(P2),H). 
-holds_not(P,H) :- iplearn, is_ipl_proc_term(P), !, subf(P,P1,H),  % call-by-value
-	          ipl_proc(P1,P2), holds(not(P2),H). 
 holds_not(P,H) :- !, not holds(P,H).  % Negation by failure
 
 
@@ -1415,38 +1390,6 @@ has_val(F, V, _H) :-
 	exog_fluent(F), !,
 	exog_fluent_getValue(F, V, [])
 .
-
-/* If IPLearning is active, and there are parameterised exogenous
- *  primitive fluents in the world model, we need to keep book
- *  of all the instantiated has_val calls to those fluents. If the
- *  program has allowed these calls in the past, we know that it is
- *  save to evaluate the fluents with the same calls, without causing
- *  a segmentation fault. */
-has_val(F,_V,_S) :- iplearn, param_exog_prim_fluents,
-        ipl_pre_training_phase,
-        is_param_exog_prim_fluent(F),
-        %  Check if the fluent is completely instantiated.
-        ground(F),
-        %  (Still lets 'epf_ItemStatus(InventorySpot358)' pass)
-           F =.. [Functor | _Args],
-           Functor \= epf_ItemStatus, 
-        getval(param_exog_prim_fluent_calls, CallList),
-        %  If it's not already in the call list...
-        not(member(F, CallList)),
-        %  ... add this (instantiated) fluent to the call list.
-        NewCallList = [F | CallList],
-%	printf("\n\n ##### PARAM_EXOG_PRIM_FLUENT_CALLS: #####\n", []), flush(output),
-%	print_list(NewCallList), flush(output),
-%        length(NewCallList, NewCallListSize),
-%	printf("\n\n ##### Size of PARAM_EXOG_PRIM_FLUENT_CALLS: %w #####\n", [NewCallListSize]), flush(output),
-        %  Store the time of the last change to
-        %  the list param_exog_prim_fluent_calls.
-        cputime(ChangeTime),
-%	printf("\n\n ##### setval(last_change_to_fluent_calls, %w) #####\n", [ChangeTime]), flush(output),
-        setval(last_change_to_fluent_calls, ChangeTime),
-        setval(param_exog_prim_fluent_calls, NewCallList),
-        %  Force matching of the other clauses.
-        false.
 
 /* situation term of length one: look up the fluent value in the
 knowledge base created by progression or if the situation is [s0]
