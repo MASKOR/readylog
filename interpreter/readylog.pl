@@ -68,13 +68,7 @@
  *  utils.pl offers readylog shell functionality 
  *  with auto completion and history
  */
-:- ensure_loaded('../utils/utils.pl').
-
-/* load icp_shell.
- *  icp_shell offers shell functionality 
- *  with auto completion and history
- */
-%:- ensure_loaded("../../utils/icp_shell/icp_shell.pl").
+:- ensure_loaded('utils').
 
 /* some local variables.
  * min is needed to calculate the least time point of continuous fluents
