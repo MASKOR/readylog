@@ -1,14 +1,20 @@
-These people have contributed to ReadyLog as part of their thesis work
-======================================================================
+ReadyLog is based on ICPGolog by Frank Dylla.
 
-Norman Jansen — Designing a framework for developing deliberative components in highly-dynamic uncertain environments, 2003
-Christian Fritz — Integrating decision-theoretic planning and programming for robot control in highly dynamic domains, 2003
-Niklas Mausberg — Using reinforcement learning methods for action selection in dynamic domains, 2005
-Stefan Schiffer — A qualitative worldmodel for autonomous soccer agents in the readylog framework, 2005 
-Stefan Jacobs — Applying readylog to agent programming in interactive computer games, 2005
-Philipp Vorst — A readylog agent framework for the robocup 3d soccer simulation league, 2006
-Daniel Beck — Developing a physical simulation environment for teams of soccer robots, 2006
-Lutz Böhnstedt — Macro-actions for highly dynamic domains in readylog, 2007 
-Christoph Mies — Repairing policies of readylog in highly dynamic domains using goal-oriented planning, 2007
-Carsten Gester — Observing models of stochastic actions in readylog, 2007
+Significant contributions to its development have been made by the following
+people:
+
+Daniel Beck
+Lutz Böhnstedt
+Alexander Ferrein
+Christian Fritz
+Carsten Gester
+Niklas Hoppe
+Stefan Jacobs
+Norman Jansen
+Niklas Mausberg
+Christoph Mies
+Dennis Pannhausen
+Stefan Schiffer
+Philipp Vorst
+Andreas Wortmann
 
