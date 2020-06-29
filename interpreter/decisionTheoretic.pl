@@ -123,16 +123,6 @@ bestDoM_event( Program, [], S, H, Pol, V, Prob, Tree, RewardFunction) :-
 	bestDoM( Program, S, H, Pol, V, Prob, ignoreEvents, Tree, RewardFunction).
 
 bestDoM_event( Program, [Event| Rest], S, H, Pol, V, Prob, Tree, RewardFunction) :-
-	/* <state_abstraction> */
-%	(
-%	  use_caching ->
-%	  sit2state(S, State)
-%	  State = S
-%	;
-%	  State = S
-%	),
-	/* </state_abstraction> */
-	
 	(
 	  /* check if event possible */
 	  prolog_event_poss(Event, S) ->

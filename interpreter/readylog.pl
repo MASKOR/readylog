@@ -1230,29 +1230,9 @@ subf(P1,P2,H)  :- % Check whether a term is a fluent with unbound arguments
 [X,Y]) */
 subf(P,P2,H)  :-
 	is_function_term(P),!,
- 	/*<state_abstraction> */
- 	(
- 	  %printColor(green, "Before QQ \n", []),
- 	  use_state_abstraction, holds(not(online), H) ->
- 	  bb_dbg(5, green, "Using QQ \n", []),
- 	  P =.. [Function|Args],
- 	  term_string(Function, FunctionString),
- 	  append_strings("qq_", FunctionString, FunctionStringNew),
- 	  term_string(FunctionNew, FunctionStringNew),
- 	  PNew =..[FunctionNew|Args],
- 	  (
- 	    function(PNew, _, _) ->
- 	    P1 = PNew
- 	  ;
- 	    bb_dbg(5,red, "QQ-Function %w does not exist\n", [PNew]),
- 	    P1 = P
- 	  )
- 	;
-	  P1 = P
-	), /*</state_abstraction> */
 	bb_dbg(5, green, "After QQ\n\n", []),
 	/* evaluating parameters */
-	P1=..[F|L1],
+	P=..[F|L1],
 	/* special function id returns the argument as a string
 	without evaluating it first ! */
 	(
@@ -1266,7 +1246,7 @@ subf(P,P2,H)  :-
 	  (
 	    /* if preprocessed version of this function exists:
 	    use it! */
-	    prolog_function(P1) ->
+	    prolog_function(P) ->
 	    prolog_function(P3, P2, H)
 	  ;
 	    function(P3,P4,Praed) ->
