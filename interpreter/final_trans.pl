@@ -260,6 +260,7 @@ transPr( solve(Prog, Horizon, RewardFunction), S, Policy_r, S_r, 1) :- !,
 	;
 	  true
 	),
+	flush(output),
 	Policy_r = applyPolicy(Policy),
 	S_r = S.
 
