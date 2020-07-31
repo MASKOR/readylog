@@ -68,7 +68,8 @@ final(E,S) :- proc(E,E1), final(E1,S).
  */
 trans(Ex, S, E_trans, S_trans) :-
 	( flatten(Ex, E) ; E = Ex )
-	, transPr(E, S, E_trans, S_trans, 1)
+	, transPr(E, S, E1, S_trans, 1)
+	, flatten(E1, E_trans)
 .
 
 /* Sequence.
