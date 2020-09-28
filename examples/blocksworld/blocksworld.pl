@@ -80,18 +80,14 @@ proc(goal,
 
 proc(main,
 	solve(
-/*		pickBest(Y, [a, table],
-			stack(b, Y)
-		),%*/
 		while(not(goal), [
 			print_status,
 			nondet(Any)
 		]),
-	8,
-	goal_reward
+		8,
+		goal_reward
 	)
 )  :-
 	findall(stack(X, Y), prim_action(stack(X, Y)), Any)
-%*/
 .
 
