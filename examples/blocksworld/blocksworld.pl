@@ -1,5 +1,5 @@
-:- ensure_loaded('../../interpreter/readylog/readylog.pl').
-:- ensure_loaded('processed_agent.pl').
+:- ensure_loaded('../../interpreter/readylog.pl').
+%:- ensure_loaded('processed_agent.pl').
 
 
 /* Boilerplate stuff */
@@ -18,26 +18,19 @@ blocks([a,b,c]).
 block(X) :- blocks(L), member(X, L).
 object(X) :- block(X); X = table.
 
-prim_fluent(on(B)) :- block(B).
-initial_val(on(a), table).
-initial_val(on(b), table).
-initial_val(on(c), a).
-
-prim_fluent(tried(X, Y)) :-
-	block(X), object(Y).
-initial_val(tried(X, Y), false) :-
-	block(X), object(Y).
-
+prim_fluent(loc(B)) :- block(B).
+initial_val(loc(a), table).
+initial_val(loc(b), table).
+initial_val(loc(c), a).
 
 prim_action(stack(X, Y)) :-
 	block(X), object(Y), X \= Y.
 
 poss(stack(X, Y),
 	not(or([
-		tried(X, Y),
-		on(X) = Y,
-		some(n,	on(n) = X),
-		some(m, on(m) = Y)
+		loc(X) = Y,
+		some(n,	loc(n) = X),
+		some(m, loc(m) = Y)
 	]))
 ) :-
 	block(X), block(Y), X \= Y
@@ -45,16 +38,14 @@ poss(stack(X, Y),
 
 poss(stack(X, table),
 	not(or([
-		tried(X, table),
-		on(X) = table,
-		some(n, on(n) = X)
+		loc(X) = table,
+		some(n, loc(n) = X)
 	]))
 ) :-
 	block(X)
 .
 
-causes_val(stack(X, Y), on(X), Y, true).
-causes_val(stack(X, Y), tried(X, Y), true, true).
+causes_val(stack(X, Y), loc(X), Y, true).
 
 execute(stack(X, Y), _, H) :-
 	printf('Stacking %w on %w.%n', [X, Y]); true. %*/
@@ -63,9 +54,9 @@ execute(stack(X, Y), _, H) :-
 prim_action(print_status).
 poss(print_status, true).
 execute(print_status, _, H) :-
-	has_val(on(a), A_on, H),
-	has_val(on(b), B_on, H),
-	has_val(on(c), C_on, H),
+	has_val(loc(a), A_on, H),
+	has_val(loc(b), B_on, H),
+	has_val(loc(c), C_on, H),
 	printf('a on %w, b on %w, c on %w%n', [A_on, B_on, C_on])
 .
 
@@ -73,7 +64,7 @@ execute(print_status, _, H) :-
 /* Reward function for goal */
 
 function(goal_reward, V,
-	lif(goal, V = 100, V = 0)
+	lif(goal, V = 100, V = -1)
 ).
 
 
@@ -81,9 +72,9 @@ function(goal_reward, V,
 
 proc(goal,
 	and([
-		on(a) = table,
-		on(b) = a,
-		on(c) = b
+		loc(a) = table,
+		loc(b) = a,
+		loc(c) = b
 	])
 ).
 
