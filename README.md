@@ -8,3 +8,7 @@ main directory of this repository:
 ```
 eclipse -f examples/blocksworld/blocksworld.pl -e 'icp(main)'
 ```
+
+The theory, background and semantics of the ReadyLog language are covered in
+detail in [Alexander Ferrein](http://robotics.fh-aachen.de/~ferrein/)'s
+[PhD thesis](http://publications.rwth-aachen.de/record/49943/files/Ferrein_Alexander.pdf)
