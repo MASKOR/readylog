@@ -89,16 +89,6 @@ toggle_dtrewards :- getval(dtrewards, X),
 /*  bestDoM                                                  */
 /* --------------------------------------------------------- */
 
-/* former bestDoM/6 is a bestDoM where events are still to be checked */
-bestDoM(Program, S, H, Pol, V, Prob) :-
-	bestDoM(Program, S, H, Pol, V, Prob, checkEvents).
-
-bestDoM(Program, S, H, Pol, V, Prob, Events) :-
-	bestDoM(Program, S, H, Pol, V, Prob, Events, _Tree).
-
-bestDoM(Program, S, H, Pol, V, Prob, Events, Tree) :-
-	bestDoM(Program, S, H, Pol, V, Prob, Events, Tree, reward).
-
 	 
 /* --- explicit event models --- */
 
